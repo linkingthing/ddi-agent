@@ -19,7 +19,6 @@ type ServerConf struct {
 	IsDHCP       bool   `yaml:"is_dhcp"`
 	IsDNS        bool   `yaml:"is_dns"`
 	IP           string `yaml:"ip"`
-	Port         string `yaml:"port"`
 	Hostname     string `yaml:"hostname"`
 	ParentIP     string `yaml:"parent_ip"`
 }
@@ -38,8 +37,9 @@ type PrometheusConf struct {
 }
 
 type MetricConf struct {
-	HistoryLength int `yaml:"history_length"`
-	Period        int `yaml:"period"`
+	Port          string `yaml:"port"`
+	HistoryLength int    `yaml:"history_length"`
+	Period        int    `yaml:"period"`
 }
 
 type DnsConf struct {
