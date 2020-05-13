@@ -13,9 +13,9 @@ import (
 	"github.com/ben-han-cn/cement/shell"
 	kv "github.com/ben-han-cn/kvzoo"
 	"github.com/ben-han-cn/kvzoo/backend/bolt"
+	"github.com/linkingthing/ddi-agent/pkg/rrupdate"
 	"github.com/linkingthing/ddi-metric/pb"
 	"github.com/linkingthing/ddi-metric/utils/random"
-	"github.com/linkingthing/ddi-metric/utils/rrupdate"
 	"sort"
 )
 

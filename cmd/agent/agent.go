@@ -8,7 +8,7 @@ import (
 	"github.com/linkingthing/ddi-agent/config"
 	dnsclient "github.com/linkingthing/ddi-agent/pkg/dns/client"
 	"github.com/linkingthing/ddi-agent/pkg/grpcserver"
-	"github.com/linkingthing/ddi-metric/exporter"
+	"github.com/linkingthing/ddi-agent/pkg/metric/exporter"
 	"github.com/linkingthing/ddi-metric/register"
 	"github.com/linkingthing/ddi-metric/utils/currentdirectory"
 	"github.com/zdnscloud/cement/log"
@@ -29,7 +29,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("load config file failed: %s", err.Error())
 	}
-	handler := exporter.NewMetricsHandler(conf.Dns.ConfDir, conf.Metric.HistoryLength, conf.Metric.Period, conf.Dns.DBDir)
+	handler := exporter.NewMetricsHandler(conf.Dns.ConfDir, conf.Metric.HistoryLength, conf.Metric.Period, conf.Dns.DBDir, conf.Dhcp.Addr)
 	go handler.Statics()
 	go handler.DNSExporter(conf.Metric.Port, "/metrics", "dns")
 	prometheusAddr := strings.Split(conf.Prometheus.Addr, ":")

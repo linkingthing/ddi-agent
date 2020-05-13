@@ -12,6 +12,7 @@ type AgentConfig struct {
 	Prometheus PrometheusConf `yaml:"prometheus"`
 	Metric     MetricConf     `yaml:"metric"`
 	Dns        DnsConf        `yaml:"dns"`
+	Dhcp       DhcpConf       `yaml:"dhcp"`
 }
 
 type ServerConf struct {
@@ -45,6 +46,10 @@ type MetricConf struct {
 type DnsConf struct {
 	ConfDir string `yaml:"conf_dir"`
 	DBDir   string `yaml:"db_dir"`
+}
+
+type DhcpConf struct {
+	Addr string `yaml:"addr"`
 }
 
 func LoadConfig(path string) (*AgentConfig, error) {
