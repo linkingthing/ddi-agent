@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,7 +26,7 @@ const (
 type MetricsHandler struct {
 	configPath    string
 	HistoryLength int
-	dbHandler     *boltdb.BoltHandler
+	collector     *Collector
 }
 
 func Init(conf *config.AgentConfig) {
@@ -33,10 +34,10 @@ func Init(conf *config.AgentConfig) {
 		configPath:    conf.Dns.ConfDir,
 		HistoryLength: conf.Metric.HistoryLength,
 	}
-	handler.dbHandler = boltdb.New(conf.Dns.DBDir, "dnsmetrics.db")
 
+	handler.collector = newCollector(conf.Dhcp.Addr)
 	go handler.Statics(conf.Metric.Period)
-	go handler.Exporter(conf.Dhcp.Addr, conf.Metric.Port)
+	go handler.Exporter(conf.Metric.Port)
 
 }
 
@@ -47,7 +48,7 @@ func (h *MetricsHandler) Statics(tickerInterval int) {
 	ticker := time.NewTicker(time.Duration(tickerInterval) * time.Second)
 	for {
 		select {
-		case <-h.Ticker.C:
+		case <-ticker.C:
 			if _, err := shell.Shell(rndcPath, "-c"+rndcConfPath, "stats"); err != nil {
 				log.Warnf("run rndc failed: %s", err.Error())
 				continue
@@ -105,7 +106,7 @@ func (h *MetricsHandler) QueryStatics() error {
 }
 
 func getKeyAndValueFromStatsFile(keyParam string, valueParam ...string) (string, string, error) {
-	key, err := shell.Shell("grep", "Dump ---", keyparam)
+	key, err := shell.Shell("grep", "Dump ---", keyParam)
 	if err != nil {
 		return "", "", fmt.Errorf("get key from dns statistic file: %s", err.Error())
 	}
@@ -150,7 +151,7 @@ func (h *MetricsHandler) CacheHitStatis() error {
 func getStatsTotal(value string) []byte {
 	var total int
 	for _, v := range strings.Split(strings.TrimSuffix(value, "\n"), "\n") {
-		num, err := strconv.Atoi(getNumStrFromString(v))
+		num, err := strconv.Atoi(string(getNumBytesFromString(v)))
 		if err != nil {
 			break
 		}
@@ -186,7 +187,7 @@ func (h *MetricsHandler) RetCodeStatics(retCode string, table string) error {
 }
 
 func (h *MetricsHandler) SaveToDB(key string, value []byte, table string) error {
-	values, err := h.dbHandler.TableKVs(table)
+	values, err := boltdb.GetDB().GetTableKVs(table)
 	if err != nil {
 		return err
 	}
@@ -204,19 +205,21 @@ func (h *MetricsHandler) SaveToDB(key string, value []byte, table string) error 
 	}
 
 	newKVs := map[string][]byte{key: value}
-	if err := h.dbHandler.DeleteKVs(table, delKeys); err != nil {
+	if err := boltdb.GetDB().DeleteKVs(table, delKeys); err != nil {
 		return err
 	}
 
-	if err := h.dbHandler.AddKVs(table, newKVs); err != nil {
+	if err := boltdb.GetDB().AddKVs(table, newKVs); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (h *MetricsHandler) Exporter(dhcpAddr, metricPort string) {
+func (h *MetricsHandler) Exporter(metricPort string) {
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(newCollector(h.dbHandler, dhcpAddr))
+	registry.MustRegister(h.collector)
 	http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
-	log.Fatal(http.ListenAndServe(":"+metricPort, nil))
+	if err := http.ListenAndServe(":"+metricPort, nil); err != nil {
+		log.Fatalf(err.Error())
+	}
 }

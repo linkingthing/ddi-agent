@@ -2,13 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"strings"
 
 	"github.com/zdnscloud/cement/log"
 	"google.golang.org/grpc"
 
 	"github.com/linkingthing/ddi-agent/config"
+	"github.com/linkingthing/ddi-agent/pkg/boltdb"
 	dnsconsumer "github.com/linkingthing/ddi-agent/pkg/dns/kafkaconsumer"
 	"github.com/linkingthing/ddi-agent/pkg/grpcserver"
 	"github.com/linkingthing/ddi-agent/pkg/metric"
@@ -26,6 +25,10 @@ func main() {
 	conf, err := config.LoadConfig(configFile)
 	if err != nil {
 		log.Fatalf("load config file failed: %s", err.Error())
+	}
+
+	if err := boltdb.New(conf.DB.Dir); err != nil {
+		log.Fatalf("new db failed: %s", err.Error())
 	}
 
 	metric.Init(conf)

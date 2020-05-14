@@ -1,8 +1,7 @@
-package collector
+package metric
 
 import (
 	"encoding/json"
-	"fmt"
 	"os/exec"
 	"regexp"
 )

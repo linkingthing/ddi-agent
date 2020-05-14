@@ -1,7 +1,7 @@
 package grpcserver
 
 import (
-	"log"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -10,12 +10,12 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/linkingthing/ddi-agent/config"
-	dns "github.com/linkingthing/ddi-agent/pkg/dns/grpcservice"
+	dnssrv "github.com/linkingthing/ddi-agent/pkg/dns/grpcservice"
 	"github.com/linkingthing/ddi-metric/pb"
 )
 
 type GRPCServer struct {
-	dnsService *grpcservice.DNSService
+	dnsService *dnssrv.DNSService
 	server     *grpc.Server
 	listener   net.Listener
 }
@@ -36,9 +36,13 @@ func New(conf *config.AgentConfig) (*GRPCServer, error) {
 		listener: listener,
 	}
 
-	if conf.Server.DnsEnabled {
-		grpcServer.dnsService = dns.NewDNSService(conf.Dns.ConfDir, agentExecDir)
-		pb.RegisterAgentManagerServer(grpcServer.server, grpcServer.dnsService)
+	if conf.Server.DNSEnabled {
+		dnsService, err := dnssrv.New(conf.Dns.ConfDir, agentExecDir)
+		if err != nil {
+			return nil, err
+		}
+		grpcServer.dnsService = dnsService
+		pb.RegisterAgentManagerServer(grpcServer.server, dnsService)
 		//TODO add DHCP service and register dhcp service to grpc server
 	}
 

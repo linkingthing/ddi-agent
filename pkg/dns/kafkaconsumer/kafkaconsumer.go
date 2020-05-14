@@ -2,12 +2,14 @@ package kafkaconsumer
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/protobuf/proto"
 	kg "github.com/segmentio/kafka-go"
 	"google.golang.org/grpc"
 
+	"github.com/zdnscloud/cement/log"
+
+	"github.com/linkingthing/ddi-agent/config"
 	"github.com/linkingthing/ddi-metric/pb"
 	"github.com/linkingthing/ddi-metric/register"
 )

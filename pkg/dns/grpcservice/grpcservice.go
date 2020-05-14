@@ -16,8 +16,12 @@ type DNSService struct {
 	handler *DNSHandler
 }
 
-func NewDNSService(dnsConfPath string, agentPath string) *DNSService {
-	return &DNSService{newDNSHandler(dnsConfPath, agentPath)}
+func New(dnsConfPath string, agentPath string) (*DNSService, error) {
+	handler, err := newDNSHandler(dnsConfPath, agentPath)
+	if err != nil {
+		return nil, err
+	}
+	return &DNSService{handler: handler}, nil
 }
 
 func (service *DNSService) StartDNS(content context.Context, req *pb.DNSStartReq) (*pb.OperResult, error) {

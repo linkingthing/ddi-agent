@@ -13,6 +13,7 @@ type AgentConfig struct {
 	Metric     MetricConf     `yaml:"metric"`
 	Dns        DnsConf        `yaml:"dns"`
 	Dhcp       DhcpConf       `yaml:"dhcp"`
+	DB         DBConf         `yaml:"db"`
 }
 
 type ServerConf struct {
@@ -51,6 +52,10 @@ type DnsConf struct {
 
 type DhcpConf struct {
 	Addr string `yaml:"addr"`
+}
+
+type DBConf struct {
+	Dir string `yaml:"dir"`
 }
 
 func LoadConfig(path string) (*AgentConfig, error) {

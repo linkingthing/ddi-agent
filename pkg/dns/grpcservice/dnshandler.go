@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"sort"
 	"strconv"
@@ -12,9 +13,9 @@ import (
 	"time"
 
 	"github.com/zdnscloud/cement/shell"
-	kv "github.com/zdnscloud/kvzoo"
-	"github.com/zdnscloud/kvzoo/backend/bolt"
+	"github.com/zdnscloud/g53"
 
+	"github.com/linkingthing/ddi-agent/pkg/boltdb"
 	"github.com/linkingthing/ddi-metric/pb"
 	"github.com/linkingthing/ddi-metric/utils/random"
 )
@@ -51,15 +52,13 @@ const (
 	redirectTpl        = "redirect.tpl"
 	rpzTpl             = "rpz.tpl"
 	rndcPort           = "953"
-	opSuccess          = 0
-	opFail             = 1
 	checkPeriod        = 5
 	dnsServer          = "localhost:53"
 )
 
 type DNSHandler struct {
 	tpl         *template.Template
-	db          kv.DB
+	db          *boltdb.BoltDB
 	dnsConfPath string
 	dBPath      string
 	tplPath     string
@@ -67,7 +66,7 @@ type DNSHandler struct {
 	quit        chan int
 }
 
-func newDNSHandler(dnsConfPath string, agentPath string) *DNSHandler {
+func newDNSHandler(dnsConfPath string, agentPath string) (*DNSHandler, error) {
 	var tmpDnsPath string
 	if dnsConfPath[len(dnsConfPath)-1] != '/' {
 		tmpDnsPath = dnsConfPath + "/"
@@ -82,92 +81,99 @@ func newDNSHandler(dnsConfPath string, agentPath string) *DNSHandler {
 	}
 
 	instance := &DNSHandler{dnsConfPath: tmpDnsPath, dBPath: tmpDBPath, tplPath: tmpDnsPath + "templates/"}
-	pbolt, err := bolt.New(tmpDBPath + dBName)
-	if err != nil {
-		panic(err)
-	}
-	instance.db = pbolt
+	var err error
 	instance.tpl, err = template.ParseFiles(instance.tplPath + namedTpl)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	instance.tpl, err = instance.tpl.ParseFiles(instance.tplPath + zoneTpl)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	instance.tpl, err = instance.tpl.ParseFiles(instance.tplPath + aCLTpl)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	instance.tpl, err = instance.tpl.ParseFiles(instance.tplPath + nzfTpl)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	instance.tpl, err = instance.tpl.ParseFiles(instance.tplPath + redirectTpl)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	instance.tpl, err = instance.tpl.ParseFiles(instance.tplPath + rpzTpl)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	instance.ticker = time.NewTicker(checkPeriod * time.Second)
 	instance.quit = make(chan int)
 	//check wether the default acl "any" and "none" is exist.if not add the any and none into the database.
 	anykvs := map[string][]byte{}
-	anykvs, err = instance.tableKVs(aCLsPath + "1")
+	anykvs, err = boltdb.GetDB().GetTableKVs(aCLsPath + "1")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	if len(anykvs) == 0 {
 		anykvs["name"] = []byte("any")
-		if err := instance.addKVs(aCLsPath+"1", anykvs); err != nil {
-			panic(err)
+		if err := boltdb.GetDB().AddKVs(aCLsPath+"1", anykvs); err != nil {
+			return nil, err
 		}
 	}
+
 	nonekvs := map[string][]byte{}
-	nonekvs, err = instance.tableKVs(aCLsPath + "2")
+	nonekvs, err = boltdb.GetDB().GetTableKVs(aCLsPath + "2")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	if len(nonekvs) == 0 {
 		nonekvs["name"] = []byte("none")
-		if err := instance.addKVs(aCLsPath+"2", nonekvs); err != nil {
-			panic(err)
+		if err := boltdb.GetDB().AddKVs(aCLsPath+"2", nonekvs); err != nil {
+			return nil, err
 		}
 	}
-	//check wether the default view "default" is exists. if not add the default into the database, with the acl any,with the view's priority.
-	//the ID of the default view "default" is 100000.can not be 1.cause it will confilct with the priority kv pair ("1","1")
+
 	viewkvs := map[string][]byte{}
-	viewkvs, err = instance.tableKVs(viewsPath + "1000000")
+	viewkvs, err = boltdb.GetDB().GetTableKVs(viewsPath + "1000000")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	if len(viewkvs) == 0 {
-		//add priority
 		prikvs := map[string][]byte{}
-		if prikvs, err = instance.tableKVs(viewsEndPath); err != nil {
-			panic(err)
+		if prikvs, err = boltdb.GetDB().GetTableKVs(viewsEndPath); err != nil {
+			return nil, err
 		}
+
 		addkvs := map[string][]byte{strconv.Itoa(len(prikvs) + 1): []byte("1000000")}
-		if err := instance.addKVs(viewsEndPath, addkvs); err != nil {
-			panic(err)
+		if err := boltdb.GetDB().AddKVs(viewsEndPath, addkvs); err != nil {
+			return nil, err
 		}
-		//add the default view.
+
 		viewkvs["name"] = []byte("default")
 		viewkvs["key"] = []byte(random.CreateRandomString(12))
-		if err := instance.addKVs(viewsPath+"1000000", viewkvs); err != nil {
-			panic(err)
+		if err := boltdb.GetDB().AddKVs(viewsPath+"1000000", viewkvs); err != nil {
+			return nil, err
 		}
 	}
+
 	var acls []string
-	acls, err = instance.tables(viewsPath + "1000000" + aCLsEndPath)
+	acls, err = boltdb.GetDB().GetTables(viewsPath + "1000000" + aCLsEndPath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
 	if len(acls) == 0 {
-		if _, err := instance.db.CreateOrGetTable(kv.TableName(viewsPath + "1000000" + aCLsPath + "1")); err != nil {
-			panic(err)
+		if _, err := boltdb.GetDB().CreateOrGetTable(viewsPath + "1000000" + aCLsPath + "1"); err != nil {
+			return nil, err
 		}
 	}
 	req := pb.DNSStartReq{}
@@ -175,7 +181,7 @@ func newDNSHandler(dnsConfPath string, agentPath string) *DNSHandler {
 	//panic(err)  //can not exit the program cause other kafka cmd should be execuetd to fix the bind's configure.
 	//}
 	instance.StartDNS(req)
-	return instance
+	return instance, nil
 }
 
 type namedData struct {
@@ -323,7 +329,7 @@ func (handler *DNSHandler) StopDNS() error {
 }
 
 func (handler *DNSHandler) CreateACL(req pb.CreateACLReq) error {
-	err := handler.addKVs(aCLsPath+req.ID, map[string][]byte{"name": []byte(req.Name)})
+	err := boltdb.GetDB().AddKVs(aCLsPath+req.ID, map[string][]byte{"name": []byte(req.Name)})
 	if err != nil {
 		return err
 	}
@@ -331,7 +337,7 @@ func (handler *DNSHandler) CreateACL(req pb.CreateACLReq) error {
 	for _, ip := range req.IPs {
 		values[ip] = []byte("")
 	}
-	if err := handler.addKVs(aCLsPath+req.ID+iPsEndPath, values); err != nil {
+	if err := boltdb.GetDB().AddKVs(aCLsPath+req.ID+iPsEndPath, values); err != nil {
 		return err
 	}
 	aCLData := ACL{ID: req.ID, Name: req.Name, IPs: req.IPs}
@@ -366,7 +372,7 @@ func (handler *DNSHandler) UpdateACL(req pb.UpdateACLReq) error {
 }
 
 func (handler *DNSHandler) DeleteACL(req pb.DeleteACLReq) error {
-	kvs, err := handler.tableKVs(aCLsPath + req.ID)
+	kvs, err := boltdb.GetDB().GetTableKVs(aCLsPath + req.ID)
 	if err != nil {
 		return err
 	}
@@ -378,8 +384,7 @@ func (handler *DNSHandler) DeleteACL(req pb.DeleteACLReq) error {
 		return err
 	}
 
-	handler.db.DeleteTable(kv.TableName(aCLsPath + req.ID))
-	return nil
+	return boltdb.GetDB().DeleteTable(aCLsPath + req.ID)
 }
 
 func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
@@ -389,13 +394,12 @@ func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
 	//create table viewid and put name into the db.
 	namekvs := map[string][]byte{"name": []byte(req.ViewName)}
 	namekvs["key"] = []byte(random.CreateRandomString(12))
-	fmt.Println("view key:", string(namekvs["key"]))
-	if err := handler.addKVs(viewsPath+req.ViewID, namekvs); err != nil {
+	if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID, namekvs); err != nil {
 		return err
 	}
 	//insert aCLIDs into viewid table
 	for _, id := range req.ACLIDs {
-		if _, err := handler.tables(viewsPath + req.ViewID + aCLsPath + id); err != nil {
+		if _, err := boltdb.GetDB().GetTables(viewsPath + req.ViewID + aCLsPath + id); err != nil {
 			return err
 		}
 	}
@@ -415,13 +419,13 @@ func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 	}
 	//delete aclids for aCL
 	for _, id := range req.DeleteACLIDs {
-		if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + aCLsPath + id)); err != nil {
+		if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID + aCLsPath + id); err != nil {
 			return err
 		}
 	}
 	//add new aclids for aCL
 	for _, id := range req.AddACLIDs {
-		if _, err := handler.db.CreateOrGetTable(kv.TableName(viewsPath + req.ViewID + aCLsPath + id)); err != nil {
+		if _, err := boltdb.GetDB().CreateOrGetTable(viewsPath + req.ViewID + aCLsPath + id); err != nil {
 			return err
 		}
 	}
@@ -442,7 +446,7 @@ func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 func (handler *DNSHandler) DeleteView(req pb.DeleteViewReq) error {
 	handler.deletePriority(req.ViewID)
 	//delete table
-	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID)); err != nil {
+	if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID); err != nil {
 		return err
 	}
 	if err := handler.rewriteNamedFile(); err != nil {
@@ -468,7 +472,7 @@ func (handler *DNSHandler) CreateZone(req pb.CreateZoneReq) error {
 	names := map[string][]byte{}
 	names["name"] = []byte(req.ZoneName)
 	names["zonefile"] = []byte(req.ZoneFileName)
-	if err := handler.addKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID, names); err != nil {
+	if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID, names); err != nil {
 		return err
 	}
 	//update file
@@ -477,7 +481,7 @@ func (handler *DNSHandler) CreateZone(req pb.CreateZoneReq) error {
 	}
 	var err error
 	out := map[string][]byte{}
-	if out, err = handler.tableKVs(viewsPath + req.ViewID); err != nil {
+	if out, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID); err != nil {
 		return err
 	}
 	viewName := out["name"]
@@ -494,17 +498,17 @@ func (handler *DNSHandler) CreateZone(req pb.CreateZoneReq) error {
 func (handler *DNSHandler) DeleteZone(req pb.DeleteZoneReq) error {
 	var names map[string][]byte
 	var err error
-	if names, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
+	if names, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
 		return err
 	}
 	zoneName := names["name"]
 	zoneFile := names["zonefile"]
 	var out map[string][]byte
-	if out, err = handler.tableKVs(viewsPath + req.ViewID); err != nil {
+	if out, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID); err != nil {
 		return err
 	}
 	viewName := out["name"]
-	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + zonesPath + req.ZoneID)); err != nil {
+	if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
 		return nil
 	}
 	if string(zoneFile) == "" { // zone file equal "" stands for the forward zone.
@@ -529,20 +533,19 @@ func (handler *DNSHandler) CreateRR(req pb.CreateRRReq) error {
 	rrsMap["type"] = []byte(req.Type)
 	rrsMap["value"] = []byte(req.Value)
 	rrsMap["TTL"] = []byte(req.TTL)
-	if err := handler.addKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+rRsPath+req.RRID, rrsMap); err != nil {
+	if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+rRsPath+req.RRID, rrsMap); err != nil {
 		return err
 	}
 	var names map[string][]byte
 	var err error
-	if names, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
+	if names, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
 		return err
 	}
 	var viewsmap map[string][]byte
-	if viewsmap, err = handler.tableKVs(viewsPath + req.ViewID); err != nil {
+	if viewsmap, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID); err != nil {
 		return err
 	}
 	key := viewsmap["key"]
-	fmt.Println("createrr key:", string(viewsmap["key"]))
 	var data string
 	data = req.Name + "." + string(names["name"]) + " " + req.TTL + " IN " + req.Type + " " + req.Value
 	if err := updateRR("key"+string(viewsmap["name"]), string(key), data, string(names["name"]), true); err != nil {
@@ -557,19 +560,18 @@ func (handler *DNSHandler) CreateRR(req pb.CreateRRReq) error {
 func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 	var rrsMap map[string][]byte
 	var err error
-	if rrsMap, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + req.RRID); err != nil {
+	if rrsMap, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + req.RRID); err != nil {
 		return err
 	}
 	var names map[string][]byte
-	if names, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
+	if names, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
 		return err
 	}
 	var viewsmap map[string][]byte
-	if viewsmap, err = handler.tableKVs(viewsPath + req.ViewID); err != nil {
+	if viewsmap, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID); err != nil {
 		return err
 	}
 	key := viewsmap["key"]
-	fmt.Println("updaterr key:", string(viewsmap["key"]))
 	oldData := string(rrsMap["name"]) + "." + string(names["name"]) + " " + string(rrsMap["TTL"]) + " IN " + string(rrsMap["type"]) + " " + string(rrsMap["value"])
 	newData := req.Name + "." + string(names["name"]) + " " + req.TTL + " IN " + req.Type + " " + req.Value
 	if err := updateRR("key"+string(viewsmap["name"]), string(key), oldData, string(names["name"]), false); err != nil {
@@ -580,7 +582,7 @@ func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 	}
 	//add the old data by rrupdate cause the delete function of the rrupdate had deleted all the rrs.
 	var tables []string
-	if tables, err = handler.tables(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsEndPath); err != nil {
+	if tables, err = boltdb.GetDB().GetTables(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsEndPath); err != nil {
 		return err
 	}
 	for _, t := range tables {
@@ -588,7 +590,7 @@ func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 			continue
 		}
 		var data map[string][]byte
-		if data, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + t); err != nil {
+		if data, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + t); err != nil {
 			return err
 		}
 		if req.Type != string(data["type"]) {
@@ -604,7 +606,7 @@ func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 	rrsMap["type"] = []byte(req.Type)
 	rrsMap["value"] = []byte(req.Value)
 	rrsMap["TTL"] = []byte(req.TTL)
-	if err := handler.updateKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+rRsPath+req.RRID, rrsMap); err != nil {
+	if err := boltdb.GetDB().UpdateKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+rRsPath+req.RRID, rrsMap); err != nil {
 		return err
 	}
 	if err := handler.rndcDumpJNLFile(); err != nil {
@@ -616,34 +618,33 @@ func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 func (handler *DNSHandler) DeleteRR(req pb.DeleteRRReq) error {
 	var rrsMap map[string][]byte
 	var err error
-	if rrsMap, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + req.RRID); err != nil {
+	if rrsMap, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + req.RRID); err != nil {
 		return err
 	}
 	var names map[string][]byte
-	if names, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
+	if names, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
 		return err
 	}
 	var viewsmap map[string][]byte
-	if viewsmap, err = handler.tableKVs(viewsPath + req.ViewID); err != nil {
+	if viewsmap, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID); err != nil {
 		return err
 	}
 	key := viewsmap["key"]
-	fmt.Println("deleterr key:", string(viewsmap["key"]))
 	rrData := string(rrsMap["name"]) + "." + string(names["name"]) + " " + string(rrsMap["TTL"]) + " IN " + string(rrsMap["type"]) + " " + string(rrsMap["value"])
 	if err := updateRR("key"+string(viewsmap["name"]), string(key), rrData, string(names["name"]), false); err != nil { //string(rrData[:])
 		return err
 	}
-	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + req.RRID)); err != nil {
+	if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + req.RRID); err != nil {
 		return err
 	}
 	//add the old data by rrupdate cause the delete function of the rrupdate had deleted all the rrs.
 	var tables []string
-	if tables, err = handler.tables(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsEndPath); err != nil {
+	if tables, err = boltdb.GetDB().GetTables(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsEndPath); err != nil {
 		return err
 	}
 	for _, t := range tables {
 		var data map[string][]byte
-		if data, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + t); err != nil {
+		if data, err = boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + t); err != nil {
 			return err
 		}
 		if string(rrsMap["type"]) != string(data["type"]) {
@@ -663,7 +664,7 @@ func (handler *DNSHandler) DeleteRR(req pb.DeleteRRReq) error {
 }
 
 func (h *DNSHandler) Close() {
-	h.db.Close()
+	boltdb.GetDB().Close()
 }
 
 func (handler *DNSHandler) namedConfData() (namedData, error) {
@@ -671,13 +672,13 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 	data := namedData{ConfigPath: handler.dnsConfPath}
 	//get all the acl names.
 	var aclTables []string
-	aclTables, err = handler.tables(aCLsEndPath)
+	aclTables, err = boltdb.GetDB().GetTables(aCLsEndPath)
 	if err != nil {
 		return data, err
 	}
 	for _, aclid := range aclTables {
 		var nameKVs map[string][]byte
-		nameKVs, err = handler.tableKVs(aCLsPath + aclid)
+		nameKVs, err = boltdb.GetDB().GetTableKVs(aCLsPath + aclid)
 		if err != nil {
 			return data, err
 		}
@@ -687,7 +688,7 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 	}
 	//get the ip black hole data
 	var tables []string
-	tables, err = handler.tables(ipBlackHoleEndPath)
+	tables, err = boltdb.GetDB().GetTables(ipBlackHoleEndPath)
 	if err != nil {
 		return data, err
 	}
@@ -697,13 +698,13 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 	}
 	for _, id := range tables {
 		var blackholeKVs map[string][]byte
-		blackholeKVs, err = handler.tableKVs(ipBlackHolePath + id)
+		blackholeKVs, err = boltdb.GetDB().GetTableKVs(ipBlackHolePath + id)
 		if err != nil {
 			return data, err
 		}
 		aclid := blackholeKVs["aclid"]
 		var aclNameKVs map[string][]byte
-		aclNameKVs, err = handler.tableKVs(aCLsPath + string(aclid))
+		aclNameKVs, err = boltdb.GetDB().GetTableKVs(aCLsPath + string(aclid))
 		if err != nil {
 			return data, err
 		}
@@ -711,7 +712,7 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 	}
 	//get recursive concurrency data
 	var concuKVs map[string][]byte
-	concuKVs, err = handler.tableKVs(recurConcurEndPath)
+	concuKVs, err = boltdb.GetDB().GetTableKVs(recurConcurEndPath)
 	if err != nil {
 		return data, err
 	}
@@ -735,7 +736,7 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 	}
 	//get the sortlist
 	var sortkvs map[string][]byte
-	sortkvs, err = handler.tableKVs(sortListEndPath)
+	sortkvs, err = boltdb.GetDB().GetTableKVs(sortListEndPath)
 	if err != nil {
 		return data, err
 	}
@@ -746,13 +747,13 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 		}
 		//get acl name
 		var aclName map[string][]byte
-		aclName, err = handler.tableKVs(aCLsPath + aclid)
+		aclName, err = boltdb.GetDB().GetTableKVs(aCLsPath + aclid)
 		if err != nil {
 			return data, err
 		}
 		data.SortList = append(data.SortList, string(aclName["name"]))
 		var kvs map[string][]byte
-		kvs, err = handler.tableKVs(sortListPath + aclid)
+		kvs, err = boltdb.GetDB().GetTableKVs(sortListPath + aclid)
 		if err != nil {
 			return data, err
 		}
@@ -760,7 +761,7 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 	}
 	//get the data under the views
 	var kvs map[string][]byte
-	kvs, err = handler.tableKVs(viewsEndPath)
+	kvs, err = boltdb.GetDB().GetTableKVs(viewsEndPath)
 	if err != nil {
 		return data, err
 	}
@@ -774,22 +775,22 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 	sort.Strings(keys)
 	for _, priority := range keys {
 		viewid := kvs[priority]
-		nameKvs, err := handler.tableKVs(viewsPath + string(viewid))
+		nameKvs, err := boltdb.GetDB().GetTableKVs(viewsPath + string(viewid))
 		if err != nil {
 			return data, err
 		}
 		viewName := nameKvs["name"]
 		tables = tables[0:0]
-		if tables, err = handler.tables(viewsPath + string(viewid) + aCLsEndPath); err != nil {
+		if tables, err = boltdb.GetDB().GetTables(viewsPath + string(viewid) + aCLsEndPath); err != nil {
 			return data, err
 		}
 		var aCLs []ACL
 		for _, aCLid := range tables {
-			aCLNames, err := handler.tableKVs(aCLsPath + aCLid)
+			aCLNames, err := boltdb.GetDB().GetTableKVs(aCLsPath + aCLid)
 			if err != nil {
 			}
 			aCLName := aCLNames["name"]
-			ipsMap, err := handler.tableKVs(aCLsPath + aCLid + iPsEndPath)
+			ipsMap, err := boltdb.GetDB().GetTableKVs(aCLsPath + aCLid + iPsEndPath)
 			if err != nil {
 				return data, err
 			}
@@ -803,7 +804,7 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 		view := View{Name: string(viewName), ACLs: aCLs}
 		//get the redirect data
 		tables = tables[0:0]
-		if tables, err = handler.tables(viewsPath + string(viewid) + redirectEndPath); err != nil {
+		if tables, err = boltdb.GetDB().GetTables(viewsPath + string(viewid) + redirectEndPath); err != nil {
 			return data, err
 		}
 		if len(tables) > 0 {
@@ -811,7 +812,7 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 			view.Redirect = &tmp
 		}
 		for _, rrid := range tables {
-			rrMap, err := handler.tableKVs(viewsPath + string(viewid) + redirectPath + rrid)
+			rrMap, err := boltdb.GetDB().GetTableKVs(viewsPath + string(viewid) + redirectPath + rrid)
 			if err != nil {
 				return data, err
 			}
@@ -824,7 +825,7 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 		}
 		//get the RPZ data
 		tables = tables[0:0]
-		if tables, err = handler.tables(viewsPath + string(viewid) + rpzEndPath); err != nil {
+		if tables, err = boltdb.GetDB().GetTables(viewsPath + string(viewid) + rpzEndPath); err != nil {
 			return data, err
 		}
 		if len(tables) > 0 {
@@ -832,7 +833,7 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 			view.RPZ = &tmp
 		}
 		for _, rrid := range tables {
-			rrMap, err := handler.tableKVs(viewsPath + string(viewid) + rpzPath + rrid)
+			rrMap, err := boltdb.GetDB().GetTableKVs(viewsPath + string(viewid) + rpzPath + rrid)
 			if err != nil {
 				return data, err
 			}
@@ -845,22 +846,22 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 		}
 		//get the dns64s data
 		tables = tables[0:0]
-		if tables, err = handler.tables(viewsPath + string(viewid) + dns64sEndPath); err != nil {
+		if tables, err = boltdb.GetDB().GetTables(viewsPath + string(viewid) + dns64sEndPath); err != nil {
 			return data, err
 		}
 		for _, dns64id := range tables {
-			dns64Map, err := handler.tableKVs(viewsPath + string(viewid) + dns64sPath + dns64id)
+			dns64Map, err := boltdb.GetDB().GetTableKVs(viewsPath + string(viewid) + dns64sPath + dns64id)
 			if err != nil {
 				return data, err
 			}
 			var tmp dns64
 			tmp.Prefix = string(dns64Map["prefix"])
-			aCLNames, err := handler.tableKVs(aCLsPath + string(dns64Map["clientacl"]))
+			aCLNames, err := boltdb.GetDB().GetTableKVs(aCLsPath + string(dns64Map["clientacl"]))
 			if err != nil {
 				return data, err
 			}
 			tmp.ClientACLName = string(aCLNames["name"])
-			aCLNames, err = handler.tableKVs(aCLsPath + string(dns64Map["aaddress"]))
+			aCLNames, err = boltdb.GetDB().GetTableKVs(aCLsPath + string(dns64Map["aaddress"]))
 			if err != nil {
 				return data, err
 			}
@@ -869,20 +870,20 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 		}
 		//get the forward data under the zone
 		tables = tables[0:0]
-		if tables, err = handler.tables(viewsPath + string(viewid) + zonesEndPath); err != nil {
+		if tables, err = boltdb.GetDB().GetTables(viewsPath + string(viewid) + zonesEndPath); err != nil {
 			return data, err
 		}
 		for _, zoneid := range tables {
-			zoneMap, err := handler.tableKVs(viewsPath + string(viewid) + zonesPath + zoneid)
+			zoneMap, err := boltdb.GetDB().GetTableKVs(viewsPath + string(viewid) + zonesPath + zoneid)
 			if err != nil {
 				return data, err
 			}
-			forwardMap, err := handler.tableKVs(viewsPath + string(viewid) + zonesPath + zoneid + forwardEndPath)
+			forwardMap, err := boltdb.GetDB().GetTableKVs(viewsPath + string(viewid) + zonesPath + zoneid + forwardEndPath)
 			if err != nil {
 				return data, err
 			}
 			if string(forwardMap["isforward"]) == "1" {
-				forwarderMap, err := handler.tableKVs(viewsPath + string(viewid) + zonesPath + zoneid + forwardPath + iPsEndPath)
+				forwarderMap, err := boltdb.GetDB().GetTableKVs(viewsPath + string(viewid) + zonesPath + zoneid + forwardPath + iPsEndPath)
 				if err != nil {
 					return data, err
 				}
@@ -898,7 +899,7 @@ func (handler *DNSHandler) namedConfData() (namedData, error) {
 			}
 		}
 		//get the base64 of the view's Key
-		keyMap, err := handler.tableKVs(viewsPath + string(viewid))
+		keyMap, err := boltdb.GetDB().GetTableKVs(viewsPath + string(viewid))
 		if err != nil {
 			return data, err
 		}
@@ -914,23 +915,23 @@ func (handler *DNSHandler) aCLsData() ([]ACL, error) {
 	var err error
 	var aCLsData []ACL
 	var viewTables []string
-	viewTables, err = handler.tables(viewsEndPath)
+	viewTables, err = boltdb.GetDB().GetTables(viewsEndPath)
 	if err != nil {
 		return nil, err
 	}
 	for _, viewid := range viewTables {
 		var aCLs []ACL
-		aCLTables, err := handler.tables(viewsPath + viewid + aCLsEndPath)
+		aCLTables, err := boltdb.GetDB().GetTables(viewsPath + viewid + aCLsEndPath)
 		if err != nil {
 			return nil, err
 		}
 		for _, aCLid := range aCLTables {
-			aCLNames, err := handler.tableKVs(viewsPath + viewid + aCLsPath + aCLid)
+			aCLNames, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid + aCLsPath + aCLid)
 			if err != nil {
 				return nil, err
 			}
 			aCLName := aCLNames["name"]
-			ipsMap, err := handler.tableKVs(viewsPath + viewid + aCLsPath + aCLid + iPsEndPath)
+			ipsMap, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid + aCLsPath + aCLid + iPsEndPath)
 			if err != nil {
 				return nil, err
 			}
@@ -944,17 +945,17 @@ func (handler *DNSHandler) aCLsData() ([]ACL, error) {
 		aCLsData = append(aCLsData, aCLs[0:]...)
 	}
 	var aCLTables []string
-	aCLTables, err = handler.tables(aCLsEndPath)
+	aCLTables, err = boltdb.GetDB().GetTables(aCLsEndPath)
 	if err != nil {
 		return nil, err
 	}
 	for _, aCLId := range aCLTables {
-		names, err := handler.tableKVs(aCLsPath + aCLId)
+		names, err := boltdb.GetDB().GetTableKVs(aCLsPath + aCLId)
 		if err != nil {
 			return nil, err
 		}
 		aCLName := names["name"]
-		ipsMap, err := handler.tableKVs(aCLsPath + aCLId + iPsEndPath)
+		ipsMap, err := boltdb.GetDB().GetTableKVs(aCLsPath + aCLId + iPsEndPath)
 		if err != nil {
 			return nil, err
 		}
@@ -970,23 +971,23 @@ func (handler *DNSHandler) aCLsData() ([]ACL, error) {
 
 func (handler *DNSHandler) nzfsData() ([]nzfData, error) {
 	var data []nzfData
-	viewIDs, err := handler.tables(viewsEndPath)
+	viewIDs, err := boltdb.GetDB().GetTables(viewsEndPath)
 	if err != nil {
 		return nil, err
 	}
 	for _, viewid := range viewIDs {
-		nameKvs, err := handler.tableKVs(viewsPath + viewid)
+		nameKvs, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid)
 		if err != nil {
 			return nil, err
 		}
 		viewName := nameKvs["name"]
-		zoneTables, err := handler.tables(viewsPath + viewid + zonesEndPath)
+		zoneTables, err := boltdb.GetDB().GetTables(viewsPath + viewid + zonesEndPath)
 		if err != nil {
 			return nil, err
 		}
 		var zones []Zone
 		for _, zoneId := range zoneTables {
-			Names, err := handler.tableKVs(viewsPath + viewid + zonesPath + zoneId)
+			Names, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid + zonesPath + zoneId)
 			if err != nil {
 				return nil, err
 			}
@@ -1006,24 +1007,24 @@ func (handler *DNSHandler) nzfsData() ([]nzfData, error) {
 
 func (handler *DNSHandler) redirectData() ([]redirectionData, error) {
 	var data []redirectionData
-	viewIDs, err := handler.tables(viewsEndPath)
+	viewIDs, err := boltdb.GetDB().GetTables(viewsEndPath)
 	if err != nil {
 		return nil, err
 	}
 	for _, viewid := range viewIDs {
 		var one redirectionData
-		nameKvs, err := handler.tableKVs(viewsPath + viewid)
+		nameKvs, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid)
 		if err != nil {
 			return nil, err
 		}
 		viewName := nameKvs["name"]
 		one.ViewName = string(viewName)
-		rrsid, err := handler.tables(viewsPath + viewid + redirectEndPath)
+		rrsid, err := boltdb.GetDB().GetTables(viewsPath + viewid + redirectEndPath)
 		if err != nil {
 			return nil, err
 		}
 		for _, rrID := range rrsid {
-			rrs, err := handler.tableKVs(viewsPath + viewid + redirectPath + rrID)
+			rrs, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid + redirectPath + rrID)
 			if err != nil {
 				return nil, err
 			}
@@ -1043,24 +1044,24 @@ func (handler *DNSHandler) redirectData() ([]redirectionData, error) {
 
 func (handler *DNSHandler) rpzData() ([]redirectionData, error) {
 	var data []redirectionData
-	viewIDs, err := handler.tables(viewsEndPath)
+	viewIDs, err := boltdb.GetDB().GetTables(viewsEndPath)
 	if err != nil {
 		return nil, err
 	}
 	for _, viewid := range viewIDs {
 		var one redirectionData
-		nameKvs, err := handler.tableKVs(viewsPath + viewid)
+		nameKvs, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid)
 		if err != nil {
 			return nil, err
 		}
 		viewName := nameKvs["name"]
 		one.ViewName = string(viewName)
-		rrsid, err := handler.tables(viewsPath + viewid + rpzEndPath)
+		rrsid, err := boltdb.GetDB().GetTables(viewsPath + viewid + rpzEndPath)
 		if err != nil {
 			return nil, err
 		}
 		for _, rrID := range rrsid {
-			rrs, err := handler.tableKVs(viewsPath + viewid + rpzPath + rrID)
+			rrs, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid + rpzPath + rrID)
 			if err != nil {
 				return nil, err
 			}
@@ -1080,23 +1081,23 @@ func (handler *DNSHandler) rpzData() ([]redirectionData, error) {
 
 func (handler *DNSHandler) zonesData() ([]zoneData, error) {
 	var zonesData []zoneData
-	viewIDs, err := handler.tables(viewsEndPath)
+	viewIDs, err := boltdb.GetDB().GetTables(viewsEndPath)
 	if err != nil {
 		return nil, err
 	}
 	for _, viewid := range viewIDs {
-		nameKvs, err := handler.tableKVs(viewsPath + viewid)
+		nameKvs, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid)
 		if err != nil {
 			return nil, err
 		}
 		viewName := nameKvs["name"]
-		zoneTables, err := handler.tables(viewsPath + viewid + zonesEndPath)
+		zoneTables, err := boltdb.GetDB().GetTables(viewsPath + viewid + zonesEndPath)
 		if err != nil {
 			return nil, err
 		}
 		for _, zoneID := range zoneTables {
 			var rrs []RR
-			names, err := handler.tableKVs(viewsPath + viewid + zonesPath + zoneID)
+			names, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid + zonesPath + zoneID)
 			if err != nil {
 				return nil, err
 			}
@@ -1105,12 +1106,12 @@ func (handler *DNSHandler) zonesData() ([]zoneData, error) {
 			if string(zoneFile) == "" {
 				continue
 			}
-			rrTables, err := handler.tables(viewsPath + viewid + zonesPath + zoneID + rRsEndPath)
+			rrTables, err := boltdb.GetDB().GetTables(viewsPath + viewid + zonesPath + zoneID + rRsEndPath)
 			if err != nil {
 				return nil, err
 			}
 			for _, rrID := range rrTables {
-				datas, err := handler.tableKVs(viewsPath + viewid + zonesPath + zoneID + rRsPath + rrID)
+				datas, err := boltdb.GetDB().GetTableKVs(viewsPath + viewid + zonesPath + zoneID + rRsPath + rrID)
 				if err != nil {
 					return nil, err
 				}
@@ -1122,106 +1123,6 @@ func (handler *DNSHandler) zonesData() ([]zoneData, error) {
 		}
 	}
 	return zonesData, nil
-}
-
-func (handler *DNSHandler) tableKVs(table string) (map[string][]byte, error) {
-	tb, err := handler.db.CreateOrGetTable(kv.TableName(table))
-	if err != nil {
-		return nil, err
-	}
-	var ts kv.Transaction
-	if ts, err = tb.Begin(); err != nil {
-		return nil, err
-	}
-	defer ts.Rollback()
-	kvs, err := ts.List()
-	if err != nil {
-		return nil, err
-	}
-	return kvs, nil
-}
-
-func (handler *DNSHandler) tables(table string) ([]string, error) {
-	tb, err := handler.db.CreateOrGetTable(kv.TableName(table))
-	if err != nil {
-		return nil, err
-	}
-	var ts kv.Transaction
-	if ts, err = tb.Begin(); err != nil {
-		return nil, err
-	}
-	defer ts.Rollback()
-	tables, err := ts.Tables()
-	if err != nil {
-		return nil, err
-	}
-	return tables, nil
-}
-
-func (handler *DNSHandler) addKVs(tableName string, values map[string][]byte) error {
-	tb, err := handler.db.CreateOrGetTable(kv.TableName(tableName))
-	if err != nil {
-		return err
-	}
-	var ts kv.Transaction
-	ts, err = tb.Begin()
-	if err != nil {
-		return err
-	}
-	defer ts.Rollback()
-	for k, value := range values {
-		if err := ts.Add(k, value); err != nil {
-			return err
-		}
-	}
-	if err := ts.Commit(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (handler *DNSHandler) updateKVs(tableName string, values map[string][]byte) error {
-	tb, err := handler.db.CreateOrGetTable(kv.TableName(tableName))
-	if err != nil {
-		return err
-	}
-	var ts kv.Transaction
-	ts, err = tb.Begin()
-	if err != nil {
-		return err
-	}
-	defer ts.Rollback()
-	for k, value := range values {
-		if err := ts.Update(k, value); err != nil {
-			return err
-		}
-	}
-	if err := ts.Commit(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (handler *DNSHandler) deleteKVs(tableName string, keys []string) error {
-	tb, err := handler.db.CreateOrGetTable(kv.TableName(tableName))
-	if err != nil {
-		return err
-	}
-	var ts kv.Transaction
-	ts, err = tb.Begin()
-	if err != nil {
-		return err
-	}
-	defer ts.Rollback()
-	for _, key := range keys {
-		if err := ts.Delete(key); err != nil {
-			return err
-		}
-	}
-	if err := ts.Commit(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (handler *DNSHandler) rewriteNamedFile() error {
@@ -1334,7 +1235,7 @@ func (handler *DNSHandler) rewriteRPZFile() error {
 func (handler *DNSHandler) addPriority(pri int, viewid string) error {
 	var kvs map[string][]byte
 	var err error
-	if kvs, err = handler.tableKVs(viewsEndPath); err != nil {
+	if kvs, err = boltdb.GetDB().GetTableKVs(viewsEndPath); err != nil {
 		return err
 	}
 	if pri > len(kvs)+1 {
@@ -1349,11 +1250,11 @@ func (handler *DNSHandler) addPriority(pri int, viewid string) error {
 	}
 	kvs[strconv.Itoa(pri)] = []byte(viewid)
 	addKVs := map[string][]byte{strconv.Itoa(len(kvs)): kvs[strconv.Itoa(len(kvs))]}
-	if err := handler.addKVs(viewsEndPath, addKVs); err != nil {
+	if err := boltdb.GetDB().AddKVs(viewsEndPath, addKVs); err != nil {
 		return err
 	}
 	delete(kvs, strconv.Itoa(len(kvs)))
-	if err := handler.updateKVs(viewsEndPath, kvs); err != nil {
+	if err := boltdb.GetDB().UpdateKVs(viewsEndPath, kvs); err != nil {
 		return err
 	}
 	return nil
@@ -1362,7 +1263,7 @@ func (handler *DNSHandler) addPriority(pri int, viewid string) error {
 func (handler *DNSHandler) updatePriority(pri int, viewid string) error {
 	var kvs map[string][]byte
 	var err error
-	if kvs, err = handler.tableKVs(viewsEndPath); err != nil {
+	if kvs, err = boltdb.GetDB().GetTableKVs(viewsEndPath); err != nil {
 		return err
 	}
 	if pri > len(kvs) {
@@ -1382,7 +1283,7 @@ func (handler *DNSHandler) updatePriority(pri int, viewid string) error {
 		tmp := kvs[key]
 		kvs[key] = kvs[oriIndex]
 		kvs[oriIndex] = tmp
-		if err := handler.updateKVs(viewsEndPath, kvs); err != nil {
+		if err := boltdb.GetDB().UpdateKVs(viewsEndPath, kvs); err != nil {
 			return err
 		}
 	}
@@ -1391,7 +1292,7 @@ func (handler *DNSHandler) updatePriority(pri int, viewid string) error {
 
 func (handler *DNSHandler) deletePriority(viewID string) error {
 	//query priority
-	kvs, err := handler.tableKVs(viewsEndPath)
+	kvs, err := boltdb.GetDB().GetTableKVs(viewsEndPath)
 	if err != nil {
 		return err
 	}
@@ -1403,7 +1304,7 @@ func (handler *DNSHandler) deletePriority(viewID string) error {
 			break
 		}
 	}
-	if err = handler.deleteKVs(viewsEndPath, []string{strconv.Itoa(len(kvs))}); err != nil {
+	if err = boltdb.GetDB().DeleteKVs(viewsEndPath, []string{strconv.Itoa(len(kvs))}); err != nil {
 		return err
 	}
 	delete(kvs, k)
@@ -1418,7 +1319,7 @@ func (handler *DNSHandler) deletePriority(viewID string) error {
 		updateKVs[strconv.Itoa(i)] = kvs[pri]
 		i++
 	}
-	if err = handler.updateKVs(viewsEndPath, updateKVs); err != nil {
+	if err = boltdb.GetDB().UpdateKVs(viewsEndPath, updateKVs); err != nil {
 		return err
 	}
 	return nil
@@ -1427,13 +1328,13 @@ func (handler *DNSHandler) deletePriority(viewID string) error {
 func (handler *DNSHandler) aCLsFromTopPath(aCLids []string) ([]ACL, error) {
 	var aCLs []ACL
 	for _, aCLid := range aCLids {
-		names, err := handler.tableKVs(aCLsPath + aCLid)
+		names, err := boltdb.GetDB().GetTableKVs(aCLsPath + aCLid)
 		if err != nil {
 			return nil, err
 		}
 		name := names["name"]
 		var ipsmap map[string][]byte
-		ipsmap, err = handler.tableKVs(aCLsPath + aCLid + iPsEndPath)
+		ipsmap, err = boltdb.GetDB().GetTableKVs(aCLsPath + aCLid + iPsEndPath)
 		if err != nil {
 			return nil, err
 		}
@@ -1512,27 +1413,27 @@ func (handler *DNSHandler) keepDNSAlive() {
 }
 func (handler *DNSHandler) UpdateDefaultForward(req pb.UpdateDefaultForwardReq) error {
 	//delete the old data
-	_, err := handler.tableKVs(forwardPath + iPsEndPath)
+	_, err := boltdb.GetDB().GetTableKVs(forwardPath + iPsEndPath)
 	if err != nil {
 		return err
 	}
-	if err := handler.db.DeleteTable(kv.TableName(forwardPath + iPsEndPath)); err != nil {
+	if err := boltdb.GetDB().DeleteTable(forwardPath + iPsEndPath); err != nil {
 		return err
 	}
 	//input the new data
 	values := map[string][]byte{}
-	kvs, err := handler.tableKVs(forwardEndPath)
+	kvs, err := boltdb.GetDB().GetTableKVs(forwardEndPath)
 	if err != nil {
 		return err
 	}
 	values["type"] = []byte(req.Type)
 	values["isforward"] = []byte("1")
 	if len(kvs) == 0 {
-		if err := handler.addKVs(forwardEndPath, values); err != nil {
+		if err := boltdb.GetDB().AddKVs(forwardEndPath, values); err != nil {
 			return err
 		}
 	} else {
-		if err := handler.updateKVs(forwardEndPath, values); err != nil {
+		if err := boltdb.GetDB().UpdateKVs(forwardEndPath, values); err != nil {
 			return err
 		}
 	}
@@ -1540,7 +1441,7 @@ func (handler *DNSHandler) UpdateDefaultForward(req pb.UpdateDefaultForwardReq) 
 	for _, ip := range req.IPs {
 		ipsKVs[ip] = []byte("")
 	}
-	if err := handler.addKVs(forwardPath+iPsEndPath, ipsKVs); err != nil {
+	if err := boltdb.GetDB().AddKVs(forwardPath+iPsEndPath, ipsKVs); err != nil {
 		return err
 	}
 	//reform the named.conf file
@@ -1555,13 +1456,13 @@ func (handler *DNSHandler) UpdateDefaultForward(req pb.UpdateDefaultForwardReq) 
 }
 func (handler *DNSHandler) DeleteDefaultForward(req pb.DeleteDefaultForwardReq) error {
 	//delete the old data
-	if err := handler.db.DeleteTable(kv.TableName(forwardPath + iPsEndPath)); err != nil {
+	if err := boltdb.GetDB().DeleteTable(forwardPath + iPsEndPath); err != nil {
 		return err
 	}
 	//update the isforward be 0
 	values := map[string][]byte{}
 	values["isforward"] = []byte("0")
-	if err := handler.updateKVs(forwardEndPath, values); err != nil {
+	if err := boltdb.GetDB().UpdateKVs(forwardEndPath, values); err != nil {
 		return err
 	}
 	//reform the named.conf file
@@ -1576,27 +1477,27 @@ func (handler *DNSHandler) DeleteDefaultForward(req pb.DeleteDefaultForwardReq) 
 }
 func (handler *DNSHandler) UpdateForward(req pb.UpdateForwardReq) error {
 	//delete the old data
-	_, err := handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardPath + iPsEndPath)
+	_, err := boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardPath + iPsEndPath)
 	if err != nil {
 		return err
 	}
-	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardPath + iPsEndPath)); err != nil {
+	if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardPath + iPsEndPath); err != nil {
 		return err
 	}
 	//input the new data
 	values := map[string][]byte{}
-	kvs, err := handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardEndPath)
+	kvs, err := boltdb.GetDB().GetTableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardEndPath)
 	if err != nil {
 		return err
 	}
 	values["type"] = []byte(req.Type)
 	values["isforward"] = []byte("1")
 	if len(kvs) == 0 {
-		if err := handler.addKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+forwardEndPath, values); err != nil {
+		if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+forwardEndPath, values); err != nil {
 			return err
 		}
 	} else {
-		if err := handler.updateKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+forwardEndPath, values); err != nil {
+		if err := boltdb.GetDB().UpdateKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+forwardEndPath, values); err != nil {
 			return err
 		}
 	}
@@ -1604,7 +1505,7 @@ func (handler *DNSHandler) UpdateForward(req pb.UpdateForwardReq) error {
 	for _, ip := range req.IPs {
 		ipsKVs[ip] = []byte("")
 	}
-	if err := handler.addKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+forwardPath+iPsEndPath, ipsKVs); err != nil {
+	if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+forwardPath+iPsEndPath, ipsKVs); err != nil {
 		return err
 	}
 	//reform the named.conf file
@@ -1620,13 +1521,13 @@ func (handler *DNSHandler) UpdateForward(req pb.UpdateForwardReq) error {
 }
 func (handler *DNSHandler) DeleteForward(req pb.DeleteForwardReq) error {
 	//delete the old data
-	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardPath + iPsEndPath)); err != nil {
+	if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardPath + iPsEndPath); err != nil {
 		return err
 	}
 	//update the isforward be 0
 	values := map[string][]byte{}
 	values["isforward"] = []byte("0")
-	if err := handler.updateKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+forwardEndPath, values); err != nil {
+	if err := boltdb.GetDB().UpdateKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID+forwardEndPath, values); err != nil {
 		return err
 	}
 	//reform the named.conf file
@@ -1647,7 +1548,7 @@ func (handler *DNSHandler) CreateRedirection(req pb.CreateRedirectionReq) error 
 	rrMap["TTL"] = []byte(req.TTL)
 	if req.RedirectType == "redirect" {
 		//input the data into the database.
-		if err := handler.addKVs(viewsPath+req.ViewID+redirectPath+req.ID, rrMap); err != nil {
+		if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID+redirectPath+req.ID, rrMap); err != nil {
 			return err
 		}
 		//create the redirection/redirect_$viewname file,use the template.
@@ -1656,7 +1557,7 @@ func (handler *DNSHandler) CreateRedirection(req pb.CreateRedirectionReq) error 
 		}
 	} else if req.RedirectType == "rpz" {
 		//input the data into the database.
-		if err := handler.addKVs(viewsPath+req.ViewID+rpzPath+req.ID, rrMap); err != nil {
+		if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID+rpzPath+req.ID, rrMap); err != nil {
 			return err
 		}
 		//create the redirection/rpz_$viewname file
@@ -1683,7 +1584,7 @@ func (handler *DNSHandler) UpdateRedirection(req pb.UpdateRedirectionReq) error 
 	rrMap["TTL"] = []byte(req.TTL)
 	if req.RedirectType == "redirect" {
 		//input the data into the database.
-		if err := handler.updateKVs(viewsPath+req.ViewID+redirectPath+req.ID, rrMap); err != nil {
+		if err := boltdb.GetDB().UpdateKVs(viewsPath+req.ViewID+redirectPath+req.ID, rrMap); err != nil {
 			return err
 		}
 		//rewrite the redirection/redirect_$viewname file,use the template.
@@ -1692,7 +1593,7 @@ func (handler *DNSHandler) UpdateRedirection(req pb.UpdateRedirectionReq) error 
 		}
 	} else if req.RedirectType == "rpz" {
 		//input the data into the database.
-		if err := handler.updateKVs(viewsPath+req.ViewID+rpzPath+req.ID, rrMap); err != nil {
+		if err := boltdb.GetDB().UpdateKVs(viewsPath+req.ViewID+rpzPath+req.ID, rrMap); err != nil {
 			return err
 		}
 		//rewrite the redirection/rpz_$viewname file
@@ -1710,7 +1611,7 @@ func (handler *DNSHandler) DeleteRedirection(req pb.DeleteRedirectionReq) error 
 	//delete the data in the database
 	if req.RedirectType == "redirect" {
 		//input the data into the database.
-		if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + redirectPath + req.ID)); err != nil {
+		if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID + redirectPath + req.ID); err != nil {
 			return err
 		}
 		//rewrite the redirection/redirect_$viewname file,use the template.
@@ -1719,7 +1620,7 @@ func (handler *DNSHandler) DeleteRedirection(req pb.DeleteRedirectionReq) error 
 		}
 	} else if req.RedirectType == "rpz" {
 		//input the data into the database.
-		if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + rpzPath + req.ID)); err != nil {
+		if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID + rpzPath + req.ID); err != nil {
 			return err
 		}
 		//rewrite the redirection/rpz_$viewname file
@@ -1743,7 +1644,7 @@ func (handler *DNSHandler) CreateDefaultDNS64(req pb.CreateDefaultDNS64Req) erro
 	kvs["prefix"] = []byte(req.Prefix)
 	kvs["clientacl"] = []byte(req.ClientACL)
 	kvs["aaddress"] = []byte(req.AAddress)
-	if err := handler.addKVs(dns64sPath+req.ID, kvs); err != nil {
+	if err := boltdb.GetDB().AddKVs(dns64sPath+req.ID, kvs); err != nil {
 		return err
 	}
 	//rewrite the named.conf file.
@@ -1762,7 +1663,7 @@ func (handler *DNSHandler) UpdateDefaultDNS64(req pb.UpdateDefaultDNS64Req) erro
 	kvs["prefix"] = []byte(req.Prefix)
 	kvs["clientacl"] = []byte(req.ClientACL)
 	kvs["aaddress"] = []byte(req.AAddress)
-	if err := handler.updateKVs(dns64sPath+req.ID, kvs); err != nil {
+	if err := boltdb.GetDB().UpdateKVs(dns64sPath+req.ID, kvs); err != nil {
 		return err
 	}
 	//rewrite the named.conf file.
@@ -1777,7 +1678,7 @@ func (handler *DNSHandler) UpdateDefaultDNS64(req pb.UpdateDefaultDNS64Req) erro
 }
 func (handler *DNSHandler) DeleteDefaultDNS64(req pb.DeleteDefaultDNS64Req) error {
 	//delete the data in the data base.drop the leaf table.
-	if err := handler.db.DeleteTable(kv.TableName(dns64sPath + req.ID)); err != nil {
+	if err := boltdb.GetDB().DeleteTable(dns64sPath + req.ID); err != nil {
 		return err
 	}
 	//rewrite the named.conf file.
@@ -1796,7 +1697,7 @@ func (handler *DNSHandler) CreateDNS64(req pb.CreateDNS64Req) error {
 	kvs["prefix"] = []byte(req.Prefix)
 	kvs["clientacl"] = []byte(req.ClientACL)
 	kvs["aaddress"] = []byte(req.AAddress)
-	if err := handler.addKVs(viewsPath+req.ViewID+dns64sPath+req.ID, kvs); err != nil {
+	if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID+dns64sPath+req.ID, kvs); err != nil {
 		return err
 	}
 	//rewrite the named.conf file.
@@ -1815,7 +1716,7 @@ func (handler *DNSHandler) UpdateDNS64(req pb.UpdateDNS64Req) error {
 	kvs["prefix"] = []byte(req.Prefix)
 	kvs["clientacl"] = []byte(req.ClientACL)
 	kvs["aaddress"] = []byte(req.AAddress)
-	if err := handler.updateKVs(viewsPath+req.ViewID+dns64sPath+req.ID, kvs); err != nil {
+	if err := boltdb.GetDB().UpdateKVs(viewsPath+req.ViewID+dns64sPath+req.ID, kvs); err != nil {
 		return err
 	}
 	//rewrite the named.conf file.
@@ -1831,7 +1732,7 @@ func (handler *DNSHandler) UpdateDNS64(req pb.UpdateDNS64Req) error {
 }
 func (handler *DNSHandler) DeleteDNS64(req pb.DeleteDNS64Req) error {
 	//delete the data in the data base.drop the leaf table.
-	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + dns64sPath + req.ID)); err != nil {
+	if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID + dns64sPath + req.ID); err != nil {
 		return err
 	}
 	//rewrite the named.conf file.
@@ -1848,7 +1749,7 @@ func (handler *DNSHandler) CreateIPBlackHole(req pb.CreateIPBlackHoleReq) error 
 	//input the data into the data base.
 	kvs := map[string][]byte{}
 	kvs["aclid"] = []byte(req.ACLID)
-	if err := handler.addKVs(ipBlackHolePath+req.ID, kvs); err != nil {
+	if err := boltdb.GetDB().AddKVs(ipBlackHolePath+req.ID, kvs); err != nil {
 		return err
 	}
 	//rewrite the named.conf file.
@@ -1865,7 +1766,7 @@ func (handler *DNSHandler) UpdateIPBlackHole(req pb.UpdateIPBlackHoleReq) error 
 	//update the data into the data base.
 	kvs := map[string][]byte{}
 	kvs["aclid"] = []byte(req.ACLID)
-	if err := handler.updateKVs(ipBlackHolePath+req.ID, kvs); err != nil {
+	if err := boltdb.GetDB().UpdateKVs(ipBlackHolePath+req.ID, kvs); err != nil {
 		return err
 	}
 	//rewrite the named.conf file.
@@ -1880,7 +1781,7 @@ func (handler *DNSHandler) UpdateIPBlackHole(req pb.UpdateIPBlackHoleReq) error 
 }
 func (handler *DNSHandler) DeleteIPBlackHole(req pb.DeleteIPBlackHoleReq) error {
 	//delete the data into the data base.
-	handler.db.DeleteTable(kv.TableName(ipBlackHolePath + req.ID))
+	boltdb.GetDB().DeleteTable(ipBlackHolePath + req.ID)
 	//rewrite the named.conf file.
 	if err := handler.rewriteNamedFile(); err != nil {
 		return err
@@ -1893,7 +1794,7 @@ func (handler *DNSHandler) DeleteIPBlackHole(req pb.DeleteIPBlackHoleReq) error 
 }
 func (handler *DNSHandler) UpdateRecursiveConcurrent(req pb.UpdateRecurConcuReq) error {
 	//update the data in the database;
-	conKVs, err := handler.tableKVs(recurConcurEndPath)
+	conKVs, err := boltdb.GetDB().GetTableKVs(recurConcurEndPath)
 	if err != nil {
 		return err
 	}
@@ -1901,11 +1802,11 @@ func (handler *DNSHandler) UpdateRecursiveConcurrent(req pb.UpdateRecurConcuReq)
 	kvs["recursiveclients"] = []byte(req.RecursiveClients)
 	kvs["fetchesperzone"] = []byte(req.FetchesPerZone)
 	if len(conKVs) == 0 {
-		if err := handler.addKVs(recurConcurEndPath, kvs); err != nil {
+		if err := boltdb.GetDB().AddKVs(recurConcurEndPath, kvs); err != nil {
 			return err
 		}
 	} else {
-		if err := handler.updateKVs(recurConcurEndPath, kvs); err != nil {
+		if err := boltdb.GetDB().UpdateKVs(recurConcurEndPath, kvs); err != nil {
 			return err
 		}
 	}
@@ -1927,7 +1828,7 @@ func (handler *DNSHandler) CreateSortList(req pb.CreateSortListReq) error {
 		return nil
 	}
 	kvs["next"] = []byte(req.ACLIDs[0])
-	if err := handler.addKVs(sortListEndPath, kvs); err != nil {
+	if err := boltdb.GetDB().AddKVs(sortListEndPath, kvs); err != nil {
 		return err
 	}
 	for k, v := range req.ACLIDs {
@@ -1942,7 +1843,7 @@ func (handler *DNSHandler) CreateSortList(req pb.CreateSortListReq) error {
 		} else {
 			kvs["next"] = []byte(req.ACLIDs[k+1])
 		}
-		if err := handler.addKVs(sortListPath+v, kvs); err != nil {
+		if err := boltdb.GetDB().AddKVs(sortListPath+v, kvs); err != nil {
 			return err
 		}
 	}
@@ -1968,14 +1869,14 @@ func (handler *DNSHandler) DeleteSortList(req pb.DeleteSortListReq) error {
 	//delete the data in the data base.
 	var acls []string
 	var err error
-	acls, err = handler.tables(sortListEndPath)
+	acls, err = boltdb.GetDB().GetTables(sortListEndPath)
 	if err != nil {
 		panic(err)
 	}
 	for _, v := range acls {
-		handler.db.DeleteTable(kv.TableName(sortListPath + v))
+		boltdb.GetDB().DeleteTable(sortListPath + v)
 	}
-	handler.db.DeleteTable(kv.TableName(sortListEndPath))
+	boltdb.GetDB().DeleteTable(sortListEndPath)
 	//rewrite the named.conf file.
 	if err := handler.rewriteNamedFile(); err != nil {
 		return err
