@@ -16,12 +16,12 @@ type AgentConfig struct {
 }
 
 type ServerConf struct {
-	IsController bool   `yaml:"is_controller"`
-	IsDHCP       bool   `yaml:"is_dhcp"`
-	IsDNS        bool   `yaml:"is_dns"`
-	IP           string `yaml:"ip"`
-	Hostname     string `yaml:"hostname"`
-	ParentIP     string `yaml:"parent_ip"`
+	ControllerEnabled bool   `yaml:"controller_enabled"`
+	DHCPEnabled       bool   `yaml:"dhcp_enabled"`
+	DNSEnabled        bool   `yaml:"dns_enabled"`
+	IP                string `yaml:"ip"`
+	Hostname          string `yaml:"hostname"`
+	ParentIP          string `yaml:"parent_ip"`
 }
 
 type GrpcConf struct {
@@ -34,7 +34,8 @@ type KafkaConf struct {
 }
 
 type PrometheusConf struct {
-	Addr string `yaml:"addr"`
+	IP   string `yaml:"ip"`
+	Port string `yaml:"port"`
 }
 
 type MetricConf struct {

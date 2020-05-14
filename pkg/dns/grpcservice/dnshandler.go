@@ -1,4 +1,4 @@
-package agent
+package grpcservice
 
 import (
 	"bytes"
@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strconv"
 	"text/template"
 	"time"
 
-	"github.com/ben-han-cn/cement/shell"
-	kv "github.com/ben-han-cn/kvzoo"
-	"github.com/ben-han-cn/kvzoo/backend/bolt"
-	"github.com/linkingthing/ddi-agent/pkg/rrupdate"
+	"github.com/zdnscloud/cement/shell"
+	kv "github.com/zdnscloud/kvzoo"
+	"github.com/zdnscloud/kvzoo/backend/bolt"
+
 	"github.com/linkingthing/ddi-metric/pb"
 	"github.com/linkingthing/ddi-metric/utils/random"
-	"sort"
 )
 
 const (
@@ -54,9 +54,10 @@ const (
 	opSuccess          = 0
 	opFail             = 1
 	checkPeriod        = 5
+	dnsServer          = "localhost:53"
 )
 
-type BindHandler struct {
+type DNSHandler struct {
 	tpl         *template.Template
 	db          kv.DB
 	dnsConfPath string
@@ -66,7 +67,7 @@ type BindHandler struct {
 	quit        chan int
 }
 
-func NewBindHandler(dnsConfPath string, agentPath string) *BindHandler {
+func newDNSHandler(dnsConfPath string, agentPath string) *DNSHandler {
 	var tmpDnsPath string
 	if dnsConfPath[len(dnsConfPath)-1] != '/' {
 		tmpDnsPath = dnsConfPath + "/"
@@ -80,7 +81,7 @@ func NewBindHandler(dnsConfPath string, agentPath string) *BindHandler {
 		tmpDBPath = agentPath
 	}
 
-	instance := &BindHandler{dnsConfPath: tmpDnsPath, dBPath: tmpDBPath, tplPath: tmpDnsPath + "templates/"}
+	instance := &DNSHandler{dnsConfPath: tmpDnsPath, dBPath: tmpDBPath, tplPath: tmpDnsPath + "templates/"}
 	pbolt, err := bolt.New(tmpDBPath + dBName)
 	if err != nil {
 		panic(err)
@@ -269,13 +270,13 @@ type ACL struct {
 	IPs  []string
 }
 
-func (handler *BindHandler) StartDNS(req pb.DNSStartReq) error {
+func (handler *DNSHandler) StartDNS(req pb.DNSStartReq) error {
 	handler.Start(req)
 	go handler.keepDNSAlive()
 	return nil
 
 }
-func (handler *BindHandler) Start(req pb.DNSStartReq) error {
+func (handler *DNSHandler) Start(req pb.DNSStartReq) error {
 	if _, err := os.Stat(handler.dnsConfPath + "named.pid"); err == nil {
 		return nil
 	}
@@ -309,7 +310,7 @@ func (handler *BindHandler) Start(req pb.DNSStartReq) error {
 	return nil
 }
 
-func (handler *BindHandler) StopDNS() error {
+func (handler *DNSHandler) StopDNS() error {
 	if _, err := os.Stat(handler.dnsConfPath + "named.pid"); err != nil {
 		return nil
 	}
@@ -321,7 +322,7 @@ func (handler *BindHandler) StopDNS() error {
 	return nil
 }
 
-func (handler *BindHandler) CreateACL(req pb.CreateACLReq) error {
+func (handler *DNSHandler) CreateACL(req pb.CreateACLReq) error {
 	err := handler.addKVs(aCLsPath+req.ID, map[string][]byte{"name": []byte(req.Name)})
 	if err != nil {
 		return err
@@ -348,7 +349,7 @@ func (handler *BindHandler) CreateACL(req pb.CreateACLReq) error {
 	return nil
 }
 
-func (handler *BindHandler) UpdateACL(req pb.UpdateACLReq) error {
+func (handler *DNSHandler) UpdateACL(req pb.UpdateACLReq) error {
 	reqDel := pb.DeleteACLReq{ID: req.ID}
 	if err := handler.DeleteACL(reqDel); err != nil {
 		return err
@@ -364,7 +365,7 @@ func (handler *BindHandler) UpdateACL(req pb.UpdateACLReq) error {
 	return nil
 }
 
-func (handler *BindHandler) DeleteACL(req pb.DeleteACLReq) error {
+func (handler *DNSHandler) DeleteACL(req pb.DeleteACLReq) error {
 	kvs, err := handler.tableKVs(aCLsPath + req.ID)
 	if err != nil {
 		return err
@@ -381,7 +382,7 @@ func (handler *BindHandler) DeleteACL(req pb.DeleteACLReq) error {
 	return nil
 }
 
-func (handler *BindHandler) CreateView(req pb.CreateViewReq) error {
+func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
 	if err := handler.addPriority(int(req.Priority), req.ViewID); err != nil {
 		return err
 	}
@@ -408,7 +409,7 @@ func (handler *BindHandler) CreateView(req pb.CreateViewReq) error {
 	return nil
 }
 
-func (handler *BindHandler) UpdateView(req pb.UpdateViewReq) error {
+func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 	if err := handler.updatePriority(int(req.Priority), req.ViewID); err != nil {
 		return err
 	}
@@ -438,7 +439,7 @@ func (handler *BindHandler) UpdateView(req pb.UpdateViewReq) error {
 	return nil
 }
 
-func (handler *BindHandler) DeleteView(req pb.DeleteViewReq) error {
+func (handler *DNSHandler) DeleteView(req pb.DeleteViewReq) error {
 	handler.deletePriority(req.ViewID)
 	//delete table
 	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID)); err != nil {
@@ -462,7 +463,7 @@ func (handler *BindHandler) DeleteView(req pb.DeleteViewReq) error {
 	return nil
 }
 
-func (handler *BindHandler) CreateZone(req pb.CreateZoneReq) error {
+func (handler *DNSHandler) CreateZone(req pb.CreateZoneReq) error {
 	//put the zone into db
 	names := map[string][]byte{}
 	names["name"] = []byte(req.ZoneName)
@@ -490,7 +491,7 @@ func (handler *BindHandler) CreateZone(req pb.CreateZoneReq) error {
 	return nil
 }
 
-func (handler *BindHandler) DeleteZone(req pb.DeleteZoneReq) error {
+func (handler *DNSHandler) DeleteZone(req pb.DeleteZoneReq) error {
 	var names map[string][]byte
 	var err error
 	if names, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID); err != nil {
@@ -522,7 +523,7 @@ func (handler *BindHandler) DeleteZone(req pb.DeleteZoneReq) error {
 	return nil
 }
 
-func (handler *BindHandler) CreateRR(req pb.CreateRRReq) error {
+func (handler *DNSHandler) CreateRR(req pb.CreateRRReq) error {
 	rrsMap := map[string][]byte{}
 	rrsMap["name"] = []byte(req.Name)
 	rrsMap["type"] = []byte(req.Type)
@@ -544,7 +545,7 @@ func (handler *BindHandler) CreateRR(req pb.CreateRRReq) error {
 	fmt.Println("createrr key:", string(viewsmap["key"]))
 	var data string
 	data = req.Name + "." + string(names["name"]) + " " + req.TTL + " IN " + req.Type + " " + req.Value
-	if err := rrupdate.UpdateRR("key"+string(viewsmap["name"]), string(key), data, string(names["name"]), true); err != nil {
+	if err := updateRR("key"+string(viewsmap["name"]), string(key), data, string(names["name"]), true); err != nil {
 		return err
 	}
 	if err := handler.rndcDumpJNLFile(); err != nil {
@@ -553,7 +554,7 @@ func (handler *BindHandler) CreateRR(req pb.CreateRRReq) error {
 	return nil
 }
 
-func (handler *BindHandler) UpdateRR(req pb.UpdateRRReq) error {
+func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 	var rrsMap map[string][]byte
 	var err error
 	if rrsMap, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + req.RRID); err != nil {
@@ -571,10 +572,10 @@ func (handler *BindHandler) UpdateRR(req pb.UpdateRRReq) error {
 	fmt.Println("updaterr key:", string(viewsmap["key"]))
 	oldData := string(rrsMap["name"]) + "." + string(names["name"]) + " " + string(rrsMap["TTL"]) + " IN " + string(rrsMap["type"]) + " " + string(rrsMap["value"])
 	newData := req.Name + "." + string(names["name"]) + " " + req.TTL + " IN " + req.Type + " " + req.Value
-	if err := rrupdate.UpdateRR("key"+string(viewsmap["name"]), string(key), oldData, string(names["name"]), false); err != nil {
+	if err := updateRR("key"+string(viewsmap["name"]), string(key), oldData, string(names["name"]), false); err != nil {
 		return err
 	}
-	if err := rrupdate.UpdateRR("key"+string(viewsmap["name"]), string(key), newData, string(names["name"]), true); err != nil {
+	if err := updateRR("key"+string(viewsmap["name"]), string(key), newData, string(names["name"]), true); err != nil {
 		return err
 	}
 	//add the old data by rrupdate cause the delete function of the rrupdate had deleted all the rrs.
@@ -595,7 +596,7 @@ func (handler *BindHandler) UpdateRR(req pb.UpdateRRReq) error {
 		}
 		var updateData string
 		updateData = string(data["name"]) + "." + string(names["name"]) + " " + string(data["TTL"]) + " IN " + string(data["type"]) + " " + string(data["value"])
-		if err := rrupdate.UpdateRR("key"+string(viewsmap["name"]), string(key), updateData, string(names["name"]), true); err != nil {
+		if err := updateRR("key"+string(viewsmap["name"]), string(key), updateData, string(names["name"]), true); err != nil {
 			return err
 		}
 	}
@@ -612,7 +613,7 @@ func (handler *BindHandler) UpdateRR(req pb.UpdateRRReq) error {
 	return nil
 }
 
-func (handler *BindHandler) DeleteRR(req pb.DeleteRRReq) error {
+func (handler *DNSHandler) DeleteRR(req pb.DeleteRRReq) error {
 	var rrsMap map[string][]byte
 	var err error
 	if rrsMap, err = handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + req.RRID); err != nil {
@@ -629,7 +630,7 @@ func (handler *BindHandler) DeleteRR(req pb.DeleteRRReq) error {
 	key := viewsmap["key"]
 	fmt.Println("deleterr key:", string(viewsmap["key"]))
 	rrData := string(rrsMap["name"]) + "." + string(names["name"]) + " " + string(rrsMap["TTL"]) + " IN " + string(rrsMap["type"]) + " " + string(rrsMap["value"])
-	if err := rrupdate.UpdateRR("key"+string(viewsmap["name"]), string(key), rrData, string(names["name"]), false); err != nil { //string(rrData[:])
+	if err := updateRR("key"+string(viewsmap["name"]), string(key), rrData, string(names["name"]), false); err != nil { //string(rrData[:])
 		return err
 	}
 	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + zonesPath + req.ZoneID + rRsPath + req.RRID)); err != nil {
@@ -650,7 +651,7 @@ func (handler *BindHandler) DeleteRR(req pb.DeleteRRReq) error {
 		}
 		var updateData string
 		updateData = string(data["name"]) + "." + string(names["name"]) + " " + string(data["TTL"]) + " IN " + string(data["type"]) + " " + string(data["value"])
-		if err := rrupdate.UpdateRR("key"+string(viewsmap["name"]), string(key), updateData, string(names["name"]), true); err != nil {
+		if err := updateRR("key"+string(viewsmap["name"]), string(key), updateData, string(names["name"]), true); err != nil {
 			return err
 		}
 	}
@@ -661,11 +662,11 @@ func (handler *BindHandler) DeleteRR(req pb.DeleteRRReq) error {
 	return nil
 }
 
-func (h *BindHandler) Close() {
+func (h *DNSHandler) Close() {
 	h.db.Close()
 }
 
-func (handler *BindHandler) namedConfData() (namedData, error) {
+func (handler *DNSHandler) namedConfData() (namedData, error) {
 	var err error
 	data := namedData{ConfigPath: handler.dnsConfPath}
 	//get all the acl names.
@@ -909,7 +910,7 @@ func (handler *BindHandler) namedConfData() (namedData, error) {
 	return data, nil
 }
 
-func (handler *BindHandler) aCLsData() ([]ACL, error) {
+func (handler *DNSHandler) aCLsData() ([]ACL, error) {
 	var err error
 	var aCLsData []ACL
 	var viewTables []string
@@ -967,7 +968,7 @@ func (handler *BindHandler) aCLsData() ([]ACL, error) {
 	return aCLsData, nil
 }
 
-func (handler *BindHandler) nzfsData() ([]nzfData, error) {
+func (handler *DNSHandler) nzfsData() ([]nzfData, error) {
 	var data []nzfData
 	viewIDs, err := handler.tables(viewsEndPath)
 	if err != nil {
@@ -1003,7 +1004,7 @@ func (handler *BindHandler) nzfsData() ([]nzfData, error) {
 	return data, nil
 }
 
-func (handler *BindHandler) redirectData() ([]redirectionData, error) {
+func (handler *DNSHandler) redirectData() ([]redirectionData, error) {
 	var data []redirectionData
 	viewIDs, err := handler.tables(viewsEndPath)
 	if err != nil {
@@ -1040,7 +1041,7 @@ func (handler *BindHandler) redirectData() ([]redirectionData, error) {
 	return data, nil
 }
 
-func (handler *BindHandler) rpzData() ([]redirectionData, error) {
+func (handler *DNSHandler) rpzData() ([]redirectionData, error) {
 	var data []redirectionData
 	viewIDs, err := handler.tables(viewsEndPath)
 	if err != nil {
@@ -1077,7 +1078,7 @@ func (handler *BindHandler) rpzData() ([]redirectionData, error) {
 	return data, nil
 }
 
-func (handler *BindHandler) zonesData() ([]zoneData, error) {
+func (handler *DNSHandler) zonesData() ([]zoneData, error) {
 	var zonesData []zoneData
 	viewIDs, err := handler.tables(viewsEndPath)
 	if err != nil {
@@ -1123,7 +1124,7 @@ func (handler *BindHandler) zonesData() ([]zoneData, error) {
 	return zonesData, nil
 }
 
-func (handler *BindHandler) tableKVs(table string) (map[string][]byte, error) {
+func (handler *DNSHandler) tableKVs(table string) (map[string][]byte, error) {
 	tb, err := handler.db.CreateOrGetTable(kv.TableName(table))
 	if err != nil {
 		return nil, err
@@ -1140,7 +1141,7 @@ func (handler *BindHandler) tableKVs(table string) (map[string][]byte, error) {
 	return kvs, nil
 }
 
-func (handler *BindHandler) tables(table string) ([]string, error) {
+func (handler *DNSHandler) tables(table string) ([]string, error) {
 	tb, err := handler.db.CreateOrGetTable(kv.TableName(table))
 	if err != nil {
 		return nil, err
@@ -1157,7 +1158,7 @@ func (handler *BindHandler) tables(table string) ([]string, error) {
 	return tables, nil
 }
 
-func (handler *BindHandler) addKVs(tableName string, values map[string][]byte) error {
+func (handler *DNSHandler) addKVs(tableName string, values map[string][]byte) error {
 	tb, err := handler.db.CreateOrGetTable(kv.TableName(tableName))
 	if err != nil {
 		return err
@@ -1179,7 +1180,7 @@ func (handler *BindHandler) addKVs(tableName string, values map[string][]byte) e
 	return nil
 }
 
-func (handler *BindHandler) updateKVs(tableName string, values map[string][]byte) error {
+func (handler *DNSHandler) updateKVs(tableName string, values map[string][]byte) error {
 	tb, err := handler.db.CreateOrGetTable(kv.TableName(tableName))
 	if err != nil {
 		return err
@@ -1201,7 +1202,7 @@ func (handler *BindHandler) updateKVs(tableName string, values map[string][]byte
 	return nil
 }
 
-func (handler *BindHandler) deleteKVs(tableName string, keys []string) error {
+func (handler *DNSHandler) deleteKVs(tableName string, keys []string) error {
 	tb, err := handler.db.CreateOrGetTable(kv.TableName(tableName))
 	if err != nil {
 		return err
@@ -1223,7 +1224,7 @@ func (handler *BindHandler) deleteKVs(tableName string, keys []string) error {
 	return nil
 }
 
-func (handler *BindHandler) rewriteNamedFile() error {
+func (handler *DNSHandler) rewriteNamedFile() error {
 	var namedConfData namedData
 	var err error
 	if namedConfData, err = handler.namedConfData(); err != nil {
@@ -1242,7 +1243,7 @@ func (handler *BindHandler) rewriteNamedFile() error {
 	return nil
 }
 
-func (handler *BindHandler) rewriteZonesFile() error {
+func (handler *DNSHandler) rewriteZonesFile() error {
 	zonesData, err := handler.zonesData()
 	if err != nil {
 		return err
@@ -1259,7 +1260,7 @@ func (handler *BindHandler) rewriteZonesFile() error {
 	return nil
 }
 
-func (handler *BindHandler) rewriteACLsFile() error {
+func (handler *DNSHandler) rewriteACLsFile() error {
 	aCLs, err := handler.aCLsData()
 	if err != nil {
 		return err
@@ -1279,7 +1280,7 @@ func (handler *BindHandler) rewriteACLsFile() error {
 	return nil
 }
 
-func (handler *BindHandler) rewriteNzfsFile() error {
+func (handler *DNSHandler) rewriteNzfsFile() error {
 	nzfsData, err := handler.nzfsData()
 	if err != nil {
 		return err
@@ -1296,7 +1297,7 @@ func (handler *BindHandler) rewriteNzfsFile() error {
 	return nil
 }
 
-func (handler *BindHandler) rewriteRedirectFile() error {
+func (handler *DNSHandler) rewriteRedirectFile() error {
 	redirectionsData, err := handler.redirectData()
 	if err != nil {
 		return err
@@ -1313,7 +1314,7 @@ func (handler *BindHandler) rewriteRedirectFile() error {
 	return nil
 }
 
-func (handler *BindHandler) rewriteRPZFile() error {
+func (handler *DNSHandler) rewriteRPZFile() error {
 	redirectionsData, err := handler.rpzData()
 	if err != nil {
 		return err
@@ -1330,7 +1331,7 @@ func (handler *BindHandler) rewriteRPZFile() error {
 	return nil
 }
 
-func (handler *BindHandler) addPriority(pri int, viewid string) error {
+func (handler *DNSHandler) addPriority(pri int, viewid string) error {
 	var kvs map[string][]byte
 	var err error
 	if kvs, err = handler.tableKVs(viewsEndPath); err != nil {
@@ -1358,7 +1359,7 @@ func (handler *BindHandler) addPriority(pri int, viewid string) error {
 	return nil
 }
 
-func (handler *BindHandler) updatePriority(pri int, viewid string) error {
+func (handler *DNSHandler) updatePriority(pri int, viewid string) error {
 	var kvs map[string][]byte
 	var err error
 	if kvs, err = handler.tableKVs(viewsEndPath); err != nil {
@@ -1388,7 +1389,7 @@ func (handler *BindHandler) updatePriority(pri int, viewid string) error {
 	return nil
 }
 
-func (handler *BindHandler) deletePriority(viewID string) error {
+func (handler *DNSHandler) deletePriority(viewID string) error {
 	//query priority
 	kvs, err := handler.tableKVs(viewsEndPath)
 	if err != nil {
@@ -1423,7 +1424,7 @@ func (handler *BindHandler) deletePriority(viewID string) error {
 	return nil
 }
 
-func (handler *BindHandler) aCLsFromTopPath(aCLids []string) ([]ACL, error) {
+func (handler *DNSHandler) aCLsFromTopPath(aCLids []string) ([]ACL, error) {
 	var aCLs []ACL
 	for _, aCLid := range aCLids {
 		names, err := handler.tableKVs(aCLsPath + aCLid)
@@ -1446,7 +1447,7 @@ func (handler *BindHandler) aCLsFromTopPath(aCLids []string) ([]ACL, error) {
 	return aCLs, nil
 }
 
-func (handler *BindHandler) rndcReconfig() error {
+func (handler *DNSHandler) rndcReconfig() error {
 	//update bind
 	var para1 string = "-c" + handler.dnsConfPath + "rndc.conf"
 	var para2 string = "-s" + "localhost"
@@ -1457,7 +1458,7 @@ func (handler *BindHandler) rndcReconfig() error {
 	}
 	return nil
 }
-func (handler *BindHandler) rndcAddZone(name string, zoneFile string, viewName string) error {
+func (handler *DNSHandler) rndcAddZone(name string, zoneFile string, viewName string) error {
 	//update bind
 	var para1 string = "-c" + handler.dnsConfPath + "rndc.conf"
 	var para2 string = "-s" + "localhost"
@@ -1469,7 +1470,7 @@ func (handler *BindHandler) rndcAddZone(name string, zoneFile string, viewName s
 	return nil
 }
 
-func (handler *BindHandler) rndcDelZone(name string, zoneFile string, viewName string) error {
+func (handler *DNSHandler) rndcDelZone(name string, zoneFile string, viewName string) error {
 	//update bind
 	var para1 string = "-c" + handler.dnsConfPath + "rndc.conf"
 	var para2 string = "-s" + "localhost"
@@ -1481,7 +1482,7 @@ func (handler *BindHandler) rndcDelZone(name string, zoneFile string, viewName s
 	return nil
 }
 
-func (handler *BindHandler) rndcDumpJNLFile() error {
+func (handler *DNSHandler) rndcDumpJNLFile() error {
 	//update bind
 	var para1 string = "-c" + handler.dnsConfPath + "rndc.conf"
 	var para2 string = "-s" + "localhost"
@@ -1495,7 +1496,7 @@ func (handler *BindHandler) rndcDumpJNLFile() error {
 	return nil
 }
 
-func (handler *BindHandler) keepDNSAlive() {
+func (handler *DNSHandler) keepDNSAlive() {
 	for {
 		select {
 		case <-handler.ticker.C:
@@ -1509,7 +1510,7 @@ func (handler *BindHandler) keepDNSAlive() {
 		}
 	}
 }
-func (handler *BindHandler) UpdateDefaultForward(req pb.UpdateDefaultForwardReq) error {
+func (handler *DNSHandler) UpdateDefaultForward(req pb.UpdateDefaultForwardReq) error {
 	//delete the old data
 	_, err := handler.tableKVs(forwardPath + iPsEndPath)
 	if err != nil {
@@ -1552,7 +1553,7 @@ func (handler *BindHandler) UpdateDefaultForward(req pb.UpdateDefaultForwardReq)
 	}
 	return nil
 }
-func (handler *BindHandler) DeleteDefaultForward(req pb.DeleteDefaultForwardReq) error {
+func (handler *DNSHandler) DeleteDefaultForward(req pb.DeleteDefaultForwardReq) error {
 	//delete the old data
 	if err := handler.db.DeleteTable(kv.TableName(forwardPath + iPsEndPath)); err != nil {
 		return err
@@ -1573,7 +1574,7 @@ func (handler *BindHandler) DeleteDefaultForward(req pb.DeleteDefaultForwardReq)
 	}
 	return nil
 }
-func (handler *BindHandler) UpdateForward(req pb.UpdateForwardReq) error {
+func (handler *DNSHandler) UpdateForward(req pb.UpdateForwardReq) error {
 	//delete the old data
 	_, err := handler.tableKVs(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardPath + iPsEndPath)
 	if err != nil {
@@ -1617,7 +1618,7 @@ func (handler *BindHandler) UpdateForward(req pb.UpdateForwardReq) error {
 
 	return nil
 }
-func (handler *BindHandler) DeleteForward(req pb.DeleteForwardReq) error {
+func (handler *DNSHandler) DeleteForward(req pb.DeleteForwardReq) error {
 	//delete the old data
 	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + zonesPath + req.ZoneID + forwardPath + iPsEndPath)); err != nil {
 		return err
@@ -1638,7 +1639,7 @@ func (handler *BindHandler) DeleteForward(req pb.DeleteForwardReq) error {
 	}
 	return nil
 }
-func (handler *BindHandler) CreateRedirection(req pb.CreateRedirectionReq) error {
+func (handler *DNSHandler) CreateRedirection(req pb.CreateRedirectionReq) error {
 	rrMap := map[string][]byte{}
 	rrMap["name"] = []byte(req.Name)
 	rrMap["type"] = []byte(req.DataType)
@@ -1673,7 +1674,7 @@ func (handler *BindHandler) CreateRedirection(req pb.CreateRedirectionReq) error
 	}
 	return nil
 }
-func (handler *BindHandler) UpdateRedirection(req pb.UpdateRedirectionReq) error {
+func (handler *DNSHandler) UpdateRedirection(req pb.UpdateRedirectionReq) error {
 	//update the data in the database
 	rrMap := map[string][]byte{}
 	rrMap["name"] = []byte(req.Name)
@@ -1705,7 +1706,7 @@ func (handler *BindHandler) UpdateRedirection(req pb.UpdateRedirectionReq) error
 	}
 	return nil
 }
-func (handler *BindHandler) DeleteRedirection(req pb.DeleteRedirectionReq) error {
+func (handler *DNSHandler) DeleteRedirection(req pb.DeleteRedirectionReq) error {
 	//delete the data in the database
 	if req.RedirectType == "redirect" {
 		//input the data into the database.
@@ -1736,7 +1737,7 @@ func (handler *BindHandler) DeleteRedirection(req pb.DeleteRedirectionReq) error
 	}
 	return nil
 }
-func (handler *BindHandler) CreateDefaultDNS64(req pb.CreateDefaultDNS64Req) error {
+func (handler *DNSHandler) CreateDefaultDNS64(req pb.CreateDefaultDNS64Req) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
 	kvs["prefix"] = []byte(req.Prefix)
@@ -1755,7 +1756,7 @@ func (handler *BindHandler) CreateDefaultDNS64(req pb.CreateDefaultDNS64Req) err
 	}
 	return nil
 }
-func (handler *BindHandler) UpdateDefaultDNS64(req pb.UpdateDefaultDNS64Req) error {
+func (handler *DNSHandler) UpdateDefaultDNS64(req pb.UpdateDefaultDNS64Req) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
 	kvs["prefix"] = []byte(req.Prefix)
@@ -1774,7 +1775,7 @@ func (handler *BindHandler) UpdateDefaultDNS64(req pb.UpdateDefaultDNS64Req) err
 	}
 	return nil
 }
-func (handler *BindHandler) DeleteDefaultDNS64(req pb.DeleteDefaultDNS64Req) error {
+func (handler *DNSHandler) DeleteDefaultDNS64(req pb.DeleteDefaultDNS64Req) error {
 	//delete the data in the data base.drop the leaf table.
 	if err := handler.db.DeleteTable(kv.TableName(dns64sPath + req.ID)); err != nil {
 		return err
@@ -1789,7 +1790,7 @@ func (handler *BindHandler) DeleteDefaultDNS64(req pb.DeleteDefaultDNS64Req) err
 	}
 	return nil
 }
-func (handler *BindHandler) CreateDNS64(req pb.CreateDNS64Req) error {
+func (handler *DNSHandler) CreateDNS64(req pb.CreateDNS64Req) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
 	kvs["prefix"] = []byte(req.Prefix)
@@ -1808,7 +1809,7 @@ func (handler *BindHandler) CreateDNS64(req pb.CreateDNS64Req) error {
 	}
 	return nil
 }
-func (handler *BindHandler) UpdateDNS64(req pb.UpdateDNS64Req) error {
+func (handler *DNSHandler) UpdateDNS64(req pb.UpdateDNS64Req) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
 	kvs["prefix"] = []byte(req.Prefix)
@@ -1828,7 +1829,7 @@ func (handler *BindHandler) UpdateDNS64(req pb.UpdateDNS64Req) error {
 
 	return nil
 }
-func (handler *BindHandler) DeleteDNS64(req pb.DeleteDNS64Req) error {
+func (handler *DNSHandler) DeleteDNS64(req pb.DeleteDNS64Req) error {
 	//delete the data in the data base.drop the leaf table.
 	if err := handler.db.DeleteTable(kv.TableName(viewsPath + req.ViewID + dns64sPath + req.ID)); err != nil {
 		return err
@@ -1843,7 +1844,7 @@ func (handler *BindHandler) DeleteDNS64(req pb.DeleteDNS64Req) error {
 	}
 	return nil
 }
-func (handler *BindHandler) CreateIPBlackHole(req pb.CreateIPBlackHoleReq) error {
+func (handler *DNSHandler) CreateIPBlackHole(req pb.CreateIPBlackHoleReq) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
 	kvs["aclid"] = []byte(req.ACLID)
@@ -1860,7 +1861,7 @@ func (handler *BindHandler) CreateIPBlackHole(req pb.CreateIPBlackHoleReq) error
 	}
 	return nil
 }
-func (handler *BindHandler) UpdateIPBlackHole(req pb.UpdateIPBlackHoleReq) error {
+func (handler *DNSHandler) UpdateIPBlackHole(req pb.UpdateIPBlackHoleReq) error {
 	//update the data into the data base.
 	kvs := map[string][]byte{}
 	kvs["aclid"] = []byte(req.ACLID)
@@ -1877,7 +1878,7 @@ func (handler *BindHandler) UpdateIPBlackHole(req pb.UpdateIPBlackHoleReq) error
 	}
 	return nil
 }
-func (handler *BindHandler) DeleteIPBlackHole(req pb.DeleteIPBlackHoleReq) error {
+func (handler *DNSHandler) DeleteIPBlackHole(req pb.DeleteIPBlackHoleReq) error {
 	//delete the data into the data base.
 	handler.db.DeleteTable(kv.TableName(ipBlackHolePath + req.ID))
 	//rewrite the named.conf file.
@@ -1890,7 +1891,7 @@ func (handler *BindHandler) DeleteIPBlackHole(req pb.DeleteIPBlackHoleReq) error
 	}
 	return nil
 }
-func (handler *BindHandler) UpdateRecursiveConcurrent(req pb.UpdateRecurConcuReq) error {
+func (handler *DNSHandler) UpdateRecursiveConcurrent(req pb.UpdateRecurConcuReq) error {
 	//update the data in the database;
 	conKVs, err := handler.tableKVs(recurConcurEndPath)
 	if err != nil {
@@ -1919,7 +1920,7 @@ func (handler *BindHandler) UpdateRecursiveConcurrent(req pb.UpdateRecurConcuReq
 
 	return nil
 }
-func (handler *BindHandler) CreateSortList(req pb.CreateSortListReq) error {
+func (handler *DNSHandler) CreateSortList(req pb.CreateSortListReq) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
 	if len(req.ACLIDs) == 0 {
@@ -1955,7 +1956,7 @@ func (handler *BindHandler) CreateSortList(req pb.CreateSortListReq) error {
 	}
 	return nil
 }
-func (handler *BindHandler) UpdateSortList(req pb.UpdateSortListReq) error {
+func (handler *DNSHandler) UpdateSortList(req pb.UpdateSortListReq) error {
 	//update the data into the data base.
 	delReq := pb.DeleteSortListReq{ACLIDs: req.ACLIDs}
 	handler.DeleteSortList(delReq)
@@ -1963,7 +1964,7 @@ func (handler *BindHandler) UpdateSortList(req pb.UpdateSortListReq) error {
 	handler.CreateSortList(createReq)
 	return nil
 }
-func (handler *BindHandler) DeleteSortList(req pb.DeleteSortListReq) error {
+func (handler *DNSHandler) DeleteSortList(req pb.DeleteSortListReq) error {
 	//delete the data in the data base.
 	var acls []string
 	var err error
@@ -1981,6 +1982,61 @@ func (handler *BindHandler) DeleteSortList(req pb.DeleteSortListReq) error {
 	}
 	//update bind.
 	if err := handler.rndcReconfig(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateRR(key string, secret string, rr string, zone string, isAdd bool) error {
+	if len(rr) >= 2 {
+		if rr[0] == '@' && rr[1] == '.' {
+			rr = rr[2:]
+		}
+	}
+	serverAddr, err := net.ResolveUDPAddr("udp", dnsServer)
+	if err != nil {
+		return err
+	}
+
+	conn, err := net.DialUDP("udp", nil, serverAddr)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	zone_, err := g53.NewName(zone, false)
+	if err != nil {
+		return err
+	}
+
+	rrset, err := g53.RRsetFromString(rr)
+	if err != nil {
+		return err
+	}
+
+	msg := g53.MakeUpdate(zone_)
+	if isAdd {
+		msg.UpdateAddRRset(rrset)
+	} else {
+		msg.UpdateRemoveRRset(rrset)
+	}
+	msg.Header.Id = 1200
+
+	secret = base64.StdEncoding.EncodeToString([]byte(secret))
+	tsig, err := g53.NewTSIG(key, secret, "hmac-md5")
+	if err != nil {
+		return err
+	}
+	msg.SetTSIG(tsig)
+	msg.RecalculateSectionRRCount()
+
+	render := g53.NewMsgRender()
+	msg.Rend(render)
+	conn.Write(render.Data())
+
+	answerBuffer := make([]byte, 1024)
+	_, _, err = conn.ReadFromUDP(answerBuffer)
+	if err != nil {
 		return err
 	}
 	return nil

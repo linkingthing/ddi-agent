@@ -1,10 +1,8 @@
-package boltoperation
+package boltdb
 
 import (
-	"log"
-
-	kv "github.com/ben-han-cn/kvzoo"
-	"github.com/ben-han-cn/kvzoo/backend/bolt"
+	kv "github.com/zdnscloud/kvzoo"
+	"github.com/zdnscloud/kvzoo/backend/bolt"
 )
 
 type BoltHandler struct {
@@ -12,9 +10,7 @@ type BoltHandler struct {
 	dBPath string
 }
 
-func NewBoltHandler(dbPath string, dbName string) *BoltHandler {
-	log.Println("in NewBoltHandler, dbPath: ", dbPath)
-	log.Println("in NewBoltHandler, dbName: ", dbName)
+func New(dbPath string, dbName string) *BoltHandler {
 	var tmpDBPath string
 	if dbPath[len(dbPath)-1] != '/' {
 		tmpDBPath = dbPath + "/"

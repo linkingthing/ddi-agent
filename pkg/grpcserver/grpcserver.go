@@ -1,11 +1,16 @@
 package grpcserver
 
 import (
-	"google.golang.org/grpc"
 	"log"
 	"net"
+	"os"
+	"path/filepath"
+	"strings"
 
-	grpcservice "github.com/linkingthing/ddi-agent/pkg/dns/grpcservice"
+	"google.golang.org/grpc"
+
+	"github.com/linkingthing/ddi-agent/config"
+	dns "github.com/linkingthing/ddi-agent/pkg/dns/grpcservice"
 	"github.com/linkingthing/ddi-metric/pb"
 )
 
@@ -15,27 +20,40 @@ type GRPCServer struct {
 	listener   net.Listener
 }
 
-func NewGRPCServer(listenAddr string, DNSConfPath string, agentPath string, isDnsOpen bool, isDhcpOpen bool) (*GRPCServer, error) {
-	server := grpc.NewServer()
-	var dnsService *grpcservice.DNSService
-	if isDnsOpen {
-		dnsService = grpcservice.NewDNSService(DNSConfPath, agentPath)
-	}
-	log.Println("in server.go, to register")
-	pb.RegisterAgentManagerServer(server, dnsService)
-	listener, err := net.Listen("tcp", listenAddr)
+func New(conf *config.AgentConfig) (*GRPCServer, error) {
+	agentExecDir, err := getAgentExecDirectory()
 	if err != nil {
-		log.Println("in server.go, error to listen")
-		return nil, err
+		return nil, fmt.Errorf("get agent exec directory failed:%s", err.Error())
 	}
-	return &GRPCServer{
-		dnsService: dnsService,
-		server:     server,
-		listener:   listener,
-	}, nil
+
+	listener, err := net.Listen("tcp", conf.Grpc.Addr)
+	if err != nil {
+		return nil, fmt.Errorf("create listener with addr %s failed: %s", conf.Grpc.Addr, err.Error())
+	}
+
+	grpcServer := &GRPCServer{
+		server:   grpc.NewServer(),
+		listener: listener,
+	}
+
+	if conf.Server.DnsEnabled {
+		grpcServer.dnsService = dns.NewDNSService(conf.Dns.ConfDir, agentExecDir)
+		pb.RegisterAgentManagerServer(grpcServer.server, grpcServer.dnsService)
+		//TODO add DHCP service and register dhcp service to grpc server
+	}
+
+	return grpcServer, nil
 }
 
-func (s *GRPCServer) Start() error {
+func getAgentExecDirectory() (string, error) {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return "", err
+	}
+	return strings.Replace(dir, "\\", "/", -1), nil
+}
+
+func (s *GRPCServer) Run() error {
 	return s.server.Serve(s.listener)
 }
 

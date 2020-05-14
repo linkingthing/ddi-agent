@@ -1,17 +1,19 @@
 package agent
 
 import (
-	ut "github.com/ben-han-cn/cement/unittest"
-	"github.com/linkingthing/ddi-metric/pb"
 	"testing"
+
+	ut "github.com/zdnscloud/cement/unittest"
+
+	"github.com/linkingthing/ddi-metric/pb"
 )
 
 var (
-	handler *BindHandler
+	handler *DNSHandler
 )
 
 func init() {
-	p := NewBindHandler("/root/bindtest/", "/root/bindtest/")
+	p := newDNSHandler("/root/bindtest/", "/root/bindtest/")
 	handler = p
 }
 

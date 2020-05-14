@@ -3,7 +3,7 @@ package grpcservice
 import (
 	"context"
 	"fmt"
-	"github.com/linkingthing/ddi-agent/pkg/dns/agent"
+
 	"github.com/linkingthing/ddi-metric/pb"
 )
 
@@ -13,11 +13,11 @@ const (
 )
 
 type DNSService struct {
-	handler *agent.BindHandler
+	handler *DNSHandler
 }
 
 func NewDNSService(dnsConfPath string, agentPath string) *DNSService {
-	return &DNSService{agent.NewBindHandler(dnsConfPath, agentPath)}
+	return &DNSService{newDNSHandler(dnsConfPath, agentPath)}
 }
 
 func (service *DNSService) StartDNS(content context.Context, req *pb.DNSStartReq) (*pb.OperResult, error) {

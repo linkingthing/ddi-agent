@@ -1,12 +1,15 @@
-package client
+package kafkaconsumer
 
 import (
 	"context"
 	"fmt"
+
 	"github.com/golang/protobuf/proto"
-	"github.com/linkingthing/ddi-metric/pb"
 	kg "github.com/segmentio/kafka-go"
 	"google.golang.org/grpc"
+
+	"github.com/linkingthing/ddi-metric/pb"
+	"github.com/linkingthing/ddi-metric/register"
 )
 
 const (
@@ -46,28 +49,30 @@ const (
 )
 
 var (
-	kafkaServer = "localhost:9092"
-	dnsTopic    = "dns"
-	kafkaReader *kg.Reader
+	DNSTopic = "dns"
 )
 
-func DNSClient(conn *grpc.ClientConn, kafkaServer string) {
-	cli := pb.NewAgentManagerClient(conn)
-	kafkaReader = kg.NewReader(kg.ReaderConfig{
+func New(conn *grpc.ClientConn, conf *config.AgentConfig) {
+	if conf.Server.DNSEnabled == false {
+		return
+	}
 
-		Brokers: []string{kafkaServer},
-		Topic:   dnsTopic,
+	register.RegisterNode(conf.Server.Hostname, conf.Prometheus.IP, conf.Prometheus.Port,
+		conf.Server.IP, conf.Server.ParentIP, register.DNSRole, conf.Kafka.Addr)
+
+	cli := pb.NewAgentManagerClient(conn)
+	kafkaReader := kg.NewReader(kg.ReaderConfig{
+		Brokers: []string{conf.Kafka.Addr},
+		Topic:   DNSTopic,
 	})
-	var message kg.Message
-	var err error
+
 	for {
-		message, err = kafkaReader.ReadMessage(context.Background())
+		message, err := kafkaReader.ReadMessage(context.Background())
 		if err != nil {
-			panic(err)
+			log.Errorf("read message from kafka failed: %s", err.Error())
 			return
 		}
 
-		fmt.Println("kafka cmd:", string(message.Key))
 		switch string(message.Key) {
 		case STARTDNS:
 			var target pb.DNSStartReq
