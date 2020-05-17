@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/linkingthing/ddi-metric/pb"
+	"github.com/linkingthing/ddi-agent/pkg/pb"
 )
 
 const (

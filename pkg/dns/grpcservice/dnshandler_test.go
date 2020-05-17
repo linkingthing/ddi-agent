@@ -5,7 +5,7 @@ import (
 
 	ut "github.com/zdnscloud/cement/unittest"
 
-	"github.com/linkingthing/ddi-metric/pb"
+	"github.com/linkingthing/ddi-agent/pkg/pb"
 )
 
 var (
