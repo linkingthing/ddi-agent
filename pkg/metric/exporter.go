@@ -31,11 +31,11 @@ type MetricsHandler struct {
 
 func Init(conf *config.AgentConfig) {
 	handler := MetricsHandler{
-		configPath:    conf.Dns.ConfDir,
+		configPath:    conf.DNS.ConfDir,
 		HistoryLength: conf.Metric.HistoryLength,
 	}
 
-	handler.collector = newCollector(conf.Dhcp.Addr)
+	handler.collector = newCollector(conf.DHCP.CmdAddr)
 	go handler.Statics(conf.Metric.Period)
 	go handler.Exporter(conf.Metric.Port)
 

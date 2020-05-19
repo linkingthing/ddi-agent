@@ -11,9 +11,9 @@ type AgentConfig struct {
 	Kafka      KafkaConf      `yaml:"kafka"`
 	Prometheus PrometheusConf `yaml:"prometheus"`
 	Metric     MetricConf     `yaml:"metric"`
-	Dns        DnsConf        `yaml:"dns"`
-	Dhcp       DhcpConf       `yaml:"dhcp"`
-	DB         DBConf         `yaml:"db"`
+	DNS        DNSConf        `yaml:"dns"`
+	DHCP       DHCPConf       `yaml:"dhcp"`
+	DB         BoltDBConf     `yaml:"db"`
 }
 
 type ServerConf struct {
@@ -45,16 +45,25 @@ type MetricConf struct {
 	Period        int    `yaml:"period"`
 }
 
-type DnsConf struct {
+type DNSConf struct {
 	ConfDir string `yaml:"conf_dir"`
 	DBDir   string `yaml:"db_dir"`
 }
 
-type DhcpConf struct {
-	Addr string `yaml:"addr"`
+type DHCPConf struct {
+	CmdAddr   string     `yaml:"cmdAddr"`
+	ConfigDir string     `yaml:"configDir"`
+	DB        DHCPDBConf `yaml:"db"`
 }
 
-type DBConf struct {
+type DHCPDBConf struct {
+	Name     string `json:"name"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Port     uint32 `json:"port"`
+}
+
+type BoltDBConf struct {
 	Dir string `yaml:"dir"`
 }
 

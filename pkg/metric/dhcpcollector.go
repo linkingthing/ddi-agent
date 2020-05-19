@@ -136,5 +136,5 @@ func (c *DHCPCollector) GetDhcpUsageStatistics() (float64, error) {
 }
 
 func RunCmd(command string) ([]byte, error) {
-	return exec.Command("bash", "-c", command).CombinedOutput()
+	return exec.Command("bash", "-c", command).Output()
 }

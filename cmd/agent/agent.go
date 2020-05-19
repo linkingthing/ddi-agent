@@ -8,6 +8,7 @@ import (
 
 	"github.com/linkingthing/ddi-agent/config"
 	"github.com/linkingthing/ddi-agent/pkg/boltdb"
+	dhcpconsumer "github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
 	dnsconsumer "github.com/linkingthing/ddi-agent/pkg/dns/kafkaconsumer"
 	"github.com/linkingthing/ddi-agent/pkg/grpcserver"
 	"github.com/linkingthing/ddi-agent/pkg/metric"
@@ -32,6 +33,7 @@ func main() {
 	}
 
 	metric.Init(conf)
+
 	s, err := grpcserver.New(conf)
 	if err != nil {
 		log.Fatalf("new grpc server failed: %s", err.Error())
@@ -43,8 +45,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	go dnsconsumer.New(conn, conf)
-
+	go dnsconsumer.Run(conn, conf)
+	go dhcpconsumer.Run(conn, conf)
 	s.Run()
-	s.Stop()
 }

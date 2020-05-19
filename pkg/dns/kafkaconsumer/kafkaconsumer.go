@@ -54,7 +54,7 @@ var (
 	DNSTopic = "dns"
 )
 
-func New(conn *grpc.ClientConn, conf *config.AgentConfig) {
+func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 	if conf.Server.DNSEnabled == false {
 		return
 	}

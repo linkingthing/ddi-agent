@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/linkingthing/ddi-agent/config"
 	"github.com/linkingthing/ddi-metric/pb"
 )
 
@@ -16,8 +17,8 @@ type DNSService struct {
 	handler *DNSHandler
 }
 
-func New(dnsConfPath string, agentPath string) (*DNSService, error) {
-	handler, err := newDNSHandler(dnsConfPath, agentPath)
+func New(conf *config.AgentConfig) (*DNSService, error) {
+	handler, err := newDNSHandler(conf.DNS.ConfDir, conf.DNS.DBDir)
 	if err != nil {
 		return nil, err
 	}
