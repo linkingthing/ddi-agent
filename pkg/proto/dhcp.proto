@@ -42,7 +42,7 @@ service DHCPManager {
     rpc GetPool4Leases(GetPool4LeasesRequest) returns (GetLeases4Response){}
     rpc GetReservation4Leases(GetReservation4LeasesRequest) returns (GetLeases4Response){}
 
-    rpc GetLeases6(GetLeases6Request) returns (GetLeases6Response){}
+    rpc GetSubnet6Leases(GetSubnet6LeasesRequest) returns (GetLeases6Response){}
 }
 
 message CreateSubnet4Request {
@@ -193,7 +193,6 @@ message CreatePDPoolRequest {
 message DeletePDPoolRequest {
     uint32 subnet_id = 1;
     string prefix = 2;
-    uint32 prefix_len = 3;
 }
 
 message UpdatePDPoolRequest {
@@ -255,7 +254,7 @@ message GetLeases4Response {
     repeated DHCPLease4 leases = 2;
 }
 
-message GetLeases6Request {
+message GetSubnet6LeasesRequest{
     uint32 id = 1;
 }
 

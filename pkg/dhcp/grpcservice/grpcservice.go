@@ -244,10 +244,10 @@ func (s *DHCPService) GetReservation4Leases(ctx context.Context, req *pb.GetRese
 	}
 }
 
-func (s *DHCPService) GetLeases6(ctx context.Context, req *pb.GetLeases6Request) (*pb.GetLeases6Response, error) {
-	if _, err := s.handler.GetLeases6(req); err != nil {
-		return &pb.GetLeases6Response{}, err
+func (s *DHCPService) GetSubnet6Leases(ctx context.Context, req *pb.GetSubnet6LeasesRequest) (*pb.GetLeases6Response, error) {
+	if leases, err := s.handler.GetSubnet6Leases(req); err != nil {
+		return &pb.GetLeases6Response{Succeed: false}, err
 	} else {
-		return &pb.GetLeases6Response{}, nil
+		return &pb.GetLeases6Response{Succeed: true, Leases: leases}, nil
 	}
 }

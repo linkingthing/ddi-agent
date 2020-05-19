@@ -143,7 +143,7 @@ func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
 		MaxValidLifetime: req.GetMaxValidLifetime(),
 		MinValidLifetime: req.GetMinValidLifetime(),
 		OptionDatas:      genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), req.GetRouters()),
-		Relay:            RelayAgent{IPAddresses: req.GetRelayAgentAddress()},
+		Relay:            RelayAgent{IPAddresses: req.GetRelayAgentAddresses()},
 	})
 	h.lock.Unlock()
 
@@ -242,7 +242,7 @@ func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
 			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].MinValidLifetime = req.GetMinValidLifetime()
 			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].OptionDatas = genDHCPOptionDatas(
 				Option4DNSServers, req.GetDomainServers(), req.GetRouters())
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Relay = RelayAgent{IPAddresses: req.GetRelayAgentAddress()}
+			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Relay = RelayAgent{IPAddresses: req.GetRelayAgentAddresses()}
 			exists = true
 			break
 		}
@@ -285,7 +285,7 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 		MaxValidLifetime: req.GetMaxValidLifetime(),
 		MinValidLifetime: req.GetMinValidLifetime(),
 		OptionDatas:      genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil),
-		Relay:            RelayAgent{IPAddresses: req.GetRelayAgentAddress()},
+		Relay:            RelayAgent{IPAddresses: req.GetRelayAgentAddresses()},
 	})
 	h.lock.Unlock()
 
@@ -302,7 +302,7 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].MaxValidLifetime = req.GetMaxValidLifetime()
 			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].MinValidLifetime = req.GetMinValidLifetime()
 			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Relay = RelayAgent{IPAddresses: req.GetRelayAgentAddress()}
+			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Relay = RelayAgent{IPAddresses: req.GetRelayAgentAddresses()}
 			exists = true
 			break
 		}
@@ -704,7 +704,7 @@ func (h *DHCPHandler) UpdateClientClass4(req *pb.UpdateClientClass4Request) erro
 	if exists {
 		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found clientclass %s", req.GetName())
+		return fmt.Errorf("no found clientclass4 %s", req.GetName())
 	}
 }
 
@@ -724,7 +724,7 @@ func (h *DHCPHandler) DeleteClientClass4(req *pb.DeleteClientClass4Request) erro
 	if exists {
 		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found clientclass %s", req.GetName())
+		return fmt.Errorf("no found clientclass4 %s", req.GetName())
 	}
 }
 
@@ -764,7 +764,7 @@ type Lease4 struct {
 func (h *DHCPHandler) GetSubnet4Leases(req *pb.GetSubnet4LeasesRequest) ([]*pb.DHCPLease4, error) {
 	var lease4s []*Lease4
 	if err := h.getLeasesFromDB(map[string]interface{}{"subnet_id": req.GetId()}, &lease4s); err != nil {
-		return nil, fmt.Errorf("get subnet %s leases from db failed: %s", req.GetId(), err.Error())
+		return nil, fmt.Errorf("get subnet4 %s leases from db failed: %s", req.GetId(), err.Error())
 	}
 
 	return lease4sToPbDHCPLease4s(lease4s), nil
@@ -795,6 +795,7 @@ func lease4ToPbDHCPLease4(lease *Lease4) *pb.DHCPLease4 {
 		ClientId:      string(lease.ClientId),
 		SubnetId:      lease.SubnetId,
 		ValidLifetime: lease.ValidLifetime,
+		Expire:        lease.Expire.Unix(),
 		Hostname:      lease.Hostname,
 		State:         lease.State,
 	}
@@ -857,6 +858,38 @@ type Lease6 struct {
 	UserContext   string
 }
 
-func (h *DHCPHandler) GetLeases6(req *pb.GetLeases6Request) ([]Lease6, error) {
-	return nil, nil
+func (h *DHCPHandler) GetSubnet6Leases(req *pb.GetSubnet6LeasesRequest) ([]*pb.DHCPLease6, error) {
+	var lease6s []*Lease6
+	if err := h.getLeasesFromDB(map[string]interface{}{"subnet_id": req.GetId()}, &lease6s); err != nil {
+		return nil, fmt.Errorf("get subnet6 %s leases from db failed: %s", req.GetId(), err.Error())
+	}
+
+	return lease6sToPbDHCPLease6s(lease6s), nil
+}
+
+func lease6sToPbDHCPLease6s(lease6s []*Lease6) []*pb.DHCPLease6 {
+	var pbleases []*pb.DHCPLease6
+	now := time.Now()
+	for _, lease := range lease6s {
+		if lease.Expire.After(now) {
+			pbleases = append(pbleases, lease6ToPbDHCPLease6(lease))
+		}
+	}
+
+	return pbleases
+}
+
+func lease6ToPbDHCPLease6(lease *Lease6) *pb.DHCPLease6 {
+	return &pb.DHCPLease6{
+		Address:         lease.Address,
+		SubnetId:        lease.SubnetId,
+		HwAddress:       string(lease.Hwaddr),
+		HwAddressSource: lease.HwaddrSource,
+		Duid:            string(lease.Duid),
+		ValidLifetime:   lease.ValidLifetime,
+		Expire:          lease.Expire.Unix(),
+		PrefixLen:       lease.PrefixLen,
+		LeaseType:       pb.DHCPLease6_LeaseType(lease.LeaseType),
+		State:           lease.State,
+	}
 }
