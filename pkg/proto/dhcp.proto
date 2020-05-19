@@ -54,7 +54,7 @@ message CreateSubnet4Request {
     repeated string domain_servers = 6;
     repeated string routers = 7;
     string client_class = 8;
-    repeated string relay_agent_address = 9;
+    repeated string relay_agent_addresses = 9;
 }
 
 message DeleteSubnet4Request {
@@ -69,7 +69,7 @@ message UpdateSubnet4Request {
     repeated string domain_servers = 5;
     repeated string routers = 6;
     string client_class = 7;
-    repeated string relay_agent_address = 8;
+    repeated string relay_agent_addresses = 8;
 }
 
 message CreateSubnet6Request {
@@ -80,7 +80,7 @@ message CreateSubnet6Request {
     uint32 min_valid_lifetime = 5;
     repeated string dns_servers = 6;
     string client_class = 7;
-    repeated string relay_agent_address = 8;
+    repeated string relay_agent_addresses = 8;
 }
 
 message DeleteSubnet6Request {
@@ -94,7 +94,7 @@ message UpdateSubnet6Request {
     uint32 min_valid_lifetime = 4;
     repeated string dns_servers= 5;
     string client_class = 6;
-    repeated string relay_agent_address = 7;
+    repeated string relay_agent_addresses = 7;
 }
 
 message CreatePool4Request {
