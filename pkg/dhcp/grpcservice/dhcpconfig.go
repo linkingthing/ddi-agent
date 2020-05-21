@@ -1,11 +1,50 @@
 package grpcservice
 
+func genDefaultDHCP4Config() DHCP4Config {
+	return DHCP4Config{
+		DHCP4: DHCP4{
+			GenenalConfig: genDefaultGeneralConfig(),
+		},
+	}
+}
+
+func genDefaultGeneralConfig() GenenalConfig {
+	return GenenalConfig{
+		InterfacesConfig: InterfacesConfig{
+			Interfaces: []string{"*"},
+		},
+		LeaseDatabase: LeaseDatabase{
+			Type:     "postgresql",
+			Name:     "lx",
+			User:     "lx",
+			Password: "lx",
+			Port:     5432,
+			Host:     "localhost",
+		},
+		ValidLifetime:    14400,
+		MaxValidLifetime: 14400,
+		MinValidLifetime: 10800,
+		Loggers: []Logger{
+			{
+				Name:       "kea-dhcp4",
+				DebugLevel: 0,
+				Severity:   "INFO",
+			},
+		},
+	}
+}
+
 type DHCP4Config struct {
 	Path  string `json:"-"`
 	DHCP4 DHCP4  `json:"Dhcp4"`
 }
 
 type DHCP4 struct {
+	GenenalConfig `json:",inline"`
+	Subnet4s      []Subnet4 `json:"subnet4,omitempty"`
+}
+
+type GenenalConfig struct {
 	InterfacesConfig InterfacesConfig `json:"interfaces-config,omitempty"`
 	LeaseDatabase    LeaseDatabase    `json:"lease-database,omitempty"`
 	ValidLifetime    uint32           `json:"valid-lifetime,omitempty"`
@@ -14,7 +53,6 @@ type DHCP4 struct {
 	ClientClasses    []ClientClass    `json:"client-classes,omitempty"`
 	OptionDatas      []OptionData     `json:"option-data,omitempty"`
 	Loggers          []Logger         `json:"loggers,omitempty"`
-	Subnet4s         []Subnet4        `json:"subnet4,omitempty"`
 }
 
 type InterfacesConfig struct {
@@ -84,21 +122,22 @@ type RelayAgent struct {
 	IPAddresses []string `json:"ip-addresses"`
 }
 
+func genDefaultDHCP6Config() DHCP6Config {
+	return DHCP6Config{
+		DHCP6: DHCP6{
+			GenenalConfig: genDefaultGeneralConfig(),
+		},
+	}
+}
+
 type DHCP6Config struct {
 	Path  string `json:"-"`
 	DHCP6 DHCP6  `json:"Dhcp6"`
 }
 
 type DHCP6 struct {
-	InterfacesConfig InterfacesConfig `json:"interfaces-config,omitempty"`
-	LeaseDatabase    LeaseDatabase    `json:"lease-database,omitempty"`
-	ValidLifetime    uint32           `json:"valid-lifetime,omitempty"`
-	MaxValidLifetime uint32           `json:"max-valid-lifetime,omitempty"`
-	MinValidLifetime uint32           `json:"min-valid-lifetime,omitempty"`
-	ClientClasses    []ClientClass    `json:"client-classes,omitempty"`
-	OptionDatas      []OptionData     `json:"option-data,omitempty"`
-	Loggers          []Logger         `json:"loggers,omitempty"`
-	Subnet6s         []Subnet6        `json:"subnet6,omitempty"`
+	GenenalConfig `json:",inline"`
+	Subnet6s      []Subnet6 `json:"subnet6,omitempty"`
 }
 
 type Subnet6 struct {

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"path"
 	"strings"
@@ -78,27 +79,54 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 }
 
 func (h *DHCPHandler) loadDHCPConfig(configDir string) error {
-	//TODO check file exist and gen new file
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		if err := os.Mkdir(configDir, os.ModePerm); err != nil {
+			return fmt.Errorf("create config dir %s failed: %s", configDir, err.Error())
+		}
+	}
+
 	var dhcp4Conf DHCP4Config
 	dhcp4ConfPath := path.Join(configDir, DHCP4ConfigFileName)
-	if err := parseJsonConfig(&dhcp4Conf, dhcp4ConfPath); err != nil {
-		return fmt.Errorf("load dhcp4 config failed: %s", err.Error())
+	if _, err := os.Stat(dhcp4ConfPath); os.IsNotExist(err) {
+		dhcp4Conf = genDefaultDHCP4Config()
+		if err := genDefaultDHCPConfigFile(dhcp4ConfPath, &dhcp4Conf); err != nil {
+			return err
+		}
+	} else {
+		if err := parseJsonConfig(&dhcp4Conf, dhcp4ConfPath); err != nil {
+			return fmt.Errorf("load dhcp4 config failed: %s", err.Error())
+		}
 	}
 
 	var dhcp6Conf DHCP6Config
 	dhcp6ConfPath := path.Join(configDir, DHCP6ConfigFileName)
-	if err := parseJsonConfig(&dhcp6Conf, path.Join(configDir, DHCP6ConfigFileName)); err != nil {
-		return fmt.Errorf("load dhcp6 config failed: %s", err.Error())
+	if _, err := os.Stat(dhcp6ConfPath); os.IsNotExist(err) {
+		dhcp6Conf = genDefaultDHCP6Config()
+		if err := genDefaultDHCPConfigFile(dhcp6ConfPath, &dhcp6Conf); err != nil {
+			return err
+		}
+	} else {
+		if err := parseJsonConfig(&dhcp6Conf, dhcp6ConfPath); err != nil {
+			return fmt.Errorf("load dhcp6 config failed: %s", err.Error())
+		}
 	}
 
 	dhcp4Conf.Path = dhcp4ConfPath
 	dhcp6Conf.Path = dhcp6ConfPath
-
 	h.conf = &DHCPConfig{
 		dhcp4Conf: &dhcp4Conf,
 		dhcp6Conf: &dhcp6Conf,
 	}
 	return nil
+}
+
+func genDefaultDHCPConfigFile(filePath string, fileContent interface{}) error {
+	content, err := json.MarshalIndent(fileContent, "", "\t")
+	if err != nil {
+		return fmt.Errorf("marshal file %s content failed: %s", filePath, err.Error())
+	}
+
+	return ioutil.WriteFile(filePath, content, 0644)
 }
 
 func parseJsonConfig(conf interface{}, filepath string) error {
