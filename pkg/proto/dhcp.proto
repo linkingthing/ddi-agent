@@ -51,7 +51,7 @@ service DHCPManager {
 
 message CreateSubnet4Request {
     uint32 id = 1;
-    string subnet = 2;
+    string ipnet = 2;
     uint32 valid_lifetime = 3;
     uint32 max_valid_lifetime = 4;
     uint32 min_valid_lifetime = 5;
@@ -78,7 +78,7 @@ message UpdateSubnet4Request {
 
 message CreateSubnet6Request {
     uint32 id = 1;
-    string subnet = 2;
+    string ipnet = 2;
     uint32 valid_lifetime = 3;
     uint32 max_valid_lifetime = 4;
     uint32 min_valid_lifetime = 5;

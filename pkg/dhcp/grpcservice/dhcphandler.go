@@ -146,7 +146,7 @@ func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
 	h.lock.Lock()
 	h.conf.dhcp4Conf.DHCP4.Subnet4s = append(h.conf.dhcp4Conf.DHCP4.Subnet4s, Subnet4{
 		ID:               req.GetId(),
-		Subent:           req.GetSubnet(),
+		Subent:           req.GetIpnet(),
 		ClientClass:      req.GetClientClass(),
 		ValidLifetime:    req.GetValidLifetime(),
 		MaxValidLifetime: req.GetMaxValidLifetime(),
@@ -300,7 +300,7 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 	h.lock.Lock()
 	h.conf.dhcp6Conf.DHCP6.Subnet6s = append(h.conf.dhcp6Conf.DHCP6.Subnet6s, Subnet6{
 		ID:               req.GetId(),
-		Subent:           req.GetSubnet(),
+		Subent:           req.GetIpnet(),
 		ClientClass:      req.GetClientClass(),
 		ValidLifetime:    req.GetValidLifetime(),
 		MaxValidLifetime: req.GetMaxValidLifetime(),
