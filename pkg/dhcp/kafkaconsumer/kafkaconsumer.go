@@ -31,7 +31,7 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 	for {
 		message, err := kafkaConsumer.ReadMessage(context.Background())
 		if err != nil {
-			log.Warnf("read message from kafka failed: %s", err.Error())
+			log.Warnf("read dhcp message from kafka failed: %s", err.Error())
 			continue
 		}
 

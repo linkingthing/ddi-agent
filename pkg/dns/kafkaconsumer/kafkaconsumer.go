@@ -71,7 +71,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 	for {
 		message, err := kafkaReader.ReadMessage(context.Background())
 		if err != nil {
-			log.Errorf("read message from kafka failed: %s", err.Error())
+			log.Errorf("read dns message from kafka failed: %s", err.Error())
 			return
 		}
 

@@ -51,8 +51,8 @@ type DNSConf struct {
 }
 
 type DHCPConf struct {
-	CmdAddr   string     `yaml:"cmdAddr"`
-	ConfigDir string     `yaml:"configDir"`
+	CmdAddr   string     `yaml:"cmd_addr"`
+	ConfigDir string     `yaml:"config_dir"`
 	DB        DHCPDBConf `yaml:"db"`
 }
 

@@ -22,6 +22,7 @@ type InterfacesConfig struct {
 }
 
 type LeaseDatabase struct {
+	Type     string `json:"type,omitempty"`
 	Name     string `json:"name,omitempty"`
 	User     string `json:"user,omitempty"`
 	Password string `json:"password,omitempty"`
@@ -80,7 +81,7 @@ type Reservation4 struct {
 }
 
 type RelayAgent struct {
-	IPAddresses []string `json:"ip-addresses,omitempty"`
+	IPAddresses []string `json:"ip-addresses"`
 }
 
 type DHCP6Config struct {

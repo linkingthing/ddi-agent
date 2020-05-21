@@ -42,6 +42,10 @@ service DHCPManager {
     rpc GetPool4Leases(GetPool4LeasesRequest) returns (GetLeases4Response){}
     rpc GetReservation4Leases(GetReservation4LeasesRequest) returns (GetLeases4Response){}
 
+    rpc GetSubnet4LeasesCount(GetSubnet4LeasesRequest) returns (GetLeases4CountResponse){}
+    rpc GetPool4LeasesCount(GetPool4LeasesRequest) returns (GetLeases4CountResponse){}
+    rpc GetReservation4LeasesCount(GetReservation4LeasesRequest) returns (GetLeases4CountResponse){}
+
     rpc GetSubnet6Leases(GetSubnet6LeasesRequest) returns (GetLeases6Response){}
 }
 
@@ -252,6 +256,11 @@ message DHCPLease4 {
 message GetLeases4Response {
     bool succeed = 1;
     repeated DHCPLease4 leases = 2;
+}
+
+message GetLeases4CountResponse {
+    bool succeed = 1;
+    uint64 leases_count = 2;
 }
 
 message GetSubnet6LeasesRequest{

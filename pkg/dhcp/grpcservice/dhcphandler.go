@@ -1,17 +1,19 @@
 package grpcservice
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os/exec"
 	"path"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/zdnscloud/cement/configure"
 	"github.com/zdnscloud/cement/log"
 	restdb "github.com/zdnscloud/gorest/db"
 
@@ -32,15 +34,17 @@ const (
 	Option4Routers         = "routers"
 	DHCPCommandConfigSet   = "config-set"
 	DHCPCommandConfigWrite = "config-write"
-	DHCPCommandStr         = "curl -X POST -H \"Content-Type: application/json\" http://%s -d '%s'"
-	ConnStr                = "user=%s password=%s host=localhost port=%d database=%s sslmode=disable pool_max_conns=10"
+	PostgresqlConnStr      = "user=%s password=%s host=localhost port=%d database=%s sslmode=disable pool_max_conns=10"
+	MethodPost             = "POST"
+	TableLease4            = "lease4"
 )
 
 type DHCPHandler struct {
-	cmdAddr string
-	conf    *DHCPConfig
-	lock    sync.RWMutex
-	db      restdb.ResourceStore
+	cmdAddr    string
+	conf       *DHCPConfig
+	lock       sync.RWMutex
+	db         restdb.ResourceStore
+	httpClient *http.Client
 }
 
 type DHCPConfig struct {
@@ -54,13 +58,13 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 		return nil, err
 	}
 
-	db, err := restdb.NewRStore(fmt.Sprintf(ConnStr, conf.DHCP.DB.User, conf.DHCP.DB.Password,
+	db, err := restdb.NewRStore(fmt.Sprintf(PostgresqlConnStr, conf.DHCP.DB.User, conf.DHCP.DB.Password,
 		conf.DHCP.DB.Port, conf.DHCP.DB.Name), meta)
 	if err != nil {
 		return nil, err
 	}
 
-	handler := &DHCPHandler{cmdAddr: conf.DHCP.CmdAddr, db: db}
+	handler := &DHCPHandler{cmdAddr: conf.DHCP.CmdAddr, db: db, httpClient: &http.Client{}}
 	if err := handler.loadDHCPConfig(conf.DHCP.ConfigDir); err != nil {
 		return nil, err
 	}
@@ -74,15 +78,16 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 }
 
 func (h *DHCPHandler) loadDHCPConfig(configDir string) error {
+	//TODO check file exist and gen new file
 	var dhcp4Conf DHCP4Config
 	dhcp4ConfPath := path.Join(configDir, DHCP4ConfigFileName)
-	if err := configure.Load(&dhcp4Conf, dhcp4ConfPath); err != nil {
+	if err := parseJsonConfig(&dhcp4Conf, dhcp4ConfPath); err != nil {
 		return fmt.Errorf("load dhcp4 config failed: %s", err.Error())
 	}
 
 	var dhcp6Conf DHCP6Config
 	dhcp6ConfPath := path.Join(configDir, DHCP6ConfigFileName)
-	if err := configure.Load(&dhcp6Conf, path.Join(configDir, DHCP6ConfigFileName)); err != nil {
+	if err := parseJsonConfig(&dhcp6Conf, path.Join(configDir, DHCP6ConfigFileName)); err != nil {
 		return fmt.Errorf("load dhcp6 config failed: %s", err.Error())
 	}
 
@@ -94,6 +99,15 @@ func (h *DHCPHandler) loadDHCPConfig(configDir string) error {
 		dhcp6Conf: &dhcp6Conf,
 	}
 	return nil
+}
+
+func parseJsonConfig(conf interface{}, filepath string) error {
+	data, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, conf)
 }
 
 func (h *DHCPHandler) startDHCP() error {
@@ -124,13 +138,8 @@ func (h *DHCPHandler) monitor() {
 }
 
 func checkProcessExists(processName string) bool {
-	out, _ := execCommand("ps -ef | grep " + processName + " | grep -v grep")
+	out, _ := exec.Command("bash", "-c", "ps -ef | grep "+processName+" | grep -v grep").Output()
 	return len(out) > 0
-}
-
-func execCommand(cmdLine string) ([]byte, error) {
-	cmd := exec.Command("bash", "-c", cmdLine)
-	return cmd.Output()
 }
 
 func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
@@ -178,8 +187,8 @@ func (h *DHCPHandler) reconfig(services []string, configPath string, conf interf
 }
 
 func (h *DHCPHandler) setDHCPConfigToMemory(services []string, conf interface{}) error {
-	var resp DHCPCmdResponse
-	if err := h.runDHCPCmd(&DHCPCmdRequest{
+	var resp []DHCPCmdResponse
+	if err := h.sendHttpRequest(&DHCPCmdRequest{
 		Command:   DHCPCommandConfigSet,
 		Services:  services,
 		Arguments: conf,
@@ -187,16 +196,16 @@ func (h *DHCPHandler) setDHCPConfigToMemory(services []string, conf interface{})
 		return err
 	}
 
-	if resp.Result != 0 {
-		return fmt.Errorf("set %v config failed: %s", services, resp.Text)
+	if len(resp) != 0 && resp[0].Result != 0 {
+		return fmt.Errorf("set %v config failed: %s", services, resp[0].Text)
 	}
 
 	return nil
 }
 
 func (h *DHCPHandler) writeDHCPConfigToFile(services []string, configPath string) error {
-	var resp DHCPCmdResponse
-	if err := h.runDHCPCmd(&DHCPCmdRequest{
+	var resp []DHCPCmdResponse
+	if err := h.sendHttpRequest(&DHCPCmdRequest{
 		Command:  DHCPCommandConfigWrite,
 		Services: services,
 		Arguments: map[string]interface{}{
@@ -206,26 +215,38 @@ func (h *DHCPHandler) writeDHCPConfigToFile(services []string, configPath string
 		return err
 	}
 
-	if resp.Result != 0 {
-		return fmt.Errorf("write %v config failed: %s", services, resp.Text)
+	if len(resp) != 0 && resp[0].Result != 0 {
+		return fmt.Errorf("write %v config failed: %s", services, resp[0].Text)
 	}
 
 	return nil
 }
 
-func (h *DHCPHandler) runDHCPCmd(req *DHCPCmdRequest, resp interface{}) error {
-	reqData, err := json.Marshal(req)
+func (h *DHCPHandler) sendHttpRequest(req *DHCPCmdRequest, resp interface{}) error {
+	reqBody, err := json.Marshal(req)
 	if err != nil {
-		return fmt.Errorf("marshal cmd %s failed: %s", req.Command, err.Error())
+		return fmt.Errorf("marshal command %s failed: %s", req.Command, err.Error())
 	}
 
-	out, err := execCommand(fmt.Sprintf(DHCPCommandStr, h.cmdAddr, reqData))
+	httpReq, err := http.NewRequest(MethodPost, "http://"+h.cmdAddr, bytes.NewBuffer(reqBody))
 	if err != nil {
-		return fmt.Errorf("exec cmd %s failed: %s", req.Command, err.Error())
+		return fmt.Errorf("new http request with command %s failed: %s", req.Command, err.Error())
 	}
 
-	if err := json.Unmarshal(out, resp); err != nil {
-		return fmt.Errorf("unmarshal cmd %s response failed: %s", req.Command, err.Error())
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpResp, err := h.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("send http request with command %s failed: %s", req.Command, err.Error())
+	}
+
+	defer httpResp.Body.Close()
+	body, err := ioutil.ReadAll(httpResp.Body)
+	if err != nil {
+		return fmt.Errorf("read http response body with command %s failed: %s", req.Command, err.Error())
+	}
+
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return fmt.Errorf("unmarshal http response with command %s failed: %s", req.Command, err.Error())
 	}
 
 	return nil
@@ -287,6 +308,7 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 		OptionDatas:      genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil),
 		Relay:            RelayAgent{IPAddresses: req.GetRelayAgentAddresses()},
 	})
+
 	h.lock.Unlock()
 
 	return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
@@ -814,7 +836,7 @@ func (h *DHCPHandler) GetPool4Leases(req *pb.GetPool4LeasesRequest) ([]*pb.DHCPL
 	var lease4s []*Lease4
 	if err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
 		return tx.FillEx(&lease4s, "select * from lease4 where subnet_id = $1 and address between $2 and $3",
-			req.GetBeginAddress(), ipv4StrToUint32(req.GetBeginAddress()), ipv4StrToUint32(req.GetEndAddress()))
+			req.GetSubnetId(), ipv4StrToUint32(req.GetBeginAddress()), ipv4StrToUint32(req.GetEndAddress()))
 	}); err != nil {
 		return nil, fmt.Errorf("get pool4 %s-%s with subnet %s leases from db failed: %s",
 			req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId(), err.Error())
@@ -836,6 +858,40 @@ func (h *DHCPHandler) GetReservation4Leases(req *pb.GetReservation4LeasesRequest
 	}
 
 	return lease4sToPbDHCPLease4s(lease4s), nil
+}
+
+func (h *DHCPHandler) GetSubnet4LeasesCount(req *pb.GetSubnet4LeasesRequest) (uint64, error) {
+	var count uint64
+	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
+		c, err := tx.Count(TableLease4, map[string]interface{}{"subnet_id": req.GetId()})
+		count = uint64(c)
+		return err
+	})
+
+	return count, err
+}
+
+func (h *DHCPHandler) GetPool4LeasesCount(req *pb.GetPool4LeasesRequest) (uint64, error) {
+	var count uint64
+	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
+		c, err := tx.CountEx(TableLease4, "select count(*) from lease4 where subnet_id = $1 and address between $2 and $3",
+			req.GetSubnetId(), ipv4StrToUint32(req.GetBeginAddress()), ipv4StrToUint32(req.GetEndAddress()))
+		count = uint64(c)
+		return err
+	})
+
+	return count, err
+}
+
+func (h *DHCPHandler) GetReservation4LeasesCount(req *pb.GetReservation4LeasesRequest) (uint64, error) {
+	var count uint64
+	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
+		c, err := tx.Count(TableLease4, map[string]interface{}{"subnet_id": req.GetSubnetId(), "hwaddr": req.GetHwAddress()})
+		count = uint64(c)
+		return err
+	})
+
+	return count, err
 }
 
 type Lease6 struct {
