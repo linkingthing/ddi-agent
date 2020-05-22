@@ -23,33 +23,33 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type DHCPLease6_LeaseType int32
+type DHCPLease_LeaseType int32
 
 const (
-	DHCPLease6_TYPE_NA DHCPLease6_LeaseType = 0
-	DHCPLease6_TYPE_TA DHCPLease6_LeaseType = 1
-	DHCPLease6_TYPE_PD DHCPLease6_LeaseType = 2
-	DHCPLease6_TYPE_V4 DHCPLease6_LeaseType = 3
+	DHCPLease_TYPE_NA DHCPLease_LeaseType = 0
+	DHCPLease_TYPE_TA DHCPLease_LeaseType = 1
+	DHCPLease_TYPE_PD DHCPLease_LeaseType = 2
+	DHCPLease_TYPE_V4 DHCPLease_LeaseType = 3
 )
 
-var DHCPLease6_LeaseType_name = map[int32]string{
+var DHCPLease_LeaseType_name = map[int32]string{
 	0: "TYPE_NA",
 	1: "TYPE_TA",
 	2: "TYPE_PD",
 	3: "TYPE_V4",
 }
-var DHCPLease6_LeaseType_value = map[string]int32{
+var DHCPLease_LeaseType_value = map[string]int32{
 	"TYPE_NA": 0,
 	"TYPE_TA": 1,
 	"TYPE_PD": 2,
 	"TYPE_V4": 3,
 }
 
-func (x DHCPLease6_LeaseType) String() string {
-	return proto.EnumName(DHCPLease6_LeaseType_name, int32(x))
+func (x DHCPLease_LeaseType) String() string {
+	return proto.EnumName(DHCPLease_LeaseType_name, int32(x))
 }
-func (DHCPLease6_LeaseType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{32, 0}
+func (DHCPLease_LeaseType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{34, 0}
 }
 
 type CreateSubnet4Request struct {
@@ -71,7 +71,7 @@ func (m *CreateSubnet4Request) Reset()         { *m = CreateSubnet4Request{} }
 func (m *CreateSubnet4Request) String() string { return proto.CompactTextString(m) }
 func (*CreateSubnet4Request) ProtoMessage()    {}
 func (*CreateSubnet4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{0}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{0}
 }
 func (m *CreateSubnet4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateSubnet4Request.Unmarshal(m, b)
@@ -165,7 +165,7 @@ func (m *DeleteSubnet4Request) Reset()         { *m = DeleteSubnet4Request{} }
 func (m *DeleteSubnet4Request) String() string { return proto.CompactTextString(m) }
 func (*DeleteSubnet4Request) ProtoMessage()    {}
 func (*DeleteSubnet4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{1}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{1}
 }
 func (m *DeleteSubnet4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteSubnet4Request.Unmarshal(m, b)
@@ -210,7 +210,7 @@ func (m *UpdateSubnet4Request) Reset()         { *m = UpdateSubnet4Request{} }
 func (m *UpdateSubnet4Request) String() string { return proto.CompactTextString(m) }
 func (*UpdateSubnet4Request) ProtoMessage()    {}
 func (*UpdateSubnet4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{2}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{2}
 }
 func (m *UpdateSubnet4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateSubnet4Request.Unmarshal(m, b)
@@ -304,7 +304,7 @@ func (m *CreateSubnet6Request) Reset()         { *m = CreateSubnet6Request{} }
 func (m *CreateSubnet6Request) String() string { return proto.CompactTextString(m) }
 func (*CreateSubnet6Request) ProtoMessage()    {}
 func (*CreateSubnet6Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{3}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{3}
 }
 func (m *CreateSubnet6Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateSubnet6Request.Unmarshal(m, b)
@@ -391,7 +391,7 @@ func (m *DeleteSubnet6Request) Reset()         { *m = DeleteSubnet6Request{} }
 func (m *DeleteSubnet6Request) String() string { return proto.CompactTextString(m) }
 func (*DeleteSubnet6Request) ProtoMessage()    {}
 func (*DeleteSubnet6Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{4}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{4}
 }
 func (m *DeleteSubnet6Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteSubnet6Request.Unmarshal(m, b)
@@ -435,7 +435,7 @@ func (m *UpdateSubnet6Request) Reset()         { *m = UpdateSubnet6Request{} }
 func (m *UpdateSubnet6Request) String() string { return proto.CompactTextString(m) }
 func (*UpdateSubnet6Request) ProtoMessage()    {}
 func (*UpdateSubnet6Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{5}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{5}
 }
 func (m *UpdateSubnet6Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateSubnet6Request.Unmarshal(m, b)
@@ -520,7 +520,7 @@ func (m *CreatePool4Request) Reset()         { *m = CreatePool4Request{} }
 func (m *CreatePool4Request) String() string { return proto.CompactTextString(m) }
 func (*CreatePool4Request) ProtoMessage()    {}
 func (*CreatePool4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{6}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{6}
 }
 func (m *CreatePool4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreatePool4Request.Unmarshal(m, b)
@@ -595,7 +595,7 @@ func (m *DeletePool4Request) Reset()         { *m = DeletePool4Request{} }
 func (m *DeletePool4Request) String() string { return proto.CompactTextString(m) }
 func (*DeletePool4Request) ProtoMessage()    {}
 func (*DeletePool4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{7}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{7}
 }
 func (m *DeletePool4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeletePool4Request.Unmarshal(m, b)
@@ -652,7 +652,7 @@ func (m *UpdatePool4Request) Reset()         { *m = UpdatePool4Request{} }
 func (m *UpdatePool4Request) String() string { return proto.CompactTextString(m) }
 func (*UpdatePool4Request) ProtoMessage()    {}
 func (*UpdatePool4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{8}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{8}
 }
 func (m *UpdatePool4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdatePool4Request.Unmarshal(m, b)
@@ -729,7 +729,7 @@ func (m *CreatePool6Request) Reset()         { *m = CreatePool6Request{} }
 func (m *CreatePool6Request) String() string { return proto.CompactTextString(m) }
 func (*CreatePool6Request) ProtoMessage()    {}
 func (*CreatePool6Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{9}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{9}
 }
 func (m *CreatePool6Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreatePool6Request.Unmarshal(m, b)
@@ -797,7 +797,7 @@ func (m *DeletePool6Request) Reset()         { *m = DeletePool6Request{} }
 func (m *DeletePool6Request) String() string { return proto.CompactTextString(m) }
 func (*DeletePool6Request) ProtoMessage()    {}
 func (*DeletePool6Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{10}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{10}
 }
 func (m *DeletePool6Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeletePool6Request.Unmarshal(m, b)
@@ -853,7 +853,7 @@ func (m *UpdatePool6Request) Reset()         { *m = UpdatePool6Request{} }
 func (m *UpdatePool6Request) String() string { return proto.CompactTextString(m) }
 func (*UpdatePool6Request) ProtoMessage()    {}
 func (*UpdatePool6Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{11}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{11}
 }
 func (m *UpdatePool6Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdatePool6Request.Unmarshal(m, b)
@@ -923,7 +923,7 @@ func (m *CreateReservation4Request) Reset()         { *m = CreateReservation4Req
 func (m *CreateReservation4Request) String() string { return proto.CompactTextString(m) }
 func (*CreateReservation4Request) ProtoMessage()    {}
 func (*CreateReservation4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{12}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{12}
 }
 func (m *CreateReservation4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateReservation4Request.Unmarshal(m, b)
@@ -990,7 +990,7 @@ func (m *DeleteReservation4Request) Reset()         { *m = DeleteReservation4Req
 func (m *DeleteReservation4Request) String() string { return proto.CompactTextString(m) }
 func (*DeleteReservation4Request) ProtoMessage()    {}
 func (*DeleteReservation4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{13}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{13}
 }
 func (m *DeleteReservation4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteReservation4Request.Unmarshal(m, b)
@@ -1038,7 +1038,7 @@ func (m *UpdateReservation4Request) Reset()         { *m = UpdateReservation4Req
 func (m *UpdateReservation4Request) String() string { return proto.CompactTextString(m) }
 func (*UpdateReservation4Request) ProtoMessage()    {}
 func (*UpdateReservation4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{14}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{14}
 }
 func (m *UpdateReservation4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateReservation4Request.Unmarshal(m, b)
@@ -1100,7 +1100,7 @@ func (m *CreateReservation6Request) Reset()         { *m = CreateReservation6Req
 func (m *CreateReservation6Request) String() string { return proto.CompactTextString(m) }
 func (*CreateReservation6Request) ProtoMessage()    {}
 func (*CreateReservation6Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{15}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{15}
 }
 func (m *CreateReservation6Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateReservation6Request.Unmarshal(m, b)
@@ -1160,7 +1160,7 @@ func (m *DeleteReservation6Request) Reset()         { *m = DeleteReservation6Req
 func (m *DeleteReservation6Request) String() string { return proto.CompactTextString(m) }
 func (*DeleteReservation6Request) ProtoMessage()    {}
 func (*DeleteReservation6Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{16}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{16}
 }
 func (m *DeleteReservation6Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteReservation6Request.Unmarshal(m, b)
@@ -1207,7 +1207,7 @@ func (m *UpdateReservation6Request) Reset()         { *m = UpdateReservation6Req
 func (m *UpdateReservation6Request) String() string { return proto.CompactTextString(m) }
 func (*UpdateReservation6Request) ProtoMessage()    {}
 func (*UpdateReservation6Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{17}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{17}
 }
 func (m *UpdateReservation6Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateReservation6Request.Unmarshal(m, b)
@@ -1264,7 +1264,7 @@ func (m *CreatePDPoolRequest) Reset()         { *m = CreatePDPoolRequest{} }
 func (m *CreatePDPoolRequest) String() string { return proto.CompactTextString(m) }
 func (*CreatePDPoolRequest) ProtoMessage()    {}
 func (*CreatePDPoolRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{18}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{18}
 }
 func (m *CreatePDPoolRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreatePDPoolRequest.Unmarshal(m, b)
@@ -1338,7 +1338,7 @@ func (m *DeletePDPoolRequest) Reset()         { *m = DeletePDPoolRequest{} }
 func (m *DeletePDPoolRequest) String() string { return proto.CompactTextString(m) }
 func (*DeletePDPoolRequest) ProtoMessage()    {}
 func (*DeletePDPoolRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{19}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{19}
 }
 func (m *DeletePDPoolRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeletePDPoolRequest.Unmarshal(m, b)
@@ -1386,7 +1386,7 @@ func (m *UpdatePDPoolRequest) Reset()         { *m = UpdatePDPoolRequest{} }
 func (m *UpdatePDPoolRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdatePDPoolRequest) ProtoMessage()    {}
 func (*UpdatePDPoolRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{20}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{20}
 }
 func (m *UpdatePDPoolRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdatePDPoolRequest.Unmarshal(m, b)
@@ -1446,7 +1446,7 @@ func (m *CreateClientClass4Request) Reset()         { *m = CreateClientClass4Req
 func (m *CreateClientClass4Request) String() string { return proto.CompactTextString(m) }
 func (*CreateClientClass4Request) ProtoMessage()    {}
 func (*CreateClientClass4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{21}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{21}
 }
 func (m *CreateClientClass4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateClientClass4Request.Unmarshal(m, b)
@@ -1491,7 +1491,7 @@ func (m *DeleteClientClass4Request) Reset()         { *m = DeleteClientClass4Req
 func (m *DeleteClientClass4Request) String() string { return proto.CompactTextString(m) }
 func (*DeleteClientClass4Request) ProtoMessage()    {}
 func (*DeleteClientClass4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{22}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{22}
 }
 func (m *DeleteClientClass4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteClientClass4Request.Unmarshal(m, b)
@@ -1530,7 +1530,7 @@ func (m *UpdateClientClass4Request) Reset()         { *m = UpdateClientClass4Req
 func (m *UpdateClientClass4Request) String() string { return proto.CompactTextString(m) }
 func (*UpdateClientClass4Request) ProtoMessage()    {}
 func (*UpdateClientClass4Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{23}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{23}
 }
 func (m *UpdateClientClass4Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateClientClass4Request.Unmarshal(m, b)
@@ -1578,7 +1578,7 @@ func (m *UpdateGlobalConfigRequest) Reset()         { *m = UpdateGlobalConfigReq
 func (m *UpdateGlobalConfigRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdateGlobalConfigRequest) ProtoMessage()    {}
 func (*UpdateGlobalConfigRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{24}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{24}
 }
 func (m *UpdateGlobalConfigRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateGlobalConfigRequest.Unmarshal(m, b)
@@ -1626,6 +1626,328 @@ func (m *UpdateGlobalConfigRequest) GetDomainServers() []string {
 	return nil
 }
 
+type GetSubnet4LeasesCountRequest struct {
+	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetSubnet4LeasesCountRequest) Reset()         { *m = GetSubnet4LeasesCountRequest{} }
+func (m *GetSubnet4LeasesCountRequest) String() string { return proto.CompactTextString(m) }
+func (*GetSubnet4LeasesCountRequest) ProtoMessage()    {}
+func (*GetSubnet4LeasesCountRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{25}
+}
+func (m *GetSubnet4LeasesCountRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetSubnet4LeasesCountRequest.Unmarshal(m, b)
+}
+func (m *GetSubnet4LeasesCountRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetSubnet4LeasesCountRequest.Marshal(b, m, deterministic)
+}
+func (dst *GetSubnet4LeasesCountRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetSubnet4LeasesCountRequest.Merge(dst, src)
+}
+func (m *GetSubnet4LeasesCountRequest) XXX_Size() int {
+	return xxx_messageInfo_GetSubnet4LeasesCountRequest.Size(m)
+}
+func (m *GetSubnet4LeasesCountRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetSubnet4LeasesCountRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetSubnet4LeasesCountRequest proto.InternalMessageInfo
+
+func (m *GetSubnet4LeasesCountRequest) GetId() uint32 {
+	if m != nil {
+		return m.Id
+	}
+	return 0
+}
+
+type GetPool4LeasesCountRequest struct {
+	SubnetId             uint32   `protobuf:"varint,1,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
+	BeginAddress         string   `protobuf:"bytes,2,opt,name=begin_address,json=beginAddress,proto3" json:"begin_address,omitempty"`
+	EndAddress           string   `protobuf:"bytes,3,opt,name=end_address,json=endAddress,proto3" json:"end_address,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetPool4LeasesCountRequest) Reset()         { *m = GetPool4LeasesCountRequest{} }
+func (m *GetPool4LeasesCountRequest) String() string { return proto.CompactTextString(m) }
+func (*GetPool4LeasesCountRequest) ProtoMessage()    {}
+func (*GetPool4LeasesCountRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{26}
+}
+func (m *GetPool4LeasesCountRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetPool4LeasesCountRequest.Unmarshal(m, b)
+}
+func (m *GetPool4LeasesCountRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetPool4LeasesCountRequest.Marshal(b, m, deterministic)
+}
+func (dst *GetPool4LeasesCountRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetPool4LeasesCountRequest.Merge(dst, src)
+}
+func (m *GetPool4LeasesCountRequest) XXX_Size() int {
+	return xxx_messageInfo_GetPool4LeasesCountRequest.Size(m)
+}
+func (m *GetPool4LeasesCountRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetPool4LeasesCountRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetPool4LeasesCountRequest proto.InternalMessageInfo
+
+func (m *GetPool4LeasesCountRequest) GetSubnetId() uint32 {
+	if m != nil {
+		return m.SubnetId
+	}
+	return 0
+}
+
+func (m *GetPool4LeasesCountRequest) GetBeginAddress() string {
+	if m != nil {
+		return m.BeginAddress
+	}
+	return ""
+}
+
+func (m *GetPool4LeasesCountRequest) GetEndAddress() string {
+	if m != nil {
+		return m.EndAddress
+	}
+	return ""
+}
+
+type GetReservation4LeasesCountRequest struct {
+	SubnetId             uint32   `protobuf:"varint,1,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
+	HwAddress            string   `protobuf:"bytes,2,opt,name=hw_address,json=hwAddress,proto3" json:"hw_address,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetReservation4LeasesCountRequest) Reset()         { *m = GetReservation4LeasesCountRequest{} }
+func (m *GetReservation4LeasesCountRequest) String() string { return proto.CompactTextString(m) }
+func (*GetReservation4LeasesCountRequest) ProtoMessage()    {}
+func (*GetReservation4LeasesCountRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{27}
+}
+func (m *GetReservation4LeasesCountRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetReservation4LeasesCountRequest.Unmarshal(m, b)
+}
+func (m *GetReservation4LeasesCountRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetReservation4LeasesCountRequest.Marshal(b, m, deterministic)
+}
+func (dst *GetReservation4LeasesCountRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetReservation4LeasesCountRequest.Merge(dst, src)
+}
+func (m *GetReservation4LeasesCountRequest) XXX_Size() int {
+	return xxx_messageInfo_GetReservation4LeasesCountRequest.Size(m)
+}
+func (m *GetReservation4LeasesCountRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetReservation4LeasesCountRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetReservation4LeasesCountRequest proto.InternalMessageInfo
+
+func (m *GetReservation4LeasesCountRequest) GetSubnetId() uint32 {
+	if m != nil {
+		return m.SubnetId
+	}
+	return 0
+}
+
+func (m *GetReservation4LeasesCountRequest) GetHwAddress() string {
+	if m != nil {
+		return m.HwAddress
+	}
+	return ""
+}
+
+type GetLeasesCountResponse struct {
+	Succeed              bool     `protobuf:"varint,1,opt,name=succeed,proto3" json:"succeed,omitempty"`
+	LeasesCount          uint64   `protobuf:"varint,2,opt,name=leases_count,json=leasesCount,proto3" json:"leases_count,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetLeasesCountResponse) Reset()         { *m = GetLeasesCountResponse{} }
+func (m *GetLeasesCountResponse) String() string { return proto.CompactTextString(m) }
+func (*GetLeasesCountResponse) ProtoMessage()    {}
+func (*GetLeasesCountResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{28}
+}
+func (m *GetLeasesCountResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetLeasesCountResponse.Unmarshal(m, b)
+}
+func (m *GetLeasesCountResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetLeasesCountResponse.Marshal(b, m, deterministic)
+}
+func (dst *GetLeasesCountResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetLeasesCountResponse.Merge(dst, src)
+}
+func (m *GetLeasesCountResponse) XXX_Size() int {
+	return xxx_messageInfo_GetLeasesCountResponse.Size(m)
+}
+func (m *GetLeasesCountResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetLeasesCountResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetLeasesCountResponse proto.InternalMessageInfo
+
+func (m *GetLeasesCountResponse) GetSucceed() bool {
+	if m != nil {
+		return m.Succeed
+	}
+	return false
+}
+
+func (m *GetLeasesCountResponse) GetLeasesCount() uint64 {
+	if m != nil {
+		return m.LeasesCount
+	}
+	return 0
+}
+
+type GetSubnet6LeasesCountRequest struct {
+	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetSubnet6LeasesCountRequest) Reset()         { *m = GetSubnet6LeasesCountRequest{} }
+func (m *GetSubnet6LeasesCountRequest) String() string { return proto.CompactTextString(m) }
+func (*GetSubnet6LeasesCountRequest) ProtoMessage()    {}
+func (*GetSubnet6LeasesCountRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{29}
+}
+func (m *GetSubnet6LeasesCountRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetSubnet6LeasesCountRequest.Unmarshal(m, b)
+}
+func (m *GetSubnet6LeasesCountRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetSubnet6LeasesCountRequest.Marshal(b, m, deterministic)
+}
+func (dst *GetSubnet6LeasesCountRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetSubnet6LeasesCountRequest.Merge(dst, src)
+}
+func (m *GetSubnet6LeasesCountRequest) XXX_Size() int {
+	return xxx_messageInfo_GetSubnet6LeasesCountRequest.Size(m)
+}
+func (m *GetSubnet6LeasesCountRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetSubnet6LeasesCountRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetSubnet6LeasesCountRequest proto.InternalMessageInfo
+
+func (m *GetSubnet6LeasesCountRequest) GetId() uint32 {
+	if m != nil {
+		return m.Id
+	}
+	return 0
+}
+
+type GetPool6LeasesCountRequest struct {
+	SubnetId             uint32   `protobuf:"varint,1,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
+	BeginAddress         string   `protobuf:"bytes,2,opt,name=begin_address,json=beginAddress,proto3" json:"begin_address,omitempty"`
+	EndAddress           string   `protobuf:"bytes,3,opt,name=end_address,json=endAddress,proto3" json:"end_address,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetPool6LeasesCountRequest) Reset()         { *m = GetPool6LeasesCountRequest{} }
+func (m *GetPool6LeasesCountRequest) String() string { return proto.CompactTextString(m) }
+func (*GetPool6LeasesCountRequest) ProtoMessage()    {}
+func (*GetPool6LeasesCountRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{30}
+}
+func (m *GetPool6LeasesCountRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetPool6LeasesCountRequest.Unmarshal(m, b)
+}
+func (m *GetPool6LeasesCountRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetPool6LeasesCountRequest.Marshal(b, m, deterministic)
+}
+func (dst *GetPool6LeasesCountRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetPool6LeasesCountRequest.Merge(dst, src)
+}
+func (m *GetPool6LeasesCountRequest) XXX_Size() int {
+	return xxx_messageInfo_GetPool6LeasesCountRequest.Size(m)
+}
+func (m *GetPool6LeasesCountRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetPool6LeasesCountRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetPool6LeasesCountRequest proto.InternalMessageInfo
+
+func (m *GetPool6LeasesCountRequest) GetSubnetId() uint32 {
+	if m != nil {
+		return m.SubnetId
+	}
+	return 0
+}
+
+func (m *GetPool6LeasesCountRequest) GetBeginAddress() string {
+	if m != nil {
+		return m.BeginAddress
+	}
+	return ""
+}
+
+func (m *GetPool6LeasesCountRequest) GetEndAddress() string {
+	if m != nil {
+		return m.EndAddress
+	}
+	return ""
+}
+
+type GetReservation6LeasesCountRequest struct {
+	SubnetId             uint32   `protobuf:"varint,1,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
+	HwAddress            string   `protobuf:"bytes,2,opt,name=hw_address,json=hwAddress,proto3" json:"hw_address,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetReservation6LeasesCountRequest) Reset()         { *m = GetReservation6LeasesCountRequest{} }
+func (m *GetReservation6LeasesCountRequest) String() string { return proto.CompactTextString(m) }
+func (*GetReservation6LeasesCountRequest) ProtoMessage()    {}
+func (*GetReservation6LeasesCountRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{31}
+}
+func (m *GetReservation6LeasesCountRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetReservation6LeasesCountRequest.Unmarshal(m, b)
+}
+func (m *GetReservation6LeasesCountRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetReservation6LeasesCountRequest.Marshal(b, m, deterministic)
+}
+func (dst *GetReservation6LeasesCountRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetReservation6LeasesCountRequest.Merge(dst, src)
+}
+func (m *GetReservation6LeasesCountRequest) XXX_Size() int {
+	return xxx_messageInfo_GetReservation6LeasesCountRequest.Size(m)
+}
+func (m *GetReservation6LeasesCountRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetReservation6LeasesCountRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetReservation6LeasesCountRequest proto.InternalMessageInfo
+
+func (m *GetReservation6LeasesCountRequest) GetSubnetId() uint32 {
+	if m != nil {
+		return m.SubnetId
+	}
+	return 0
+}
+
+func (m *GetReservation6LeasesCountRequest) GetHwAddress() string {
+	if m != nil {
+		return m.HwAddress
+	}
+	return ""
+}
+
 type GetSubnet4LeasesRequest struct {
 	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1637,7 +1959,7 @@ func (m *GetSubnet4LeasesRequest) Reset()         { *m = GetSubnet4LeasesRequest
 func (m *GetSubnet4LeasesRequest) String() string { return proto.CompactTextString(m) }
 func (*GetSubnet4LeasesRequest) ProtoMessage()    {}
 func (*GetSubnet4LeasesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{25}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{32}
 }
 func (m *GetSubnet4LeasesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetSubnet4LeasesRequest.Unmarshal(m, b)
@@ -1664,292 +1986,6 @@ func (m *GetSubnet4LeasesRequest) GetId() uint32 {
 	return 0
 }
 
-type GetPool4LeasesRequest struct {
-	SubnetId             uint32   `protobuf:"varint,1,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
-	BeginAddress         string   `protobuf:"bytes,2,opt,name=begin_address,json=beginAddress,proto3" json:"begin_address,omitempty"`
-	EndAddress           string   `protobuf:"bytes,3,opt,name=end_address,json=endAddress,proto3" json:"end_address,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *GetPool4LeasesRequest) Reset()         { *m = GetPool4LeasesRequest{} }
-func (m *GetPool4LeasesRequest) String() string { return proto.CompactTextString(m) }
-func (*GetPool4LeasesRequest) ProtoMessage()    {}
-func (*GetPool4LeasesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{26}
-}
-func (m *GetPool4LeasesRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetPool4LeasesRequest.Unmarshal(m, b)
-}
-func (m *GetPool4LeasesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetPool4LeasesRequest.Marshal(b, m, deterministic)
-}
-func (dst *GetPool4LeasesRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetPool4LeasesRequest.Merge(dst, src)
-}
-func (m *GetPool4LeasesRequest) XXX_Size() int {
-	return xxx_messageInfo_GetPool4LeasesRequest.Size(m)
-}
-func (m *GetPool4LeasesRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetPool4LeasesRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_GetPool4LeasesRequest proto.InternalMessageInfo
-
-func (m *GetPool4LeasesRequest) GetSubnetId() uint32 {
-	if m != nil {
-		return m.SubnetId
-	}
-	return 0
-}
-
-func (m *GetPool4LeasesRequest) GetBeginAddress() string {
-	if m != nil {
-		return m.BeginAddress
-	}
-	return ""
-}
-
-func (m *GetPool4LeasesRequest) GetEndAddress() string {
-	if m != nil {
-		return m.EndAddress
-	}
-	return ""
-}
-
-type GetReservation4LeasesRequest struct {
-	SubnetId             uint32   `protobuf:"varint,1,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
-	HwAddress            string   `protobuf:"bytes,2,opt,name=hw_address,json=hwAddress,proto3" json:"hw_address,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *GetReservation4LeasesRequest) Reset()         { *m = GetReservation4LeasesRequest{} }
-func (m *GetReservation4LeasesRequest) String() string { return proto.CompactTextString(m) }
-func (*GetReservation4LeasesRequest) ProtoMessage()    {}
-func (*GetReservation4LeasesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{27}
-}
-func (m *GetReservation4LeasesRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetReservation4LeasesRequest.Unmarshal(m, b)
-}
-func (m *GetReservation4LeasesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetReservation4LeasesRequest.Marshal(b, m, deterministic)
-}
-func (dst *GetReservation4LeasesRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetReservation4LeasesRequest.Merge(dst, src)
-}
-func (m *GetReservation4LeasesRequest) XXX_Size() int {
-	return xxx_messageInfo_GetReservation4LeasesRequest.Size(m)
-}
-func (m *GetReservation4LeasesRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetReservation4LeasesRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_GetReservation4LeasesRequest proto.InternalMessageInfo
-
-func (m *GetReservation4LeasesRequest) GetSubnetId() uint32 {
-	if m != nil {
-		return m.SubnetId
-	}
-	return 0
-}
-
-func (m *GetReservation4LeasesRequest) GetHwAddress() string {
-	if m != nil {
-		return m.HwAddress
-	}
-	return ""
-}
-
-type DHCPLease4 struct {
-	Address              string   `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	SubnetId             uint32   `protobuf:"varint,2,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
-	HwAddress            string   `protobuf:"bytes,3,opt,name=hw_address,json=hwAddress,proto3" json:"hw_address,omitempty"`
-	ClientId             string   `protobuf:"bytes,4,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	ValidLifetime        uint32   `protobuf:"varint,5,opt,name=valid_lifetime,json=validLifetime,proto3" json:"valid_lifetime,omitempty"`
-	Expire               int64    `protobuf:"varint,6,opt,name=expire,proto3" json:"expire,omitempty"`
-	State                uint32   `protobuf:"varint,7,opt,name=state,proto3" json:"state,omitempty"`
-	Hostname             string   `protobuf:"bytes,8,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *DHCPLease4) Reset()         { *m = DHCPLease4{} }
-func (m *DHCPLease4) String() string { return proto.CompactTextString(m) }
-func (*DHCPLease4) ProtoMessage()    {}
-func (*DHCPLease4) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{28}
-}
-func (m *DHCPLease4) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DHCPLease4.Unmarshal(m, b)
-}
-func (m *DHCPLease4) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DHCPLease4.Marshal(b, m, deterministic)
-}
-func (dst *DHCPLease4) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DHCPLease4.Merge(dst, src)
-}
-func (m *DHCPLease4) XXX_Size() int {
-	return xxx_messageInfo_DHCPLease4.Size(m)
-}
-func (m *DHCPLease4) XXX_DiscardUnknown() {
-	xxx_messageInfo_DHCPLease4.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_DHCPLease4 proto.InternalMessageInfo
-
-func (m *DHCPLease4) GetAddress() string {
-	if m != nil {
-		return m.Address
-	}
-	return ""
-}
-
-func (m *DHCPLease4) GetSubnetId() uint32 {
-	if m != nil {
-		return m.SubnetId
-	}
-	return 0
-}
-
-func (m *DHCPLease4) GetHwAddress() string {
-	if m != nil {
-		return m.HwAddress
-	}
-	return ""
-}
-
-func (m *DHCPLease4) GetClientId() string {
-	if m != nil {
-		return m.ClientId
-	}
-	return ""
-}
-
-func (m *DHCPLease4) GetValidLifetime() uint32 {
-	if m != nil {
-		return m.ValidLifetime
-	}
-	return 0
-}
-
-func (m *DHCPLease4) GetExpire() int64 {
-	if m != nil {
-		return m.Expire
-	}
-	return 0
-}
-
-func (m *DHCPLease4) GetState() uint32 {
-	if m != nil {
-		return m.State
-	}
-	return 0
-}
-
-func (m *DHCPLease4) GetHostname() string {
-	if m != nil {
-		return m.Hostname
-	}
-	return ""
-}
-
-type GetLeases4Response struct {
-	Succeed              bool          `protobuf:"varint,1,opt,name=succeed,proto3" json:"succeed,omitempty"`
-	Leases               []*DHCPLease4 `protobuf:"bytes,2,rep,name=leases,proto3" json:"leases,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
-}
-
-func (m *GetLeases4Response) Reset()         { *m = GetLeases4Response{} }
-func (m *GetLeases4Response) String() string { return proto.CompactTextString(m) }
-func (*GetLeases4Response) ProtoMessage()    {}
-func (*GetLeases4Response) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{29}
-}
-func (m *GetLeases4Response) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetLeases4Response.Unmarshal(m, b)
-}
-func (m *GetLeases4Response) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetLeases4Response.Marshal(b, m, deterministic)
-}
-func (dst *GetLeases4Response) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetLeases4Response.Merge(dst, src)
-}
-func (m *GetLeases4Response) XXX_Size() int {
-	return xxx_messageInfo_GetLeases4Response.Size(m)
-}
-func (m *GetLeases4Response) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetLeases4Response.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_GetLeases4Response proto.InternalMessageInfo
-
-func (m *GetLeases4Response) GetSucceed() bool {
-	if m != nil {
-		return m.Succeed
-	}
-	return false
-}
-
-func (m *GetLeases4Response) GetLeases() []*DHCPLease4 {
-	if m != nil {
-		return m.Leases
-	}
-	return nil
-}
-
-type GetLeases4CountResponse struct {
-	Succeed              bool     `protobuf:"varint,1,opt,name=succeed,proto3" json:"succeed,omitempty"`
-	LeasesCount          uint64   `protobuf:"varint,2,opt,name=leases_count,json=leasesCount,proto3" json:"leases_count,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *GetLeases4CountResponse) Reset()         { *m = GetLeases4CountResponse{} }
-func (m *GetLeases4CountResponse) String() string { return proto.CompactTextString(m) }
-func (*GetLeases4CountResponse) ProtoMessage()    {}
-func (*GetLeases4CountResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{30}
-}
-func (m *GetLeases4CountResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetLeases4CountResponse.Unmarshal(m, b)
-}
-func (m *GetLeases4CountResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetLeases4CountResponse.Marshal(b, m, deterministic)
-}
-func (dst *GetLeases4CountResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetLeases4CountResponse.Merge(dst, src)
-}
-func (m *GetLeases4CountResponse) XXX_Size() int {
-	return xxx_messageInfo_GetLeases4CountResponse.Size(m)
-}
-func (m *GetLeases4CountResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetLeases4CountResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_GetLeases4CountResponse proto.InternalMessageInfo
-
-func (m *GetLeases4CountResponse) GetSucceed() bool {
-	if m != nil {
-		return m.Succeed
-	}
-	return false
-}
-
-func (m *GetLeases4CountResponse) GetLeasesCount() uint64 {
-	if m != nil {
-		return m.LeasesCount
-	}
-	return 0
-}
-
 type GetSubnet6LeasesRequest struct {
 	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1961,7 +1997,7 @@ func (m *GetSubnet6LeasesRequest) Reset()         { *m = GetSubnet6LeasesRequest
 func (m *GetSubnet6LeasesRequest) String() string { return proto.CompactTextString(m) }
 func (*GetSubnet6LeasesRequest) ProtoMessage()    {}
 func (*GetSubnet6LeasesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{31}
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{33}
 }
 func (m *GetSubnet6LeasesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetSubnet6LeasesRequest.Unmarshal(m, b)
@@ -1988,164 +2024,180 @@ func (m *GetSubnet6LeasesRequest) GetId() uint32 {
 	return 0
 }
 
-type DHCPLease6 struct {
-	Address              string               `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	SubnetId             uint32               `protobuf:"varint,2,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
-	HwAddress            string               `protobuf:"bytes,3,opt,name=hw_address,json=hwAddress,proto3" json:"hw_address,omitempty"`
-	HwType               uint32               `protobuf:"varint,4,opt,name=hw_type,json=hwType,proto3" json:"hw_type,omitempty"`
-	HwAddressSource      uint32               `protobuf:"varint,5,opt,name=hw_address_source,json=hwAddressSource,proto3" json:"hw_address_source,omitempty"`
-	Duid                 string               `protobuf:"bytes,6,opt,name=duid,proto3" json:"duid,omitempty"`
-	ValidLifetime        uint32               `protobuf:"varint,7,opt,name=valid_lifetime,json=validLifetime,proto3" json:"valid_lifetime,omitempty"`
-	Expire               int64                `protobuf:"varint,8,opt,name=expire,proto3" json:"expire,omitempty"`
-	PrefixLen            uint32               `protobuf:"varint,9,opt,name=prefix_len,json=prefixLen,proto3" json:"prefix_len,omitempty"`
-	LeaseType            DHCPLease6_LeaseType `protobuf:"varint,10,opt,name=lease_type,json=leaseType,proto3,enum=proto.DHCPLease6_LeaseType" json:"lease_type,omitempty"`
-	State                uint32               `protobuf:"varint,11,opt,name=state,proto3" json:"state,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-	XXX_unrecognized     []byte               `json:"-"`
-	XXX_sizecache        int32                `json:"-"`
+type DHCPLease struct {
+	Address              string              `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	SubnetId             uint32              `protobuf:"varint,2,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
+	HwAddress            string              `protobuf:"bytes,3,opt,name=hw_address,json=hwAddress,proto3" json:"hw_address,omitempty"`
+	HwType               uint32              `protobuf:"varint,4,opt,name=hw_type,json=hwType,proto3" json:"hw_type,omitempty"`
+	HwAddressSource      uint32              `protobuf:"varint,5,opt,name=hw_address_source,json=hwAddressSource,proto3" json:"hw_address_source,omitempty"`
+	Duid                 string              `protobuf:"bytes,6,opt,name=duid,proto3" json:"duid,omitempty"`
+	ValidLifetime        uint32              `protobuf:"varint,7,opt,name=valid_lifetime,json=validLifetime,proto3" json:"valid_lifetime,omitempty"`
+	Expire               int64               `protobuf:"varint,8,opt,name=expire,proto3" json:"expire,omitempty"`
+	PrefixLen            uint32              `protobuf:"varint,9,opt,name=prefix_len,json=prefixLen,proto3" json:"prefix_len,omitempty"`
+	LeaseType            DHCPLease_LeaseType `protobuf:"varint,10,opt,name=lease_type,json=leaseType,proto3,enum=proto.DHCPLease_LeaseType" json:"lease_type,omitempty"`
+	State                uint32              `protobuf:"varint,11,opt,name=state,proto3" json:"state,omitempty"`
+	Hostname             string              `protobuf:"bytes,12,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	ClientId             string              `protobuf:"bytes,13,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
 }
 
-func (m *DHCPLease6) Reset()         { *m = DHCPLease6{} }
-func (m *DHCPLease6) String() string { return proto.CompactTextString(m) }
-func (*DHCPLease6) ProtoMessage()    {}
-func (*DHCPLease6) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{32}
+func (m *DHCPLease) Reset()         { *m = DHCPLease{} }
+func (m *DHCPLease) String() string { return proto.CompactTextString(m) }
+func (*DHCPLease) ProtoMessage()    {}
+func (*DHCPLease) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{34}
 }
-func (m *DHCPLease6) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DHCPLease6.Unmarshal(m, b)
+func (m *DHCPLease) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DHCPLease.Unmarshal(m, b)
 }
-func (m *DHCPLease6) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DHCPLease6.Marshal(b, m, deterministic)
+func (m *DHCPLease) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DHCPLease.Marshal(b, m, deterministic)
 }
-func (dst *DHCPLease6) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DHCPLease6.Merge(dst, src)
+func (dst *DHCPLease) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DHCPLease.Merge(dst, src)
 }
-func (m *DHCPLease6) XXX_Size() int {
-	return xxx_messageInfo_DHCPLease6.Size(m)
+func (m *DHCPLease) XXX_Size() int {
+	return xxx_messageInfo_DHCPLease.Size(m)
 }
-func (m *DHCPLease6) XXX_DiscardUnknown() {
-	xxx_messageInfo_DHCPLease6.DiscardUnknown(m)
+func (m *DHCPLease) XXX_DiscardUnknown() {
+	xxx_messageInfo_DHCPLease.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_DHCPLease6 proto.InternalMessageInfo
+var xxx_messageInfo_DHCPLease proto.InternalMessageInfo
 
-func (m *DHCPLease6) GetAddress() string {
+func (m *DHCPLease) GetAddress() string {
 	if m != nil {
 		return m.Address
 	}
 	return ""
 }
 
-func (m *DHCPLease6) GetSubnetId() uint32 {
+func (m *DHCPLease) GetSubnetId() uint32 {
 	if m != nil {
 		return m.SubnetId
 	}
 	return 0
 }
 
-func (m *DHCPLease6) GetHwAddress() string {
+func (m *DHCPLease) GetHwAddress() string {
 	if m != nil {
 		return m.HwAddress
 	}
 	return ""
 }
 
-func (m *DHCPLease6) GetHwType() uint32 {
+func (m *DHCPLease) GetHwType() uint32 {
 	if m != nil {
 		return m.HwType
 	}
 	return 0
 }
 
-func (m *DHCPLease6) GetHwAddressSource() uint32 {
+func (m *DHCPLease) GetHwAddressSource() uint32 {
 	if m != nil {
 		return m.HwAddressSource
 	}
 	return 0
 }
 
-func (m *DHCPLease6) GetDuid() string {
+func (m *DHCPLease) GetDuid() string {
 	if m != nil {
 		return m.Duid
 	}
 	return ""
 }
 
-func (m *DHCPLease6) GetValidLifetime() uint32 {
+func (m *DHCPLease) GetValidLifetime() uint32 {
 	if m != nil {
 		return m.ValidLifetime
 	}
 	return 0
 }
 
-func (m *DHCPLease6) GetExpire() int64 {
+func (m *DHCPLease) GetExpire() int64 {
 	if m != nil {
 		return m.Expire
 	}
 	return 0
 }
 
-func (m *DHCPLease6) GetPrefixLen() uint32 {
+func (m *DHCPLease) GetPrefixLen() uint32 {
 	if m != nil {
 		return m.PrefixLen
 	}
 	return 0
 }
 
-func (m *DHCPLease6) GetLeaseType() DHCPLease6_LeaseType {
+func (m *DHCPLease) GetLeaseType() DHCPLease_LeaseType {
 	if m != nil {
 		return m.LeaseType
 	}
-	return DHCPLease6_TYPE_NA
+	return DHCPLease_TYPE_NA
 }
 
-func (m *DHCPLease6) GetState() uint32 {
+func (m *DHCPLease) GetState() uint32 {
 	if m != nil {
 		return m.State
 	}
 	return 0
 }
 
-type GetLeases6Response struct {
-	Succeed              bool          `protobuf:"varint,1,opt,name=succeed,proto3" json:"succeed,omitempty"`
-	Leases               []*DHCPLease6 `protobuf:"bytes,2,rep,name=leases,proto3" json:"leases,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
+func (m *DHCPLease) GetHostname() string {
+	if m != nil {
+		return m.Hostname
+	}
+	return ""
 }
 
-func (m *GetLeases6Response) Reset()         { *m = GetLeases6Response{} }
-func (m *GetLeases6Response) String() string { return proto.CompactTextString(m) }
-func (*GetLeases6Response) ProtoMessage()    {}
-func (*GetLeases6Response) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dhcp_7955f288d15089a5, []int{33}
-}
-func (m *GetLeases6Response) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetLeases6Response.Unmarshal(m, b)
-}
-func (m *GetLeases6Response) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetLeases6Response.Marshal(b, m, deterministic)
-}
-func (dst *GetLeases6Response) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetLeases6Response.Merge(dst, src)
-}
-func (m *GetLeases6Response) XXX_Size() int {
-	return xxx_messageInfo_GetLeases6Response.Size(m)
-}
-func (m *GetLeases6Response) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetLeases6Response.DiscardUnknown(m)
+func (m *DHCPLease) GetClientId() string {
+	if m != nil {
+		return m.ClientId
+	}
+	return ""
 }
 
-var xxx_messageInfo_GetLeases6Response proto.InternalMessageInfo
+type GetLeasesResponse struct {
+	Succeed              bool         `protobuf:"varint,1,opt,name=succeed,proto3" json:"succeed,omitempty"`
+	Leases               []*DHCPLease `protobuf:"bytes,2,rep,name=leases,proto3" json:"leases,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
+}
 
-func (m *GetLeases6Response) GetSucceed() bool {
+func (m *GetLeasesResponse) Reset()         { *m = GetLeasesResponse{} }
+func (m *GetLeasesResponse) String() string { return proto.CompactTextString(m) }
+func (*GetLeasesResponse) ProtoMessage()    {}
+func (*GetLeasesResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dhcp_63c2d576831ef37c, []int{35}
+}
+func (m *GetLeasesResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetLeasesResponse.Unmarshal(m, b)
+}
+func (m *GetLeasesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetLeasesResponse.Marshal(b, m, deterministic)
+}
+func (dst *GetLeasesResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetLeasesResponse.Merge(dst, src)
+}
+func (m *GetLeasesResponse) XXX_Size() int {
+	return xxx_messageInfo_GetLeasesResponse.Size(m)
+}
+func (m *GetLeasesResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetLeasesResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetLeasesResponse proto.InternalMessageInfo
+
+func (m *GetLeasesResponse) GetSucceed() bool {
 	if m != nil {
 		return m.Succeed
 	}
 	return false
 }
 
-func (m *GetLeases6Response) GetLeases() []*DHCPLease6 {
+func (m *GetLeasesResponse) GetLeases() []*DHCPLease {
 	if m != nil {
 		return m.Leases
 	}
@@ -2178,16 +2230,18 @@ func init() {
 	proto.RegisterType((*DeleteClientClass4Request)(nil), "proto.DeleteClientClass4Request")
 	proto.RegisterType((*UpdateClientClass4Request)(nil), "proto.UpdateClientClass4Request")
 	proto.RegisterType((*UpdateGlobalConfigRequest)(nil), "proto.UpdateGlobalConfigRequest")
+	proto.RegisterType((*GetSubnet4LeasesCountRequest)(nil), "proto.GetSubnet4LeasesCountRequest")
+	proto.RegisterType((*GetPool4LeasesCountRequest)(nil), "proto.GetPool4LeasesCountRequest")
+	proto.RegisterType((*GetReservation4LeasesCountRequest)(nil), "proto.GetReservation4LeasesCountRequest")
+	proto.RegisterType((*GetLeasesCountResponse)(nil), "proto.GetLeasesCountResponse")
+	proto.RegisterType((*GetSubnet6LeasesCountRequest)(nil), "proto.GetSubnet6LeasesCountRequest")
+	proto.RegisterType((*GetPool6LeasesCountRequest)(nil), "proto.GetPool6LeasesCountRequest")
+	proto.RegisterType((*GetReservation6LeasesCountRequest)(nil), "proto.GetReservation6LeasesCountRequest")
 	proto.RegisterType((*GetSubnet4LeasesRequest)(nil), "proto.GetSubnet4LeasesRequest")
-	proto.RegisterType((*GetPool4LeasesRequest)(nil), "proto.GetPool4LeasesRequest")
-	proto.RegisterType((*GetReservation4LeasesRequest)(nil), "proto.GetReservation4LeasesRequest")
-	proto.RegisterType((*DHCPLease4)(nil), "proto.DHCPLease4")
-	proto.RegisterType((*GetLeases4Response)(nil), "proto.GetLeases4Response")
-	proto.RegisterType((*GetLeases4CountResponse)(nil), "proto.GetLeases4CountResponse")
 	proto.RegisterType((*GetSubnet6LeasesRequest)(nil), "proto.GetSubnet6LeasesRequest")
-	proto.RegisterType((*DHCPLease6)(nil), "proto.DHCPLease6")
-	proto.RegisterType((*GetLeases6Response)(nil), "proto.GetLeases6Response")
-	proto.RegisterEnum("proto.DHCPLease6_LeaseType", DHCPLease6_LeaseType_name, DHCPLease6_LeaseType_value)
+	proto.RegisterType((*DHCPLease)(nil), "proto.DHCPLease")
+	proto.RegisterType((*GetLeasesResponse)(nil), "proto.GetLeasesResponse")
+	proto.RegisterEnum("proto.DHCPLease_LeaseType", DHCPLease_LeaseType_name, DHCPLease_LeaseType_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -2227,13 +2281,14 @@ type DHCPManagerClient interface {
 	DeleteClientClass4(ctx context.Context, in *DeleteClientClass4Request, opts ...grpc.CallOption) (*DDIResponse, error)
 	UpdateClientClass4(ctx context.Context, in *UpdateClientClass4Request, opts ...grpc.CallOption) (*DDIResponse, error)
 	UpdateGlobalConfig(ctx context.Context, in *UpdateGlobalConfigRequest, opts ...grpc.CallOption) (*DDIResponse, error)
-	GetSubnet4Leases(ctx context.Context, in *GetSubnet4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4Response, error)
-	GetPool4Leases(ctx context.Context, in *GetPool4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4Response, error)
-	GetReservation4Leases(ctx context.Context, in *GetReservation4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4Response, error)
-	GetSubnet4LeasesCount(ctx context.Context, in *GetSubnet4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4CountResponse, error)
-	GetPool4LeasesCount(ctx context.Context, in *GetPool4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4CountResponse, error)
-	GetReservation4LeasesCount(ctx context.Context, in *GetReservation4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4CountResponse, error)
-	GetSubnet6Leases(ctx context.Context, in *GetSubnet6LeasesRequest, opts ...grpc.CallOption) (*GetLeases6Response, error)
+	GetSubnet4LeasesCount(ctx context.Context, in *GetSubnet4LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error)
+	GetPool4LeasesCount(ctx context.Context, in *GetPool4LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error)
+	GetReservation4LeasesCount(ctx context.Context, in *GetReservation4LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error)
+	GetSubnet6LeasesCount(ctx context.Context, in *GetSubnet6LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error)
+	GetPool6LeasesCount(ctx context.Context, in *GetPool6LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error)
+	GetReservation6LeasesCount(ctx context.Context, in *GetReservation6LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error)
+	GetSubnet4Leases(ctx context.Context, in *GetSubnet4LeasesRequest, opts ...grpc.CallOption) (*GetLeasesResponse, error)
+	GetSubnet6Leases(ctx context.Context, in *GetSubnet6LeasesRequest, opts ...grpc.CallOption) (*GetLeasesResponse, error)
 }
 
 type dHCPManagerClient struct {
@@ -2469,35 +2524,8 @@ func (c *dHCPManagerClient) UpdateGlobalConfig(ctx context.Context, in *UpdateGl
 	return out, nil
 }
 
-func (c *dHCPManagerClient) GetSubnet4Leases(ctx context.Context, in *GetSubnet4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4Response, error) {
-	out := new(GetLeases4Response)
-	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetSubnet4Leases", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *dHCPManagerClient) GetPool4Leases(ctx context.Context, in *GetPool4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4Response, error) {
-	out := new(GetLeases4Response)
-	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetPool4Leases", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *dHCPManagerClient) GetReservation4Leases(ctx context.Context, in *GetReservation4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4Response, error) {
-	out := new(GetLeases4Response)
-	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetReservation4Leases", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *dHCPManagerClient) GetSubnet4LeasesCount(ctx context.Context, in *GetSubnet4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4CountResponse, error) {
-	out := new(GetLeases4CountResponse)
+func (c *dHCPManagerClient) GetSubnet4LeasesCount(ctx context.Context, in *GetSubnet4LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error) {
+	out := new(GetLeasesCountResponse)
 	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetSubnet4LeasesCount", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2505,8 +2533,8 @@ func (c *dHCPManagerClient) GetSubnet4LeasesCount(ctx context.Context, in *GetSu
 	return out, nil
 }
 
-func (c *dHCPManagerClient) GetPool4LeasesCount(ctx context.Context, in *GetPool4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4CountResponse, error) {
-	out := new(GetLeases4CountResponse)
+func (c *dHCPManagerClient) GetPool4LeasesCount(ctx context.Context, in *GetPool4LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error) {
+	out := new(GetLeasesCountResponse)
 	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetPool4LeasesCount", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2514,8 +2542,8 @@ func (c *dHCPManagerClient) GetPool4LeasesCount(ctx context.Context, in *GetPool
 	return out, nil
 }
 
-func (c *dHCPManagerClient) GetReservation4LeasesCount(ctx context.Context, in *GetReservation4LeasesRequest, opts ...grpc.CallOption) (*GetLeases4CountResponse, error) {
-	out := new(GetLeases4CountResponse)
+func (c *dHCPManagerClient) GetReservation4LeasesCount(ctx context.Context, in *GetReservation4LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error) {
+	out := new(GetLeasesCountResponse)
 	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetReservation4LeasesCount", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2523,8 +2551,44 @@ func (c *dHCPManagerClient) GetReservation4LeasesCount(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *dHCPManagerClient) GetSubnet6Leases(ctx context.Context, in *GetSubnet6LeasesRequest, opts ...grpc.CallOption) (*GetLeases6Response, error) {
-	out := new(GetLeases6Response)
+func (c *dHCPManagerClient) GetSubnet6LeasesCount(ctx context.Context, in *GetSubnet6LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error) {
+	out := new(GetLeasesCountResponse)
+	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetSubnet6LeasesCount", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dHCPManagerClient) GetPool6LeasesCount(ctx context.Context, in *GetPool6LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error) {
+	out := new(GetLeasesCountResponse)
+	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetPool6LeasesCount", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dHCPManagerClient) GetReservation6LeasesCount(ctx context.Context, in *GetReservation6LeasesCountRequest, opts ...grpc.CallOption) (*GetLeasesCountResponse, error) {
+	out := new(GetLeasesCountResponse)
+	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetReservation6LeasesCount", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dHCPManagerClient) GetSubnet4Leases(ctx context.Context, in *GetSubnet4LeasesRequest, opts ...grpc.CallOption) (*GetLeasesResponse, error) {
+	out := new(GetLeasesResponse)
+	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetSubnet4Leases", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dHCPManagerClient) GetSubnet6Leases(ctx context.Context, in *GetSubnet6LeasesRequest, opts ...grpc.CallOption) (*GetLeasesResponse, error) {
+	out := new(GetLeasesResponse)
 	err := c.cc.Invoke(ctx, "/proto.DHCPManager/GetSubnet6Leases", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2559,13 +2623,14 @@ type DHCPManagerServer interface {
 	DeleteClientClass4(context.Context, *DeleteClientClass4Request) (*DDIResponse, error)
 	UpdateClientClass4(context.Context, *UpdateClientClass4Request) (*DDIResponse, error)
 	UpdateGlobalConfig(context.Context, *UpdateGlobalConfigRequest) (*DDIResponse, error)
-	GetSubnet4Leases(context.Context, *GetSubnet4LeasesRequest) (*GetLeases4Response, error)
-	GetPool4Leases(context.Context, *GetPool4LeasesRequest) (*GetLeases4Response, error)
-	GetReservation4Leases(context.Context, *GetReservation4LeasesRequest) (*GetLeases4Response, error)
-	GetSubnet4LeasesCount(context.Context, *GetSubnet4LeasesRequest) (*GetLeases4CountResponse, error)
-	GetPool4LeasesCount(context.Context, *GetPool4LeasesRequest) (*GetLeases4CountResponse, error)
-	GetReservation4LeasesCount(context.Context, *GetReservation4LeasesRequest) (*GetLeases4CountResponse, error)
-	GetSubnet6Leases(context.Context, *GetSubnet6LeasesRequest) (*GetLeases6Response, error)
+	GetSubnet4LeasesCount(context.Context, *GetSubnet4LeasesCountRequest) (*GetLeasesCountResponse, error)
+	GetPool4LeasesCount(context.Context, *GetPool4LeasesCountRequest) (*GetLeasesCountResponse, error)
+	GetReservation4LeasesCount(context.Context, *GetReservation4LeasesCountRequest) (*GetLeasesCountResponse, error)
+	GetSubnet6LeasesCount(context.Context, *GetSubnet6LeasesCountRequest) (*GetLeasesCountResponse, error)
+	GetPool6LeasesCount(context.Context, *GetPool6LeasesCountRequest) (*GetLeasesCountResponse, error)
+	GetReservation6LeasesCount(context.Context, *GetReservation6LeasesCountRequest) (*GetLeasesCountResponse, error)
+	GetSubnet4Leases(context.Context, *GetSubnet4LeasesRequest) (*GetLeasesResponse, error)
+	GetSubnet6Leases(context.Context, *GetSubnet6LeasesRequest) (*GetLeasesResponse, error)
 }
 
 func RegisterDHCPManagerServer(s *grpc.Server, srv DHCPManagerServer) {
@@ -3022,6 +3087,114 @@ func _DHCPManager_UpdateGlobalConfig_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DHCPManager_GetSubnet4LeasesCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubnet4LeasesCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DHCPManagerServer).GetSubnet4LeasesCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DHCPManager/GetSubnet4LeasesCount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DHCPManagerServer).GetSubnet4LeasesCount(ctx, req.(*GetSubnet4LeasesCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DHCPManager_GetPool4LeasesCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPool4LeasesCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DHCPManagerServer).GetPool4LeasesCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DHCPManager/GetPool4LeasesCount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DHCPManagerServer).GetPool4LeasesCount(ctx, req.(*GetPool4LeasesCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DHCPManager_GetReservation4LeasesCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetReservation4LeasesCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DHCPManagerServer).GetReservation4LeasesCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DHCPManager/GetReservation4LeasesCount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DHCPManagerServer).GetReservation4LeasesCount(ctx, req.(*GetReservation4LeasesCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DHCPManager_GetSubnet6LeasesCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubnet6LeasesCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DHCPManagerServer).GetSubnet6LeasesCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DHCPManager/GetSubnet6LeasesCount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DHCPManagerServer).GetSubnet6LeasesCount(ctx, req.(*GetSubnet6LeasesCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DHCPManager_GetPool6LeasesCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPool6LeasesCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DHCPManagerServer).GetPool6LeasesCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DHCPManager/GetPool6LeasesCount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DHCPManagerServer).GetPool6LeasesCount(ctx, req.(*GetPool6LeasesCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DHCPManager_GetReservation6LeasesCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetReservation6LeasesCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DHCPManagerServer).GetReservation6LeasesCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DHCPManager/GetReservation6LeasesCount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DHCPManagerServer).GetReservation6LeasesCount(ctx, req.(*GetReservation6LeasesCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DHCPManager_GetSubnet4Leases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSubnet4LeasesRequest)
 	if err := dec(in); err != nil {
@@ -3036,96 +3209,6 @@ func _DHCPManager_GetSubnet4Leases_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DHCPManagerServer).GetSubnet4Leases(ctx, req.(*GetSubnet4LeasesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DHCPManager_GetPool4Leases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetPool4LeasesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DHCPManagerServer).GetPool4Leases(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.DHCPManager/GetPool4Leases",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DHCPManagerServer).GetPool4Leases(ctx, req.(*GetPool4LeasesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DHCPManager_GetReservation4Leases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetReservation4LeasesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DHCPManagerServer).GetReservation4Leases(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.DHCPManager/GetReservation4Leases",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DHCPManagerServer).GetReservation4Leases(ctx, req.(*GetReservation4LeasesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DHCPManager_GetSubnet4LeasesCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSubnet4LeasesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DHCPManagerServer).GetSubnet4LeasesCount(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.DHCPManager/GetSubnet4LeasesCount",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DHCPManagerServer).GetSubnet4LeasesCount(ctx, req.(*GetSubnet4LeasesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DHCPManager_GetPool4LeasesCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetPool4LeasesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DHCPManagerServer).GetPool4LeasesCount(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.DHCPManager/GetPool4LeasesCount",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DHCPManagerServer).GetPool4LeasesCount(ctx, req.(*GetPool4LeasesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DHCPManager_GetReservation4LeasesCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetReservation4LeasesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DHCPManagerServer).GetReservation4LeasesCount(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.DHCPManager/GetReservation4LeasesCount",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DHCPManagerServer).GetReservation4LeasesCount(ctx, req.(*GetReservation4LeasesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3253,18 +3336,6 @@ var _DHCPManager_serviceDesc = grpc.ServiceDesc{
 			Handler:    _DHCPManager_UpdateGlobalConfig_Handler,
 		},
 		{
-			MethodName: "GetSubnet4Leases",
-			Handler:    _DHCPManager_GetSubnet4Leases_Handler,
-		},
-		{
-			MethodName: "GetPool4Leases",
-			Handler:    _DHCPManager_GetPool4Leases_Handler,
-		},
-		{
-			MethodName: "GetReservation4Leases",
-			Handler:    _DHCPManager_GetReservation4Leases_Handler,
-		},
-		{
 			MethodName: "GetSubnet4LeasesCount",
 			Handler:    _DHCPManager_GetSubnet4LeasesCount_Handler,
 		},
@@ -3277,6 +3348,22 @@ var _DHCPManager_serviceDesc = grpc.ServiceDesc{
 			Handler:    _DHCPManager_GetReservation4LeasesCount_Handler,
 		},
 		{
+			MethodName: "GetSubnet6LeasesCount",
+			Handler:    _DHCPManager_GetSubnet6LeasesCount_Handler,
+		},
+		{
+			MethodName: "GetPool6LeasesCount",
+			Handler:    _DHCPManager_GetPool6LeasesCount_Handler,
+		},
+		{
+			MethodName: "GetReservation6LeasesCount",
+			Handler:    _DHCPManager_GetReservation6LeasesCount_Handler,
+		},
+		{
+			MethodName: "GetSubnet4Leases",
+			Handler:    _DHCPManager_GetSubnet4Leases_Handler,
+		},
+		{
 			MethodName: "GetSubnet6Leases",
 			Handler:    _DHCPManager_GetSubnet6Leases_Handler,
 		},
@@ -3285,99 +3372,98 @@ var _DHCPManager_serviceDesc = grpc.ServiceDesc{
 	Metadata: "dhcp.proto",
 }
 
-func init() { proto.RegisterFile("dhcp.proto", fileDescriptor_dhcp_7955f288d15089a5) }
+func init() { proto.RegisterFile("dhcp.proto", fileDescriptor_dhcp_63c2d576831ef37c) }
 
-var fileDescriptor_dhcp_7955f288d15089a5 = []byte{
-	// 1451 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x58, 0xcb, 0x6e, 0xe4, 0x44,
-	0x17, 0x8e, 0xdb, 0x7d, 0xf3, 0xe9, 0x24, 0x7f, 0xa6, 0x92, 0x99, 0xe9, 0x64, 0x2e, 0x7f, 0xc6,
-	0xa3, 0x41, 0x19, 0x84, 0x06, 0x29, 0x44, 0xb5, 0x60, 0x01, 0x84, 0x04, 0x85, 0x81, 0x00, 0x91,
-	0xe7, 0x82, 0x86, 0x8d, 0xe5, 0xb4, 0x6b, 0x12, 0x4b, 0x8e, 0x6d, 0x6c, 0xf7, 0xa4, 0x87, 0x87,
-	0x60, 0x8d, 0xc4, 0x8a, 0x3d, 0xfb, 0x59, 0xb0, 0x62, 0xc1, 0x0b, 0xb0, 0x01, 0x89, 0x97, 0xe0,
-	0x11, 0x90, 0xab, 0x6c, 0xb7, 0x2f, 0x55, 0x6d, 0x5b, 0xe9, 0x89, 0x18, 0x56, 0xdd, 0x55, 0x3e,
-	0xf5, 0xf9, 0x7c, 0x5f, 0x9d, 0x2a, 0x9f, 0x73, 0x00, 0xcc, 0xd3, 0x91, 0xf7, 0xc0, 0xf3, 0xdd,
-	0xd0, 0x45, 0x1d, 0xfa, 0xb3, 0x81, 0x4c, 0xd3, 0xd2, 0x7d, 0x12, 0x78, 0xae, 0x13, 0x10, 0xf6,
-	0x48, 0xfd, 0xa3, 0x05, 0x6b, 0x7b, 0x3e, 0x31, 0x42, 0xf2, 0x68, 0x7c, 0xec, 0x90, 0x70, 0x47,
-	0x23, 0xdf, 0x8e, 0x49, 0x10, 0xa2, 0x65, 0x68, 0x59, 0xe6, 0x50, 0xda, 0x94, 0xb6, 0x96, 0xb4,
-	0x96, 0x65, 0xa2, 0x35, 0xe8, 0x58, 0x9e, 0x43, 0xc2, 0x61, 0x6b, 0x53, 0xda, 0x52, 0x34, 0x36,
-	0x40, 0xf7, 0x60, 0xf9, 0x85, 0x61, 0x5b, 0xa6, 0x6e, 0x5b, 0xcf, 0x49, 0x68, 0x9d, 0x91, 0xa1,
-	0x4c, 0x57, 0x2c, 0xd1, 0xd9, 0xc3, 0x78, 0x12, 0xbd, 0x03, 0xe8, 0xcc, 0x98, 0xe8, 0x05, 0xd3,
-	0x36, 0x35, 0x5d, 0x39, 0x33, 0x26, 0x4f, 0x4b, 0xd6, 0x96, 0x53, 0xb4, 0xee, 0xc4, 0xd6, 0x96,
-	0x93, 0xb7, 0xbe, 0x07, 0xcb, 0xa6, 0x7b, 0x66, 0x58, 0x8e, 0x1e, 0x10, 0xff, 0x05, 0xf1, 0x83,
-	0x61, 0x77, 0x53, 0xde, 0x52, 0xb4, 0x25, 0x36, 0xfb, 0x88, 0x4d, 0xa2, 0x21, 0xf4, 0x7c, 0x77,
-	0x1c, 0x46, 0xcf, 0x7b, 0xf4, 0x79, 0x32, 0x44, 0x77, 0x60, 0x71, 0x64, 0x5b, 0xc4, 0x09, 0xf5,
-	0x91, 0x6d, 0x04, 0xc1, 0xb0, 0x4f, 0x09, 0x0e, 0xd8, 0xdc, 0x5e, 0x34, 0x85, 0xb6, 0xe1, 0xaa,
-	0x4f, 0x6c, 0xe3, 0xa5, 0x6e, 0x9c, 0x44, 0x76, 0x86, 0x69, 0xfa, 0x24, 0x08, 0x48, 0x30, 0x54,
-	0x28, 0xd4, 0x2a, 0x7d, 0xb8, 0x1b, 0x3d, 0xdb, 0x4d, 0x1e, 0xa9, 0x6f, 0xc1, 0xda, 0x3e, 0xb1,
-	0x49, 0x95, 0xb0, 0xea, 0xaf, 0x2d, 0x58, 0x7b, 0xe2, 0x99, 0xd5, 0x3b, 0x50, 0xd6, 0xba, 0x55,
-	0x5f, 0x6b, 0xb9, 0x91, 0xd6, 0xed, 0xda, 0x5a, 0x77, 0x2a, 0xb4, 0xee, 0xce, 0xd6, 0xba, 0xd7,
-	0x40, 0xeb, 0xbe, 0x58, 0xeb, 0x57, 0x85, 0x28, 0xc6, 0x6f, 0x5c, 0x14, 0xff, 0x1f, 0x06, 0xa6,
-	0x13, 0x14, 0x42, 0x18, 0x4c, 0x27, 0x48, 0x34, 0x7d, 0x4d, 0xca, 0x15, 0xa2, 0x54, 0x24, 0x9c,
-	0xfa, 0x53, 0x21, 0x4a, 0xf1, 0xbf, 0x38, 0x4a, 0x0b, 0x5a, 0x76, 0x2a, 0xb5, 0xec, 0x36, 0xd0,
-	0xb2, 0x27, 0xd6, 0xf2, 0x2f, 0x09, 0x10, 0x8b, 0xc2, 0x23, 0xd7, 0xb5, 0xd3, 0x73, 0x7c, 0x03,
-	0x94, 0x80, 0x6a, 0xa6, 0xa7, 0x42, 0xf5, 0xd9, 0xc4, 0x43, 0x13, 0xdd, 0x85, 0xa5, 0x63, 0x72,
-	0x62, 0x39, 0xc9, 0x1b, 0xe2, 0xc0, 0x5c, 0xa4, 0x93, 0x31, 0x74, 0x44, 0x88, 0x38, 0x66, 0x6a,
-	0x22, 0x53, 0x13, 0x20, 0x8e, 0x99, 0x18, 0x94, 0xcf, 0x65, 0xbb, 0xe2, 0x5c, 0x76, 0x66, 0x9f,
-	0xcb, 0xb2, 0x22, 0xea, 0x39, 0x20, 0x16, 0x29, 0x97, 0x4c, 0x8e, 0xca, 0xca, 0x42, 0xef, 0xbf,
-	0x28, 0xeb, 0x2f, 0xb9, 0xa0, 0xc1, 0x97, 0xc8, 0xae, 0x70, 0x4c, 0xda, 0x95, 0xc7, 0xa4, 0x53,
-	0x11, 0x14, 0x97, 0xe8, 0x3c, 0x95, 0x6d, 0x1a, 0x14, 0x6f, 0x9a, 0x6c, 0xaf, 0x24, 0x58, 0x67,
-	0x9b, 0xae, 0x91, 0x08, 0xc8, 0x08, 0x2d, 0xd7, 0xa9, 0x17, 0xd9, 0xb7, 0x00, 0x4e, 0xcf, 0x0b,
-	0x0c, 0x94, 0xd3, 0xf3, 0xc4, 0xbb, 0x5b, 0x00, 0x96, 0x57, 0xf0, 0x5e, 0xb1, 0xbc, 0x79, 0x45,
-	0xb4, 0xfa, 0x35, 0xac, 0xb3, 0x0d, 0x9f, 0xb3, 0xe3, 0xea, 0x0f, 0x12, 0xac, 0xb3, 0x0d, 0x9d,
-	0xb7, 0x24, 0x65, 0xce, 0x72, 0x05, 0xe7, 0x76, 0x9e, 0xf3, 0x8f, 0xbc, 0xdd, 0xc2, 0xf3, 0x70,
-	0xed, 0x0e, 0x2c, 0x4e, 0x77, 0x8b, 0x24, 0x8e, 0x0d, 0xd2, 0xfd, 0x22, 0xd5, 0xe1, 0xc6, 0xdd,
-	0x91, 0x79, 0x38, 0xa7, 0x4e, 0x38, 0x1b, 0x32, 0x17, 0xd6, 0x05, 0x4a, 0x72, 0x89, 0xd2, 0xef,
-	0x12, 0xac, 0xc6, 0x77, 0xe2, 0x7e, 0x74, 0xbc, 0x6b, 0xbd, 0xf4, 0x1a, 0x74, 0x3d, 0x9f, 0x3c,
-	0xb7, 0x26, 0xf1, 0x0b, 0xe3, 0x51, 0xe4, 0x0c, 0xfb, 0xa7, 0xdb, 0xc4, 0x89, 0x33, 0x0c, 0x85,
-	0xcd, 0x1c, 0x12, 0x27, 0xba, 0x14, 0x4c, 0x62, 0x93, 0x13, 0x23, 0x24, 0x26, 0xb5, 0x60, 0x59,
-	0xc5, 0x62, 0x3a, 0x19, 0x19, 0xcd, 0x21, 0xa3, 0x50, 0x3f, 0x83, 0xd5, 0xf8, 0xaa, 0xbc, 0x30,
-	0x27, 0xf5, 0x7b, 0x09, 0x56, 0xe3, 0xdb, 0xef, 0xe2, 0x02, 0x55, 0x6d, 0x47, 0x89, 0x5c, 0xbb,
-	0x4c, 0xee, 0x20, 0x39, 0x21, 0x7b, 0xd3, 0xc9, 0xf4, 0xf0, 0x22, 0x68, 0x3b, 0xc6, 0x19, 0xa1,
-	0x0e, 0x29, 0x1a, 0xfd, 0x1f, 0x39, 0xe3, 0x93, 0x13, 0x32, 0xf1, 0x12, 0x67, 0xd8, 0x48, 0x7d,
-	0x37, 0x89, 0xe6, 0x9a, 0x40, 0xd1, 0x9b, 0x99, 0x12, 0x17, 0x7d, 0xf3, 0x6f, 0xe9, 0x05, 0x74,
-	0x60, 0xbb, 0xc7, 0x86, 0xbd, 0xe7, 0x3a, 0xcf, 0xad, 0x93, 0x04, 0xa9, 0x9c, 0xd6, 0x4a, 0xf5,
-	0xd3, 0xda, 0x56, 0xa3, 0xb4, 0x56, 0xae, 0x5d, 0x7c, 0xf1, 0xee, 0x6e, 0xf5, 0x3e, 0x5c, 0x3f,
-	0x20, 0x61, 0x5c, 0x4b, 0x1e, 0x12, 0x23, 0x20, 0x81, 0x28, 0xa9, 0xff, 0x0e, 0xae, 0x1e, 0x90,
-	0x90, 0x66, 0x55, 0x79, 0xc3, 0x4b, 0xf8, 0x80, 0x7f, 0x03, 0x37, 0x0f, 0x48, 0x98, 0xbd, 0xeb,
-	0x1b, 0xb8, 0x50, 0x71, 0x73, 0xfd, 0x2d, 0x01, 0xec, 0x7f, 0xba, 0x77, 0x44, 0x11, 0x77, 0xa2,
-	0x9b, 0x3d, 0x31, 0x65, 0x81, 0x90, 0x0c, 0xf3, 0x2f, 0x69, 0xcd, 0x7c, 0x89, 0x5c, 0xbc, 0xc5,
-	0x6e, 0x80, 0x12, 0x9f, 0x0a, 0xcb, 0x8c, 0x8f, 0x44, 0x9f, 0x4d, 0x3c, 0xe4, 0x55, 0x41, 0x1d,
-	0x5e, 0xb8, 0x5c, 0x83, 0x2e, 0x99, 0x78, 0x96, 0x4f, 0xe8, 0x85, 0x21, 0x6b, 0xf1, 0x28, 0x2a,
-	0x53, 0x83, 0xd0, 0x08, 0x09, 0xad, 0xf2, 0x96, 0x34, 0x36, 0x40, 0x1b, 0xd0, 0x3f, 0x75, 0x83,
-	0x90, 0x46, 0x34, 0x6b, 0x52, 0xa4, 0x63, 0xf5, 0x19, 0xa0, 0x03, 0x12, 0x32, 0x09, 0x77, 0xb4,
-	0xb8, 0xc7, 0x13, 0x31, 0x0f, 0xc6, 0xa3, 0x11, 0x21, 0x4c, 0xc2, 0xbe, 0x96, 0x0c, 0xd1, 0x7d,
-	0xe8, 0xda, 0xd4, 0x78, 0xd8, 0xda, 0x94, 0xb7, 0x06, 0xdb, 0x57, 0x58, 0x3f, 0xe8, 0xc1, 0x54,
-	0x36, 0x2d, 0x36, 0x50, 0x9f, 0xd2, 0x80, 0x8a, 0xa1, 0xf7, 0xdc, 0xb1, 0x13, 0xd6, 0xc0, 0xbf,
-	0x03, 0x8b, 0x6c, 0xb9, 0x3e, 0x8a, 0x56, 0x50, 0x71, 0xdb, 0xda, 0x80, 0xcd, 0x51, 0x90, 0x5c,
-	0xa0, 0xe2, 0xd9, 0x81, 0xfa, 0xb3, 0x9c, 0xd9, 0x50, 0xfc, 0x9a, 0x36, 0xf4, 0x3a, 0xf4, 0x4e,
-	0xcf, 0xf5, 0xf0, 0xa5, 0x97, 0x54, 0x96, 0xdd, 0xd3, 0xf3, 0xc7, 0x2f, 0x3d, 0x82, 0xde, 0x86,
-	0x2b, 0xd3, 0x75, 0x7a, 0xe0, 0x8e, 0xfd, 0x51, 0xb2, 0x9f, 0xff, 0x4b, 0x97, 0x3f, 0xa2, 0xd3,
-	0xd1, 0x8d, 0x63, 0x8e, 0x2d, 0x33, 0xfe, 0x00, 0xd0, 0xff, 0x9c, 0x60, 0xe8, 0xcd, 0x0e, 0x86,
-	0x7e, 0x2e, 0x18, 0xf2, 0x1f, 0x30, 0xa5, 0xf8, 0x01, 0x7b, 0x1f, 0x80, 0xaa, 0xca, 0x3c, 0x87,
-	0x4d, 0x69, 0x6b, 0x79, 0xfb, 0x46, 0x71, 0x37, 0xf1, 0x03, 0xfa, 0x13, 0xd1, 0xd1, 0x14, 0x3b,
-	0xf9, 0x3b, 0x8d, 0xb3, 0x41, 0x26, 0xce, 0xd4, 0x0f, 0x41, 0x49, 0xad, 0xd1, 0x00, 0x7a, 0x8f,
-	0x9f, 0x1d, 0x7d, 0xa2, 0x7f, 0xb9, 0xbb, 0xb2, 0x90, 0x0e, 0x1e, 0xef, 0xae, 0x48, 0xe9, 0xe0,
-	0x68, 0x7f, 0xa5, 0x95, 0x0e, 0x9e, 0xee, 0xac, 0xc8, 0xb9, 0x60, 0xc4, 0xf3, 0x08, 0x46, 0x9c,
-	0x04, 0xe3, 0xf6, 0x9f, 0x08, 0x06, 0xd1, 0xf4, 0x17, 0x86, 0x63, 0x9c, 0x10, 0x1f, 0x7d, 0x0c,
-	0x4b, 0xb9, 0xf6, 0x25, 0x4a, 0xa8, 0xf3, 0x9a, 0x9a, 0x1b, 0x28, 0x01, 0xde, 0x7f, 0x98, 0xb8,
-	0xa5, 0x2e, 0x44, 0x18, 0xb9, 0x4e, 0x5d, 0x8a, 0xc1, 0xeb, 0xdf, 0x89, 0x31, 0x72, 0x4d, 0xbc,
-	0x14, 0x83, 0xd7, 0xda, 0x13, 0x63, 0xe4, 0x9a, 0x58, 0x5c, 0x2e, 0xb8, 0x11, 0x17, 0xcc, 0xe5,
-	0x82, 0x1b, 0x71, 0xc1, 0x5c, 0x2e, 0x15, 0x18, 0x1f, 0xc0, 0x20, 0xd3, 0x0a, 0x41, 0xeb, 0x39,
-	0x26, 0xd9, 0x3a, 0x5e, 0xbc, 0x3e, 0xd3, 0x6d, 0x48, 0xd7, 0x97, 0x3b, 0x10, 0xe2, 0xf5, 0x99,
-	0x9e, 0x41, 0xba, 0xbe, 0xdc, 0x47, 0xa8, 0xe3, 0x3f, 0xe6, 0xf8, 0x8f, 0x1b, 0xf8, 0x8f, 0x39,
-	0xfe, 0xe3, 0x06, 0xfe, 0x63, 0x8e, 0xff, 0x15, 0xeb, 0x3f, 0x82, 0xc5, 0x6c, 0x06, 0x8d, 0x36,
-	0xf2, 0x04, 0xb2, 0x59, 0xa3, 0x18, 0x21, 0x9b, 0xaf, 0xa6, 0x08, 0x9c, 0x24, 0x56, 0x8c, 0x90,
-	0x4d, 0x52, 0x53, 0x04, 0x4e, 0xe6, 0x2a, 0x40, 0x38, 0x4c, 0x7a, 0x23, 0xd9, 0x3c, 0x01, 0x6d,
-	0xe6, 0xb8, 0x70, 0xca, 0x45, 0x31, 0x5a, 0xb9, 0x76, 0x4d, 0xd1, 0x84, 0x65, 0xad, 0x18, 0xad,
-	0x5c, 0xaf, 0xa6, 0x68, 0xc2, 0x52, 0xb6, 0x01, 0x53, 0x2c, 0x66, 0x8a, 0x9b, 0x33, 0xc5, 0x62,
-	0xa6, 0xb8, 0x39, 0x53, 0x2c, 0x66, 0x8a, 0x6b, 0x32, 0xcd, 0x26, 0xec, 0x05, 0xa6, 0x9c, 0x5c,
-	0xbe, 0x8a, 0x29, 0x17, 0x4d, 0x58, 0x4a, 0x54, 0x31, 0xe5, 0xa2, 0x09, 0xeb, 0x8c, 0x2a, 0xb4,
-	0x6c, 0x41, 0x51, 0x40, 0xe3, 0xd4, 0x1a, 0x02, 0xb4, 0xaf, 0x60, 0xa5, 0x98, 0xd7, 0xa3, 0xdb,
-	0xb1, 0xa5, 0x20, 0xe1, 0xdf, 0x58, 0x9f, 0x3e, 0x2f, 0xa4, 0x86, 0xea, 0x02, 0xfa, 0x1c, 0x96,
-	0xf3, 0xd9, 0x3f, 0xba, 0x39, 0x35, 0x2f, 0x17, 0x05, 0xb3, 0xc1, 0x9e, 0xd1, 0x52, 0xa2, 0x9c,
-	0xce, 0xa3, 0xbb, 0xd3, 0x55, 0xc2, 0x64, 0xbf, 0x0e, 0x74, 0x8e, 0x1f, 0x4d, 0x20, 0x2b, 0xd9,
-	0xdf, 0x2e, 0xa1, 0xe6, 0xb2, 0x57, 0x75, 0x01, 0x3d, 0x81, 0xd5, 0x3c, 0x57, 0x06, 0x3c, 0x5b,
-	0x87, 0x6a, 0xd8, 0x11, 0x6c, 0x70, 0xe9, 0x32, 0xf4, 0x5a, 0x8a, 0x54, 0xbf, 0x24, 0x1b, 0x0f,
-	0x58, 0x14, 0x0f, 0xb8, 0x42, 0x67, 0x3c, 0x05, 0x3c, 0xee, 0xd2, 0x67, 0xef, 0xfd, 0x13, 0x00,
-	0x00, 0xff, 0xff, 0xaa, 0x34, 0x86, 0xe3, 0x3a, 0x1e, 0x00, 0x00,
+var fileDescriptor_dhcp_63c2d576831ef37c = []byte{
+	// 1431 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x58, 0x4f, 0x6f, 0xe3, 0x44,
+	0x14, 0xdf, 0xc4, 0xf9, 0x53, 0xbf, 0xb4, 0x25, 0x3b, 0xed, 0xee, 0xa6, 0x59, 0x16, 0x5a, 0xaf,
+	0x16, 0x05, 0x84, 0x8a, 0x54, 0x56, 0x23, 0x71, 0x01, 0x4a, 0x8a, 0xc2, 0xa2, 0xb2, 0xaa, 0xb2,
+	0xff, 0xb4, 0x07, 0x64, 0xb9, 0xf1, 0x6c, 0x62, 0xc9, 0xb5, 0x8d, 0xed, 0x6c, 0xd3, 0x13, 0xdf,
+	0x80, 0x33, 0x12, 0x27, 0x3e, 0xc5, 0x1e, 0x38, 0x71, 0xe0, 0x0b, 0x70, 0xe1, 0x80, 0x38, 0xf1,
+	0x45, 0x90, 0x67, 0x6c, 0xc7, 0x7f, 0x66, 0xe2, 0x98, 0x86, 0x6a, 0x97, 0x4b, 0x9b, 0x99, 0x79,
+	0xf3, 0x9b, 0xf7, 0xfb, 0xcd, 0x9b, 0xf1, 0x7b, 0x03, 0xa0, 0x4f, 0x46, 0xce, 0xbe, 0xe3, 0xda,
+	0xbe, 0x8d, 0xea, 0xf4, 0x5f, 0x17, 0xe9, 0xba, 0xa1, 0xba, 0xc4, 0x73, 0x6c, 0xcb, 0x23, 0x6c,
+	0x48, 0xf9, 0xa3, 0x0a, 0xdb, 0x7d, 0x97, 0x68, 0x3e, 0x79, 0x34, 0x3d, 0xb5, 0x88, 0x7f, 0x7f,
+	0x48, 0xbe, 0x9b, 0x12, 0xcf, 0x47, 0x9b, 0x50, 0x35, 0xf4, 0x4e, 0x65, 0xb7, 0xd2, 0xdb, 0x18,
+	0x56, 0x0d, 0x1d, 0x6d, 0x43, 0xdd, 0x70, 0x2c, 0xe2, 0x77, 0xaa, 0xbb, 0x95, 0x9e, 0x3c, 0x64,
+	0x0d, 0x74, 0x0f, 0x36, 0x5f, 0x6a, 0xa6, 0xa1, 0xab, 0xa6, 0xf1, 0x82, 0xf8, 0xc6, 0x19, 0xe9,
+	0x48, 0x74, 0xc6, 0x06, 0xed, 0x3d, 0x0e, 0x3b, 0xd1, 0x87, 0x80, 0xce, 0xb4, 0x99, 0x9a, 0x31,
+	0xad, 0x51, 0xd3, 0xf6, 0x99, 0x36, 0x7b, 0x9a, 0xb3, 0x36, 0xac, 0xac, 0x75, 0x3d, 0xb4, 0x36,
+	0xac, 0xb4, 0xf5, 0x3d, 0xd8, 0xd4, 0xed, 0x33, 0xcd, 0xb0, 0x54, 0x8f, 0xb8, 0x2f, 0x89, 0xeb,
+	0x75, 0x1a, 0xbb, 0x52, 0x4f, 0x1e, 0x6e, 0xb0, 0xde, 0x47, 0xac, 0x13, 0x75, 0xa0, 0xe9, 0xda,
+	0x53, 0x3f, 0x18, 0x6f, 0xd2, 0xf1, 0xa8, 0x89, 0xf6, 0x60, 0x7d, 0x64, 0x1a, 0xc4, 0xf2, 0xd5,
+	0x91, 0xa9, 0x79, 0x5e, 0x67, 0x8d, 0x12, 0x6c, 0xb1, 0xbe, 0x7e, 0xd0, 0x85, 0x0e, 0xe0, 0x86,
+	0x4b, 0x4c, 0xed, 0x42, 0xd5, 0xc6, 0x81, 0x9d, 0xa6, 0xeb, 0x2e, 0xf1, 0x3c, 0xe2, 0x75, 0x64,
+	0x0a, 0xb5, 0x45, 0x07, 0x0f, 0x83, 0xb1, 0xc3, 0x68, 0x48, 0x79, 0x0f, 0xb6, 0x8f, 0x88, 0x49,
+	0x8a, 0x84, 0x55, 0x7e, 0xad, 0xc2, 0xf6, 0x13, 0x47, 0x2f, 0xde, 0x81, 0xbc, 0xd6, 0xd5, 0xe5,
+	0xb5, 0x96, 0x4a, 0x69, 0x5d, 0x5b, 0x5a, 0xeb, 0x7a, 0x81, 0xd6, 0x8d, 0xc5, 0x5a, 0x37, 0x4b,
+	0x68, 0xbd, 0x26, 0xd6, 0xfa, 0x55, 0x26, 0x8a, 0xf1, 0x1b, 0x17, 0xc5, 0xef, 0x42, 0x4b, 0xb7,
+	0xbc, 0x4c, 0x08, 0x83, 0x6e, 0x79, 0x91, 0xa6, 0xff, 0x91, 0x72, 0x99, 0x28, 0x15, 0x09, 0xa7,
+	0xfc, 0x9c, 0x89, 0x52, 0xfc, 0x1a, 0x47, 0x69, 0x46, 0xcb, 0x7a, 0xa1, 0x96, 0x8d, 0x12, 0x5a,
+	0x36, 0xc5, 0x5a, 0xfe, 0x59, 0x01, 0xc4, 0xa2, 0xf0, 0xc4, 0xb6, 0xcd, 0xf8, 0x1c, 0xdf, 0x06,
+	0xd9, 0xa3, 0x9a, 0xa9, 0xb1, 0x50, 0x6b, 0xac, 0xe3, 0x81, 0x8e, 0xee, 0xc2, 0xc6, 0x29, 0x19,
+	0x1b, 0x56, 0xb4, 0x42, 0x18, 0x98, 0xeb, 0xb4, 0x33, 0x84, 0x0e, 0x08, 0x11, 0x4b, 0x8f, 0x4d,
+	0x24, 0x6a, 0x02, 0xc4, 0xd2, 0x23, 0x83, 0xfc, 0xb9, 0xac, 0x15, 0x9c, 0xcb, 0xfa, 0xe2, 0x73,
+	0x99, 0x57, 0x44, 0x39, 0x07, 0xc4, 0x22, 0xe5, 0x8a, 0xc9, 0x51, 0x59, 0x59, 0xe8, 0xfd, 0x1f,
+	0x65, 0xfd, 0x25, 0x15, 0x34, 0xf8, 0x0a, 0xd9, 0x65, 0x8e, 0x49, 0xad, 0xf0, 0x98, 0xd4, 0x0b,
+	0x82, 0xe2, 0x0a, 0x9d, 0xa7, 0xb2, 0xcd, 0x83, 0xe2, 0x4d, 0x93, 0xed, 0x55, 0x05, 0x76, 0xd8,
+	0xa6, 0x0f, 0x49, 0x00, 0xa4, 0xf9, 0x86, 0x6d, 0x2d, 0x17, 0xd9, 0x77, 0x00, 0x26, 0xe7, 0x19,
+	0x06, 0xf2, 0xe4, 0x3c, 0xf2, 0xee, 0x0e, 0x80, 0xe1, 0x64, 0xbc, 0x97, 0x0d, 0x67, 0x55, 0x11,
+	0xad, 0x3c, 0x83, 0x1d, 0xb6, 0xe1, 0x2b, 0x76, 0x5c, 0xf9, 0xb1, 0x02, 0x3b, 0x6c, 0x43, 0x57,
+	0x2d, 0x49, 0x9e, 0xb3, 0x54, 0xc0, 0xb9, 0x96, 0xe6, 0xfc, 0x13, 0x6f, 0xb7, 0xf0, 0x2a, 0x5c,
+	0xdb, 0x83, 0xf5, 0xf9, 0x6e, 0x91, 0xc8, 0xb1, 0x56, 0xbc, 0x5f, 0xa4, 0x38, 0xdc, 0xb8, 0x3b,
+	0xb2, 0x0a, 0xe7, 0x94, 0x19, 0x67, 0x43, 0x56, 0xc2, 0x3a, 0x43, 0x49, 0xca, 0x51, 0xfa, 0xbd,
+	0x02, 0x5b, 0xe1, 0x9d, 0x78, 0x14, 0x1c, 0xef, 0xa5, 0x16, 0xbd, 0x09, 0x0d, 0xc7, 0x25, 0x2f,
+	0x8c, 0x59, 0xb8, 0x60, 0xd8, 0x0a, 0x9c, 0x61, 0xbf, 0x54, 0x93, 0x58, 0x61, 0x86, 0x21, 0xb3,
+	0x9e, 0x63, 0x62, 0x05, 0x97, 0x82, 0x4e, 0x4c, 0x32, 0xd6, 0x7c, 0xa2, 0x53, 0x0b, 0x96, 0x55,
+	0xac, 0xc7, 0x9d, 0x81, 0xd1, 0x0a, 0x32, 0x0a, 0xe5, 0x6b, 0xd8, 0x0a, 0xaf, 0xca, 0x4b, 0x73,
+	0x52, 0x7e, 0xa8, 0xc0, 0x56, 0x78, 0xfb, 0x5d, 0x5e, 0xa0, 0xa2, 0xed, 0xc8, 0x91, 0xab, 0xe5,
+	0xc9, 0x0d, 0xa2, 0x13, 0xd2, 0x9f, 0x77, 0xc6, 0x87, 0x17, 0x41, 0xcd, 0xd2, 0xce, 0x08, 0x75,
+	0x48, 0x1e, 0xd2, 0xdf, 0x81, 0x33, 0x2e, 0x19, 0x93, 0x99, 0x13, 0x39, 0xc3, 0x5a, 0xca, 0x47,
+	0x51, 0x34, 0x2f, 0x09, 0x14, 0xac, 0xcc, 0x94, 0xb8, 0xec, 0xca, 0xbf, 0xc5, 0x17, 0xd0, 0xc0,
+	0xb4, 0x4f, 0x35, 0xb3, 0x6f, 0x5b, 0x2f, 0x8c, 0x71, 0x84, 0x94, 0x4f, 0x6b, 0x2b, 0xcb, 0xa7,
+	0xb5, 0xd5, 0x52, 0x69, 0xad, 0xb4, 0x74, 0xf1, 0xc5, 0xbb, 0xbb, 0x95, 0x7d, 0x78, 0x7b, 0x40,
+	0xfc, 0xb0, 0x96, 0x3c, 0x26, 0x9a, 0x47, 0xbc, 0xbe, 0x3d, 0xb5, 0x7c, 0x51, 0x66, 0xff, 0x3d,
+	0x74, 0x07, 0xc4, 0xa7, 0xa9, 0x15, 0xc7, 0xfa, 0x0a, 0x3e, 0xe5, 0x2a, 0xec, 0x0d, 0x88, 0x9f,
+	0xbc, 0xf5, 0xcb, 0xfa, 0x51, 0x70, 0x91, 0x3d, 0x81, 0x9b, 0x03, 0xe2, 0xa7, 0x40, 0xd9, 0x1b,
+	0x48, 0x70, 0xe7, 0x7b, 0xd3, 0xd1, 0x88, 0x10, 0x86, 0xb9, 0x36, 0x8c, 0x9a, 0x41, 0xcc, 0x9b,
+	0x74, 0x82, 0x3a, 0x0a, 0x66, 0x50, 0xd0, 0xda, 0xb0, 0x65, 0xce, 0x41, 0x52, 0x42, 0xe3, 0x52,
+	0x42, 0xe3, 0xd7, 0x44, 0x68, 0xbc, 0x62, 0xa1, 0xdf, 0x87, 0x5b, 0xd9, 0xd0, 0x13, 0x89, 0x91,
+	0x34, 0xc5, 0x8b, 0x4d, 0xff, 0x96, 0x40, 0x3e, 0xfa, 0xaa, 0x7f, 0x42, 0xad, 0x82, 0x2d, 0x8b,
+	0xd6, 0x67, 0xa7, 0x3a, 0x6a, 0xa6, 0x3d, 0xaf, 0x2e, 0xf4, 0x5c, 0xca, 0x7e, 0x92, 0x6e, 0x41,
+	0x73, 0x72, 0xae, 0xfa, 0x17, 0x4e, 0x54, 0x55, 0x36, 0x26, 0xe7, 0x8f, 0x2f, 0x1c, 0x82, 0x3e,
+	0x80, 0xeb, 0xf3, 0x79, 0xaa, 0x67, 0x4f, 0xdd, 0x51, 0x54, 0xc4, 0xbf, 0x15, 0x4f, 0x7f, 0x44,
+	0xbb, 0x83, 0xdb, 0x46, 0x9f, 0x1a, 0x7a, 0x78, 0xf9, 0xd3, 0xdf, 0x9c, 0x7b, 0xa3, 0xc9, 0xbb,
+	0x37, 0x6e, 0x42, 0x83, 0xcc, 0x1c, 0xc3, 0x25, 0xf4, 0xf5, 0x49, 0x1a, 0x86, 0xad, 0xcc, 0xc7,
+	0x4b, 0xce, 0x7e, 0xbc, 0x3e, 0x01, 0xa0, 0x11, 0xc9, 0x3c, 0x87, 0xdd, 0x4a, 0x6f, 0xf3, 0xa0,
+	0xcb, 0x5e, 0xf6, 0xf6, 0x63, 0xc9, 0xf6, 0xe9, 0xdf, 0x80, 0xcd, 0x50, 0x36, 0xa3, 0x9f, 0x68,
+	0x1b, 0xea, 0x9e, 0xaf, 0xf9, 0xa4, 0xd3, 0xa2, 0xa0, 0xac, 0x81, 0xba, 0xb0, 0x36, 0xb1, 0x3d,
+	0x9f, 0x5e, 0x9a, 0xeb, 0x94, 0x46, 0xdc, 0x0e, 0xf4, 0x0d, 0x3f, 0x03, 0x86, 0xde, 0xd9, 0x60,
+	0x83, 0xac, 0xe3, 0x81, 0xae, 0x7c, 0x06, 0x72, 0xbc, 0x0c, 0x6a, 0x41, 0xf3, 0xf1, 0xf3, 0x93,
+	0x2f, 0xd5, 0x87, 0x87, 0xed, 0x6b, 0x71, 0xe3, 0xf1, 0x61, 0xbb, 0x12, 0x37, 0x4e, 0x8e, 0xda,
+	0xd5, 0xb8, 0xf1, 0xf4, 0x7e, 0x5b, 0x52, 0x9e, 0xc1, 0xf5, 0xf8, 0x90, 0x2e, 0x71, 0x3e, 0x7b,
+	0xd0, 0x60, 0x67, 0xb1, 0x53, 0xdd, 0x95, 0x7a, 0xad, 0x83, 0x76, 0x96, 0xf5, 0x30, 0x1c, 0x3f,
+	0xf8, 0x6b, 0x0b, 0x5a, 0x41, 0xef, 0x37, 0x9a, 0xa5, 0x8d, 0x89, 0x8b, 0xbe, 0x80, 0x8d, 0xd4,
+	0x83, 0x27, 0xba, 0x1d, 0x4e, 0xe5, 0x3d, 0x83, 0x76, 0x51, 0x84, 0x7b, 0xf4, 0x20, 0xf2, 0x4a,
+	0xb9, 0x16, 0x60, 0xa4, 0xde, 0xf6, 0x62, 0x0c, 0xde, 0x8b, 0x9f, 0x18, 0x23, 0xf5, 0xec, 0x17,
+	0x63, 0xf0, 0x1e, 0x03, 0xc5, 0x18, 0xa9, 0x67, 0x2f, 0x2e, 0x17, 0x5c, 0x8a, 0x0b, 0xe6, 0x72,
+	0xc1, 0xa5, 0xb8, 0x60, 0x2e, 0x97, 0x02, 0x8c, 0x4f, 0xa1, 0x95, 0x78, 0x3c, 0x41, 0x3b, 0x29,
+	0x26, 0xc9, 0xca, 0x5f, 0x3c, 0x3f, 0xf1, 0x3e, 0x11, 0xcf, 0xcf, 0xbf, 0x59, 0x88, 0xe7, 0x27,
+	0x5e, 0x19, 0xe2, 0xf9, 0xf9, 0x97, 0x87, 0x65, 0xfc, 0xc7, 0x1c, 0xff, 0x71, 0x09, 0xff, 0x31,
+	0xc7, 0x7f, 0x5c, 0xc2, 0x7f, 0xcc, 0xf1, 0xbf, 0x60, 0xfe, 0xe7, 0xb0, 0x9e, 0xcc, 0xb9, 0x51,
+	0x37, 0x4d, 0x20, 0x99, 0x67, 0x8a, 0x11, 0x92, 0x19, 0x6e, 0x8c, 0xc0, 0x49, 0x7b, 0xc5, 0x08,
+	0xc9, 0xb4, 0x36, 0x46, 0xe0, 0xe4, 0xba, 0x02, 0x84, 0xe3, 0xe8, 0x35, 0x25, 0x99, 0x4f, 0xa0,
+	0xdd, 0x14, 0x17, 0x4e, 0x81, 0x29, 0x46, 0xcb, 0x57, 0xbb, 0x31, 0x9a, 0xb0, 0x10, 0x16, 0xa3,
+	0xe5, 0x2b, 0xdc, 0x18, 0x4d, 0x58, 0xfc, 0x96, 0x60, 0x8a, 0xc5, 0x4c, 0x71, 0x79, 0xa6, 0x58,
+	0xcc, 0x14, 0x97, 0x67, 0x8a, 0xc5, 0x4c, 0xf1, 0x92, 0x4c, 0x93, 0x29, 0x7e, 0x86, 0x29, 0x27,
+	0xfb, 0x2f, 0x62, 0xca, 0x45, 0x13, 0x16, 0x1f, 0x45, 0x4c, 0xb9, 0x68, 0xc2, 0xca, 0xa4, 0x08,
+	0x2d, 0x59, 0x82, 0x64, 0xd0, 0x38, 0xd5, 0x89, 0x00, 0xed, 0x5b, 0xb8, 0xc1, 0xad, 0x04, 0xd0,
+	0xdd, 0xd0, 0x7c, 0x51, 0x9d, 0xd0, 0xbd, 0x33, 0x37, 0xe2, 0xa4, 0xce, 0xca, 0x35, 0xf4, 0x1c,
+	0xb6, 0x38, 0x85, 0x03, 0xda, 0x9b, 0xcf, 0x13, 0x14, 0x15, 0xc5, 0xd0, 0x63, 0x9a, 0x2a, 0x0b,
+	0x4a, 0x02, 0xd4, 0x9b, 0x4f, 0x5f, 0x5c, 0x35, 0x14, 0x2f, 0x94, 0x94, 0x08, 0x2f, 0x94, 0x08,
+	0x5f, 0x4e, 0x22, 0xbc, 0x40, 0x22, 0xbc, 0x12, 0x89, 0x70, 0xb1, 0x44, 0xff, 0x6a, 0xa1, 0x87,
+	0xd0, 0xce, 0xc6, 0x09, 0x7a, 0x47, 0x10, 0x40, 0x11, 0x68, 0x27, 0x0b, 0x2a, 0xc0, 0xc3, 0x22,
+	0x3c, 0xbc, 0x34, 0xde, 0x69, 0x83, 0x0e, 0x7d, 0xfc, 0x4f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x97,
+	0x60, 0x89, 0x91, 0xf1, 0x1e, 0x00, 0x00,
 }

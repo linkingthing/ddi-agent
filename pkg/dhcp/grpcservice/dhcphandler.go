@@ -38,6 +38,7 @@ const (
 	PostgresqlConnStr      = "user=%s password=%s host=localhost port=%d database=%s sslmode=disable pool_max_conns=10"
 	MethodPost             = "POST"
 	TableLease4            = "lease4"
+	TableLease6            = "lease6"
 )
 
 type DHCPHandler struct {
@@ -811,13 +812,13 @@ type Lease4 struct {
 	UserContext   string
 }
 
-func (h *DHCPHandler) GetSubnet4Leases(req *pb.GetSubnet4LeasesRequest) ([]*pb.DHCPLease4, error) {
+func (h *DHCPHandler) GetSubnet4Leases(req *pb.GetSubnet4LeasesRequest) ([]*pb.DHCPLease, error) {
 	var lease4s []*Lease4
 	if err := h.getLeasesFromDB(map[string]interface{}{"subnet_id": req.GetId()}, &lease4s); err != nil {
 		return nil, fmt.Errorf("get subnet4 %s leases from db failed: %s", req.GetId(), err.Error())
 	}
 
-	return lease4sToPbDHCPLease4s(lease4s), nil
+	return lease4sToPbDHCPLeases(lease4s), nil
 }
 
 func (h *DHCPHandler) getLeasesFromDB(conds map[string]interface{}, resources interface{}) error {
@@ -826,20 +827,20 @@ func (h *DHCPHandler) getLeasesFromDB(conds map[string]interface{}, resources in
 	})
 }
 
-func lease4sToPbDHCPLease4s(lease4s []*Lease4) []*pb.DHCPLease4 {
-	var pbleases []*pb.DHCPLease4
+func lease4sToPbDHCPLeases(lease4s []*Lease4) []*pb.DHCPLease {
+	var pbleases []*pb.DHCPLease
 	now := time.Now()
 	for _, lease := range lease4s {
 		if lease.Expire.After(now) {
-			pbleases = append(pbleases, lease4ToPbDHCPLease4(lease))
+			pbleases = append(pbleases, lease4ToPbDHCPLease(lease))
 		}
 	}
 
 	return pbleases
 }
 
-func lease4ToPbDHCPLease4(lease *Lease4) *pb.DHCPLease4 {
-	return &pb.DHCPLease4{
+func lease4ToPbDHCPLease(lease *Lease4) *pb.DHCPLease {
+	return &pb.DHCPLease{
 		Address:       ipv4FromUint32(lease.Address).String(),
 		HwAddress:     string(lease.Hwaddr),
 		ClientId:      string(lease.ClientId),
@@ -860,35 +861,7 @@ func ipv4FromUint32(ipInt uint32) net.IP {
 	}
 }
 
-func (h *DHCPHandler) GetPool4Leases(req *pb.GetPool4LeasesRequest) ([]*pb.DHCPLease4, error) {
-	var lease4s []*Lease4
-	if err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
-		return tx.FillEx(&lease4s, "select * from lease4 where subnet_id = $1 and address between $2 and $3",
-			req.GetSubnetId(), ipv4StrToUint32(req.GetBeginAddress()), ipv4StrToUint32(req.GetEndAddress()))
-	}); err != nil {
-		return nil, fmt.Errorf("get pool4 %s-%s with subnet %s leases from db failed: %s",
-			req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId(), err.Error())
-	}
-
-	return lease4sToPbDHCPLease4s(lease4s), nil
-}
-
-func ipv4StrToUint32(ipv4 string) uint32 {
-	return binary.BigEndian.Uint32(net.ParseIP(ipv4).To4())
-}
-
-func (h *DHCPHandler) GetReservation4Leases(req *pb.GetReservation4LeasesRequest) ([]*pb.DHCPLease4, error) {
-	var lease4s []*Lease4
-	if err := h.getLeasesFromDB(map[string]interface{}{
-		"subnet_id": req.GetSubnetId(), "hwaddr": req.GetHwAddress()}, &lease4s); err != nil {
-		return nil, fmt.Errorf("get reservation4 %s with subnet %s leases from db failed: %s",
-			req.GetHwAddress(), req.GetSubnetId(), err.Error())
-	}
-
-	return lease4sToPbDHCPLease4s(lease4s), nil
-}
-
-func (h *DHCPHandler) GetSubnet4LeasesCount(req *pb.GetSubnet4LeasesRequest) (uint64, error) {
+func (h *DHCPHandler) GetSubnet4LeasesCount(req *pb.GetSubnet4LeasesCountRequest) (uint64, error) {
 	var count uint64
 	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
 		c, err := tx.Count(TableLease4, map[string]interface{}{"subnet_id": req.GetId()})
@@ -899,7 +872,7 @@ func (h *DHCPHandler) GetSubnet4LeasesCount(req *pb.GetSubnet4LeasesRequest) (ui
 	return count, err
 }
 
-func (h *DHCPHandler) GetPool4LeasesCount(req *pb.GetPool4LeasesRequest) (uint64, error) {
+func (h *DHCPHandler) GetPool4LeasesCount(req *pb.GetPool4LeasesCountRequest) (uint64, error) {
 	var count uint64
 	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
 		c, err := tx.CountEx(TableLease4, "select count(*) from lease4 where subnet_id = $1 and address between $2 and $3",
@@ -911,7 +884,11 @@ func (h *DHCPHandler) GetPool4LeasesCount(req *pb.GetPool4LeasesRequest) (uint64
 	return count, err
 }
 
-func (h *DHCPHandler) GetReservation4LeasesCount(req *pb.GetReservation4LeasesRequest) (uint64, error) {
+func ipv4StrToUint32(ipv4 string) uint32 {
+	return binary.BigEndian.Uint32(net.ParseIP(ipv4).To4())
+}
+
+func (h *DHCPHandler) GetReservation4LeasesCount(req *pb.GetReservation4LeasesCountRequest) (uint64, error) {
 	var count uint64
 	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
 		c, err := tx.Count(TableLease4, map[string]interface{}{"subnet_id": req.GetSubnetId(), "hwaddr": req.GetHwAddress()})
@@ -942,29 +919,29 @@ type Lease6 struct {
 	UserContext   string
 }
 
-func (h *DHCPHandler) GetSubnet6Leases(req *pb.GetSubnet6LeasesRequest) ([]*pb.DHCPLease6, error) {
+func (h *DHCPHandler) GetSubnet6Leases(req *pb.GetSubnet6LeasesRequest) ([]*pb.DHCPLease, error) {
 	var lease6s []*Lease6
 	if err := h.getLeasesFromDB(map[string]interface{}{"subnet_id": req.GetId()}, &lease6s); err != nil {
 		return nil, fmt.Errorf("get subnet6 %s leases from db failed: %s", req.GetId(), err.Error())
 	}
 
-	return lease6sToPbDHCPLease6s(lease6s), nil
+	return lease6sToPbDHCPLeases(lease6s), nil
 }
 
-func lease6sToPbDHCPLease6s(lease6s []*Lease6) []*pb.DHCPLease6 {
-	var pbleases []*pb.DHCPLease6
+func lease6sToPbDHCPLeases(lease6s []*Lease6) []*pb.DHCPLease {
+	var pbleases []*pb.DHCPLease
 	now := time.Now()
 	for _, lease := range lease6s {
 		if lease.Expire.After(now) {
-			pbleases = append(pbleases, lease6ToPbDHCPLease6(lease))
+			pbleases = append(pbleases, lease6ToPbDHCPLease(lease))
 		}
 	}
 
 	return pbleases
 }
 
-func lease6ToPbDHCPLease6(lease *Lease6) *pb.DHCPLease6 {
-	return &pb.DHCPLease6{
+func lease6ToPbDHCPLease(lease *Lease6) *pb.DHCPLease {
+	return &pb.DHCPLease{
 		Address:         lease.Address,
 		SubnetId:        lease.SubnetId,
 		HwAddress:       string(lease.Hwaddr),
@@ -973,7 +950,42 @@ func lease6ToPbDHCPLease6(lease *Lease6) *pb.DHCPLease6 {
 		ValidLifetime:   lease.ValidLifetime,
 		Expire:          lease.Expire.Unix(),
 		PrefixLen:       lease.PrefixLen,
-		LeaseType:       pb.DHCPLease6_LeaseType(lease.LeaseType),
+		LeaseType:       pb.DHCPLease_LeaseType(lease.LeaseType),
 		State:           lease.State,
+		Hostname:        lease.Hostname,
 	}
+}
+
+func (h *DHCPHandler) GetSubnet6LeasesCount(req *pb.GetSubnet6LeasesCountRequest) (uint64, error) {
+	var count uint64
+	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
+		c, err := tx.Count(TableLease6, map[string]interface{}{"subnet_id": req.GetId()})
+		count = uint64(c)
+		return err
+	})
+
+	return count, err
+}
+
+func (h *DHCPHandler) GetPool6LeasesCount(req *pb.GetPool6LeasesCountRequest) (uint64, error) {
+	var count uint64
+	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
+		c, err := tx.CountEx(TableLease6, "select count(*) from lease6 where subnet_id = $1 and address between $2 and $3",
+			req.GetSubnetId(), req.GetBeginAddress(), req.GetEndAddress())
+		count = uint64(c)
+		return err
+	})
+
+	return count, err
+}
+
+func (h *DHCPHandler) GetReservation6LeasesCount(req *pb.GetReservation6LeasesCountRequest) (uint64, error) {
+	var count uint64
+	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
+		c, err := tx.Count(TableLease6, map[string]interface{}{"subnet_id": req.GetSubnetId(), "hwaddr": req.GetHwAddress()})
+		count = uint64(c)
+		return err
+	})
+
+	return count, err
 }
