@@ -551,7 +551,7 @@ func (handler *DNSHandler) UpdateForwardZone(req pb.UpdateForwardZoneReq) error 
 	//put the zone into db
 	names := map[string][]byte{}
 	names["forwardtype"] = []byte(req.ForwardType)
-	if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID, names); err != nil {
+	if err := boltdb.GetDB().UpdateKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID, names); err != nil {
 		return err
 	}
 	if err := handler.updateForward(req.Forwards, req.ZoneID, req.ViewID); err != nil {
@@ -574,7 +574,7 @@ func (handler *DNSHandler) updateForward(forwards []string, zoneid string, viewi
 		return err
 	}
 	for _, id := range tables {
-		if err := boltdb.GetDB().DeleteTable(id); err != nil {
+		if err := boltdb.GetDB().DeleteTable(viewsPath + viewid + zonesPath + zoneid + forwardsPath + id); err != nil {
 			return err
 		}
 	}
