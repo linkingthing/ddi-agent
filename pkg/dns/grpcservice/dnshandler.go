@@ -511,6 +511,7 @@ func (handler *DNSHandler) CreateForwardZone(req pb.CreateForwardZoneReq) error 
 	names := map[string][]byte{}
 	names["name"] = []byte(req.ZoneName)
 	names["forwardtype"] = []byte(req.ForwardType)
+	names["zonetype"] = []byte(forwardType)
 	if err := boltdb.GetDB().AddKVs(viewsPath+req.ViewID+zonesPath+req.ZoneID, names); err != nil {
 		return err
 	}
@@ -519,25 +520,12 @@ func (handler *DNSHandler) CreateForwardZone(req pb.CreateForwardZoneReq) error 
 			return err
 		}
 	}
-	if err := handler.addForward(req.Forwards, req.ZoneID, req.ViewID); err != nil {
-		return err
-	}
 	//update file
 	if err := handler.rewriteNamedFile(); err != nil {
 		return err
 	}
 	if err := handler.rndcReconfig(); err != nil {
 		return err
-	}
-	return nil
-}
-
-func (handler *DNSHandler) addForward(forwards []string, zoneid string, viewid string) error {
-	//add the forwardids
-	for _, id := range forwards {
-		if _, err := boltdb.GetDB().CreateOrGetTable(viewsPath + viewid + zonesPath + zoneid + forwardsPath + id); err != nil {
-			return err
-		}
 	}
 	return nil
 }
