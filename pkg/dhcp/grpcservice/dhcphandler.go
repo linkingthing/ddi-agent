@@ -2,7 +2,6 @@ package grpcservice
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +18,7 @@ import (
 	restdb "github.com/zdnscloud/gorest/db"
 
 	"github.com/linkingthing/ddi-agent/config"
+	"github.com/linkingthing/ddi-agent/pkg/dhcp/util"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
@@ -885,7 +885,7 @@ func (h *DHCPHandler) GetPool4LeasesCount(req *pb.GetPool4LeasesCountRequest) (u
 }
 
 func ipv4StrToUint32(ipv4 string) uint32 {
-	return binary.BigEndian.Uint32(net.ParseIP(ipv4).To4())
+	return util.Ipv4ToUint32(net.ParseIP(ipv4))
 }
 
 func (h *DHCPHandler) GetReservation4LeasesCount(req *pb.GetReservation4LeasesCountRequest) (uint64, error) {
@@ -968,15 +968,28 @@ func (h *DHCPHandler) GetSubnet6LeasesCount(req *pb.GetSubnet6LeasesCountRequest
 }
 
 func (h *DHCPHandler) GetPool6LeasesCount(req *pb.GetPool6LeasesCountRequest) (uint64, error) {
-	var count uint64
-	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
-		c, err := tx.CountEx(TableLease6, "select count(*) from lease6 where subnet_id = $1 and address between $2 and $3",
-			req.GetSubnetId(), req.GetBeginAddress(), req.GetEndAddress())
-		count = uint64(c)
-		return err
-	})
+	var lease6s []*Lease6
+	if err := h.getLeasesFromDB(map[string]interface{}{"subnet_id": req.GetSubnetId()}, &lease6s); err != nil {
+		return 0, fmt.Errorf("get subnet6 %s leases from db failed: %s", req.GetSubnetId(), err.Error())
+	}
 
-	return count, err
+	var count uint64
+	for _, lease6 := range lease6s {
+		if ipV6InPool(lease6.Address, req.GetBeginAddress(), req.GetEndAddress()) {
+			count += 1
+		}
+	}
+
+	return count, nil
+}
+
+func ipV6InPool(ip, begin, end string) bool {
+	if util.Ipv6ToBigInt(net.ParseIP(end)).Cmp(util.Ipv6ToBigInt(net.ParseIP(ip))) == -1 ||
+		util.Ipv6ToBigInt(net.ParseIP(ip)).Cmp(util.Ipv6ToBigInt(net.ParseIP(begin))) == -1 {
+		return false
+	}
+
+	return true
 }
 
 func (h *DHCPHandler) GetReservation6LeasesCount(req *pb.GetReservation6LeasesCountRequest) (uint64, error) {
