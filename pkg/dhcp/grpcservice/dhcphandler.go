@@ -36,7 +36,6 @@ const (
 	DHCPCommandConfigSet   = "config-set"
 	DHCPCommandConfigWrite = "config-write"
 	PostgresqlConnStr      = "user=%s password=%s host=localhost port=%d database=%s sslmode=disable pool_max_conns=10"
-	MethodPost             = "POST"
 	TableLease4            = "lease4"
 	TableLease6            = "lease6"
 )
@@ -216,12 +215,12 @@ func (h *DHCPHandler) reconfig(services []string, configPath string, conf interf
 }
 
 func (h *DHCPHandler) setDHCPConfigToMemory(services []string, conf interface{}) error {
-	var resp []DHCPCmdResponse
-	if err := h.sendHttpRequest(&DHCPCmdRequest{
+	resp, err := SendHttpRequestToDHCP(h.httpClient, h.cmdAddr, &DHCPCmdRequest{
 		Command:   DHCPCommandConfigSet,
 		Services:  services,
 		Arguments: conf,
-	}, &resp); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
@@ -233,49 +232,19 @@ func (h *DHCPHandler) setDHCPConfigToMemory(services []string, conf interface{})
 }
 
 func (h *DHCPHandler) writeDHCPConfigToFile(services []string, configPath string) error {
-	var resp []DHCPCmdResponse
-	if err := h.sendHttpRequest(&DHCPCmdRequest{
+	resp, err := SendHttpRequestToDHCP(h.httpClient, h.cmdAddr, &DHCPCmdRequest{
 		Command:  DHCPCommandConfigWrite,
 		Services: services,
 		Arguments: map[string]interface{}{
 			"filename": configPath,
 		},
-	}, &resp); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
 	if len(resp) != 0 && resp[0].Result != 0 {
 		return fmt.Errorf("write %v config failed: %s", services, resp[0].Text)
-	}
-
-	return nil
-}
-
-func (h *DHCPHandler) sendHttpRequest(req *DHCPCmdRequest, resp interface{}) error {
-	reqBody, err := json.Marshal(req)
-	if err != nil {
-		return fmt.Errorf("marshal command %s failed: %s", req.Command, err.Error())
-	}
-
-	httpReq, err := http.NewRequest(MethodPost, "http://"+h.cmdAddr, bytes.NewBuffer(reqBody))
-	if err != nil {
-		return fmt.Errorf("new http request with command %s failed: %s", req.Command, err.Error())
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpResp, err := h.httpClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("send http request with command %s failed: %s", req.Command, err.Error())
-	}
-
-	defer httpResp.Body.Close()
-	body, err := ioutil.ReadAll(httpResp.Body)
-	if err != nil {
-		return fmt.Errorf("read http response body with command %s failed: %s", req.Command, err.Error())
-	}
-
-	if err := json.Unmarshal(body, &resp); err != nil {
-		return fmt.Errorf("unmarshal http response with command %s failed: %s", req.Command, err.Error())
 	}
 
 	return nil

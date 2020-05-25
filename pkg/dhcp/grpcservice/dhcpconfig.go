@@ -167,14 +167,3 @@ type Reservation6 struct {
 	IPAddresses []string     `json:"ip-addresses,omitempty"`
 	OptionDatas []OptionData `json:"option-data,omitempty"`
 }
-
-type DHCPCmdRequest struct {
-	Command   string      `json:"command"`
-	Services  []string    `json:"service"`
-	Arguments interface{} `json:"arguments"`
-}
-
-type DHCPCmdResponse struct {
-	Result int    `json:"result"`
-	Text   string `json:"text"`
-}
