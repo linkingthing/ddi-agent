@@ -97,8 +97,40 @@ func (service *DNSService) CreateZone(context context.Context, req *pb.CreateZon
 		return &pb.OperResult{RetCode: opSuccess}, nil
 	}
 }
+func (service *DNSService) UpdateZone(context context.Context, req *pb.UpdateZoneReq) (*pb.OperResult, error) {
+	err := service.handler.UpdateZone(*req)
+	if err != nil {
+		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
+	} else {
+		return &pb.OperResult{RetCode: opSuccess}, nil
+	}
+}
 func (service *DNSService) DeleteZone(context context.Context, req *pb.DeleteZoneReq) (*pb.OperResult, error) {
 	err := service.handler.DeleteZone(*req)
+	if err != nil {
+		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
+	} else {
+		return &pb.OperResult{RetCode: opSuccess}, nil
+	}
+}
+func (service *DNSService) CreateForwardZone(context context.Context, req *pb.CreateForwardZoneReq) (*pb.OperResult, error) {
+	err := service.handler.CreateForwardZone(*req)
+	if err != nil {
+		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
+	} else {
+		return &pb.OperResult{RetCode: opSuccess}, nil
+	}
+}
+func (service *DNSService) UpdateForwardZone(context context.Context, req *pb.UpdateForwardZoneReq) (*pb.OperResult, error) {
+	err := service.handler.UpdateForwardZone(*req)
+	if err != nil {
+		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
+	} else {
+		return &pb.OperResult{RetCode: opSuccess}, nil
+	}
+}
+func (service *DNSService) DeleteForwardZone(context context.Context, req *pb.DeleteForwardZoneReq) (*pb.OperResult, error) {
+	err := service.handler.DeleteForwardZone(*req)
 	if err != nil {
 		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
 	} else {
@@ -129,16 +161,8 @@ func (service *DNSService) DeleteRR(context context.Context, req *pb.DeleteRRReq
 		return &pb.OperResult{RetCode: opSuccess}, nil
 	}
 }
-func (service *DNSService) UpdateDefaultForward(context context.Context, req *pb.UpdateDefaultForwardReq) (*pb.OperResult, error) {
-	err := service.handler.UpdateDefaultForward(*req)
-	if err != nil {
-		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
-	} else {
-		return &pb.OperResult{RetCode: opSuccess}, nil
-	}
-}
-func (service *DNSService) DeleteDefaultForward(context context.Context, req *pb.DeleteDefaultForwardReq) (*pb.OperResult, error) {
-	err := service.handler.DeleteDefaultForward(*req)
+func (service *DNSService) CreateForward(context context.Context, req *pb.CreateForwardReq) (*pb.OperResult, error) {
+	err := service.handler.CreateForward(*req)
 	if err != nil {
 		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
 	} else {
@@ -179,30 +203,6 @@ func (service *DNSService) UpdateRedirection(context context.Context, req *pb.Up
 }
 func (service *DNSService) DeleteRedirection(context context.Context, req *pb.DeleteRedirectionReq) (*pb.OperResult, error) {
 	err := service.handler.DeleteRedirection(*req)
-	if err != nil {
-		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
-	} else {
-		return &pb.OperResult{RetCode: opSuccess}, nil
-	}
-}
-func (service *DNSService) CreateDefaultDNS64(context context.Context, req *pb.CreateDefaultDNS64Req) (*pb.OperResult, error) {
-	err := service.handler.CreateDefaultDNS64(*req)
-	if err != nil {
-		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
-	} else {
-		return &pb.OperResult{RetCode: opSuccess}, nil
-	}
-}
-func (service *DNSService) UpdateDefaultDNS64(context context.Context, req *pb.UpdateDefaultDNS64Req) (*pb.OperResult, error) {
-	err := service.handler.UpdateDefaultDNS64(*req)
-	if err != nil {
-		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
-	} else {
-		return &pb.OperResult{RetCode: opSuccess}, nil
-	}
-}
-func (service *DNSService) DeleteDefaultDNS64(context context.Context, req *pb.DeleteDefaultDNS64Req) (*pb.OperResult, error) {
-	err := service.handler.DeleteDefaultDNS64(*req)
 	if err != nil {
 		return &pb.OperResult{RetCode: opFail, RetMsg: fmt.Sprintf("%s", err)}, err
 	} else {

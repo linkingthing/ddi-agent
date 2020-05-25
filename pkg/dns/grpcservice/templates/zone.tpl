@@ -1,6 +1,6 @@
 ; zone file fragment for {{.Name}}
 
-;$TTL 600
+$TTL {{.TTL}}
 
 $ORIGIN {{.Name}}.
 ; SOA record
@@ -16,7 +16,6 @@ $ORIGIN {{.Name}}.
 ; type syntax
 ; host ttl class type data
 $ORIGIN {{.Name}}.
-$TTL 1000       ; 16 minutes 40 seconds
 ns1                     A       192.168.199.129
 {{range $k,$rr := .RRs}}{{$rr.Name}} {{$rr.TTL}} {{$rr.Type}} {{$rr.Value}}
 {{end}}

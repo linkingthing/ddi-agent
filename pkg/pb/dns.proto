@@ -12,20 +12,20 @@ rpc CreateView(CreateViewReq) returns (OperResult){}
 rpc UpdateView(UpdateViewReq) returns (OperResult){}
 rpc DeleteView(DeleteViewReq) returns (OperResult){}
 rpc CreateZone(CreateZoneReq) returns (OperResult){}
+rpc UpdateZone(UpdateZoneReq) returns (OperResult){}
 rpc DeleteZone(DeleteZoneReq) returns (OperResult){}
+rpc CreateForwardZone(CreateForwardZoneReq) returns (OperResult){}
+rpc UpdateForwardZone(UpdateForwardZoneReq) returns (OperResult){}
+rpc DeleteForwardZone(DeleteForwardZoneReq) returns (OperResult){}
 rpc CreateRR(CreateRRReq) returns (OperResult){}
 rpc UpdateRR(UpdateRRReq) returns (OperResult){}
 rpc DeleteRR(DeleteRRReq) returns (OperResult){} 
-rpc UpdateDefaultForward(UpdateDefaultForwardReq) returns (OperResult){}
-rpc DeleteDefaultForward(DeleteDefaultForwardReq) returns (OperResult){} 
+rpc CreateForward(CreateForwardReq) returns (OperResult){}
 rpc UpdateForward(UpdateForwardReq) returns (OperResult){}
 rpc DeleteForward(DeleteForwardReq) returns (OperResult){} 
 rpc CreateRedirection(CreateRedirectionReq) returns (OperResult){}
 rpc UpdateRedirection(UpdateRedirectionReq) returns (OperResult){}
 rpc DeleteRedirection(DeleteRedirectionReq) returns (OperResult){}
-rpc CreateDefaultDNS64(CreateDefaultDNS64Req) returns (OperResult){}
-rpc UpdateDefaultDNS64(UpdateDefaultDNS64Req) returns (OperResult){}
-rpc DeleteDefaultDNS64(DeleteDefaultDNS64Req) returns (OperResult){}
 rpc CreateDNS64(CreateDNS64Req) returns (OperResult){}
 rpc UpdateDNS64(UpdateDNS64Req) returns (OperResult){}
 rpc DeleteDNS64(DeleteDNS64Req) returns (OperResult){}
@@ -66,13 +66,14 @@ string viewName = 1;
 string viewID = 2;
 uint32 priority = 3;
 repeated string aCLs = 4;
+string dNS64 = 5;
 }
 
 message UpdateViewReq{
 string viewID = 1;
 uint32 priority = 2;
-repeated string deleteACLs = 3;
-repeated string addACLs = 4;
+repeated string newACLs = 3;
+string dNS64 = 5;
 }
 
 message DeleteViewReq{
@@ -84,9 +85,36 @@ string viewID = 1;
 string zoneID = 2;
 string zoneName = 3;
 string zoneFileName = 4;
+uint32 tTL = 8;
+}
+
+message UpdateZoneReq{
+string viewID = 1;
+string zoneID = 2;
+uint32 tTL = 6;
 }
 
 message DeleteZoneReq{
+string viewID = 1;
+string zoneID = 2;
+}
+
+message CreateForwardZoneReq{
+string viewID = 1;
+string zoneID = 2;
+string zoneName = 3;
+repeated string forwards = 6;
+string forwardType = 7;
+}
+
+message UpdateForwardZoneReq{
+string viewID = 1;
+string zoneID = 2;
+string forwardType = 4;
+repeated string forwards = 5;
+}
+
+message DeleteForwardZoneReq{
 string viewID = 1;
 string zoneID = 2;
 }
@@ -97,7 +125,7 @@ string zoneID = 2;
 string rRID = 3;
 string name = 4;
 string type = 5;
-string value = 6;
+string rData = 6;
 string tTL = 7;
 }
 
@@ -107,7 +135,7 @@ string zoneID = 2;
 string rRID = 3;
 string name = 4;
 string type = 5;
-string value = 6;
+string rData = 6;
 string tTL = 7;
 }
 
@@ -117,24 +145,18 @@ string zoneID = 2;
 string rRID = 3;
 }
 
-message UpdateDefaultForwardReq{
-string type = 1;
+message CreateForwardReq{
+string ID = 1;
 repeated string iPs = 2;
 }
 
-message DeleteDefaultForwardReq{
-}
-
 message UpdateForwardReq{
-string viewID = 1;
-string zoneID = 2;
-string type = 3;
-repeated string iPs = 4;
+string ID = 1;
+repeated string iPs = 2;
 }
 
 message DeleteForwardReq{
-string viewID = 1;
-string zoneID = 2;
+string ID = 1;
 }
 
 message CreateRedirectionReq{
@@ -161,24 +183,6 @@ message DeleteRedirectionReq{
 string viewID = 1;
 string ID = 2;
 string RedirectType = 3;
-}
-
-message CreateDefaultDNS64Req{
-string ID = 1;
-string Prefix = 2;
-string ClientACL= 3;
-string AAddress = 4;
-}
-
-message UpdateDefaultDNS64Req{
-string ID = 1;
-string Prefix = 2;
-string ClientACL = 3;
-string AAddress = 4;
-}
-
-message DeleteDefaultDNS64Req{
-string ID = 1;
 }
 
 message CreateDNS64Req{

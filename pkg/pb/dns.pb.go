@@ -248,6 +248,7 @@ type CreateViewReq struct {
 	ViewID               string   `protobuf:"bytes,2,opt,name=viewID,proto3" json:"viewID,omitempty"`
 	Priority             uint32   `protobuf:"varint,3,opt,name=priority,proto3" json:"priority,omitempty"`
 	ACLs                 []string `protobuf:"bytes,4,rep,name=aCLs,proto3" json:"aCLs,omitempty"`
+	DNS64                string   `protobuf:"bytes,5,opt,name=dNS64,proto3" json:"dNS64,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -306,11 +307,18 @@ func (m *CreateViewReq) GetACLs() []string {
 	return nil
 }
 
+func (m *CreateViewReq) GetDNS64() string {
+	if m != nil {
+		return m.DNS64
+	}
+	return ""
+}
+
 type UpdateViewReq struct {
 	ViewID               string   `protobuf:"bytes,1,opt,name=viewID,proto3" json:"viewID,omitempty"`
 	Priority             uint32   `protobuf:"varint,2,opt,name=priority,proto3" json:"priority,omitempty"`
-	DeleteACLs           []string `protobuf:"bytes,3,rep,name=deleteACLs,proto3" json:"deleteACLs,omitempty"`
-	AddACLs              []string `protobuf:"bytes,4,rep,name=addACLs,proto3" json:"addACLs,omitempty"`
+	NewACLs              []string `protobuf:"bytes,3,rep,name=newACLs,proto3" json:"newACLs,omitempty"`
+	DNS64                string   `protobuf:"bytes,5,opt,name=dNS64,proto3" json:"dNS64,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -355,18 +363,18 @@ func (m *UpdateViewReq) GetPriority() uint32 {
 	return 0
 }
 
-func (m *UpdateViewReq) GetDeleteACLs() []string {
+func (m *UpdateViewReq) GetNewACLs() []string {
 	if m != nil {
-		return m.DeleteACLs
+		return m.NewACLs
 	}
 	return nil
 }
 
-func (m *UpdateViewReq) GetAddACLs() []string {
+func (m *UpdateViewReq) GetDNS64() string {
 	if m != nil {
-		return m.AddACLs
+		return m.DNS64
 	}
-	return nil
+	return ""
 }
 
 type DeleteViewReq struct {
@@ -413,6 +421,7 @@ type CreateZoneReq struct {
 	ZoneID               string   `protobuf:"bytes,2,opt,name=zoneID,proto3" json:"zoneID,omitempty"`
 	ZoneName             string   `protobuf:"bytes,3,opt,name=zoneName,proto3" json:"zoneName,omitempty"`
 	ZoneFileName         string   `protobuf:"bytes,4,opt,name=zoneFileName,proto3" json:"zoneFileName,omitempty"`
+	TTL                  uint32   `protobuf:"varint,8,opt,name=tTL,proto3" json:"tTL,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -471,6 +480,68 @@ func (m *CreateZoneReq) GetZoneFileName() string {
 	return ""
 }
 
+func (m *CreateZoneReq) GetTTL() uint32 {
+	if m != nil {
+		return m.TTL
+	}
+	return 0
+}
+
+type UpdateZoneReq struct {
+	ViewID               string   `protobuf:"bytes,1,opt,name=viewID,proto3" json:"viewID,omitempty"`
+	ZoneID               string   `protobuf:"bytes,2,opt,name=zoneID,proto3" json:"zoneID,omitempty"`
+	TTL                  uint32   `protobuf:"varint,6,opt,name=tTL,proto3" json:"tTL,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *UpdateZoneReq) Reset()         { *m = UpdateZoneReq{} }
+func (m *UpdateZoneReq) String() string { return proto.CompactTextString(m) }
+func (*UpdateZoneReq) ProtoMessage()    {}
+func (*UpdateZoneReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{9}
+}
+
+func (m *UpdateZoneReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UpdateZoneReq.Unmarshal(m, b)
+}
+func (m *UpdateZoneReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UpdateZoneReq.Marshal(b, m, deterministic)
+}
+func (m *UpdateZoneReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateZoneReq.Merge(m, src)
+}
+func (m *UpdateZoneReq) XXX_Size() int {
+	return xxx_messageInfo_UpdateZoneReq.Size(m)
+}
+func (m *UpdateZoneReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdateZoneReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdateZoneReq proto.InternalMessageInfo
+
+func (m *UpdateZoneReq) GetViewID() string {
+	if m != nil {
+		return m.ViewID
+	}
+	return ""
+}
+
+func (m *UpdateZoneReq) GetZoneID() string {
+	if m != nil {
+		return m.ZoneID
+	}
+	return ""
+}
+
+func (m *UpdateZoneReq) GetTTL() uint32 {
+	if m != nil {
+		return m.TTL
+	}
+	return 0
+}
+
 type DeleteZoneReq struct {
 	ViewID               string   `protobuf:"bytes,1,opt,name=viewID,proto3" json:"viewID,omitempty"`
 	ZoneID               string   `protobuf:"bytes,2,opt,name=zoneID,proto3" json:"zoneID,omitempty"`
@@ -483,7 +554,7 @@ func (m *DeleteZoneReq) Reset()         { *m = DeleteZoneReq{} }
 func (m *DeleteZoneReq) String() string { return proto.CompactTextString(m) }
 func (*DeleteZoneReq) ProtoMessage()    {}
 func (*DeleteZoneReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{9}
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{10}
 }
 
 func (m *DeleteZoneReq) XXX_Unmarshal(b []byte) error {
@@ -518,13 +589,194 @@ func (m *DeleteZoneReq) GetZoneID() string {
 	return ""
 }
 
+type CreateForwardZoneReq struct {
+	ViewID               string   `protobuf:"bytes,1,opt,name=viewID,proto3" json:"viewID,omitempty"`
+	ZoneID               string   `protobuf:"bytes,2,opt,name=zoneID,proto3" json:"zoneID,omitempty"`
+	ZoneName             string   `protobuf:"bytes,3,opt,name=zoneName,proto3" json:"zoneName,omitempty"`
+	Forwards             []string `protobuf:"bytes,6,rep,name=forwards,proto3" json:"forwards,omitempty"`
+	ForwardType          string   `protobuf:"bytes,7,opt,name=forwardType,proto3" json:"forwardType,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CreateForwardZoneReq) Reset()         { *m = CreateForwardZoneReq{} }
+func (m *CreateForwardZoneReq) String() string { return proto.CompactTextString(m) }
+func (*CreateForwardZoneReq) ProtoMessage()    {}
+func (*CreateForwardZoneReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{11}
+}
+
+func (m *CreateForwardZoneReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateForwardZoneReq.Unmarshal(m, b)
+}
+func (m *CreateForwardZoneReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateForwardZoneReq.Marshal(b, m, deterministic)
+}
+func (m *CreateForwardZoneReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateForwardZoneReq.Merge(m, src)
+}
+func (m *CreateForwardZoneReq) XXX_Size() int {
+	return xxx_messageInfo_CreateForwardZoneReq.Size(m)
+}
+func (m *CreateForwardZoneReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateForwardZoneReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateForwardZoneReq proto.InternalMessageInfo
+
+func (m *CreateForwardZoneReq) GetViewID() string {
+	if m != nil {
+		return m.ViewID
+	}
+	return ""
+}
+
+func (m *CreateForwardZoneReq) GetZoneID() string {
+	if m != nil {
+		return m.ZoneID
+	}
+	return ""
+}
+
+func (m *CreateForwardZoneReq) GetZoneName() string {
+	if m != nil {
+		return m.ZoneName
+	}
+	return ""
+}
+
+func (m *CreateForwardZoneReq) GetForwards() []string {
+	if m != nil {
+		return m.Forwards
+	}
+	return nil
+}
+
+func (m *CreateForwardZoneReq) GetForwardType() string {
+	if m != nil {
+		return m.ForwardType
+	}
+	return ""
+}
+
+type UpdateForwardZoneReq struct {
+	ViewID               string   `protobuf:"bytes,1,opt,name=viewID,proto3" json:"viewID,omitempty"`
+	ZoneID               string   `protobuf:"bytes,2,opt,name=zoneID,proto3" json:"zoneID,omitempty"`
+	ForwardType          string   `protobuf:"bytes,4,opt,name=forwardType,proto3" json:"forwardType,omitempty"`
+	Forwards             []string `protobuf:"bytes,5,rep,name=forwards,proto3" json:"forwards,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *UpdateForwardZoneReq) Reset()         { *m = UpdateForwardZoneReq{} }
+func (m *UpdateForwardZoneReq) String() string { return proto.CompactTextString(m) }
+func (*UpdateForwardZoneReq) ProtoMessage()    {}
+func (*UpdateForwardZoneReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{12}
+}
+
+func (m *UpdateForwardZoneReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UpdateForwardZoneReq.Unmarshal(m, b)
+}
+func (m *UpdateForwardZoneReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UpdateForwardZoneReq.Marshal(b, m, deterministic)
+}
+func (m *UpdateForwardZoneReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateForwardZoneReq.Merge(m, src)
+}
+func (m *UpdateForwardZoneReq) XXX_Size() int {
+	return xxx_messageInfo_UpdateForwardZoneReq.Size(m)
+}
+func (m *UpdateForwardZoneReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdateForwardZoneReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdateForwardZoneReq proto.InternalMessageInfo
+
+func (m *UpdateForwardZoneReq) GetViewID() string {
+	if m != nil {
+		return m.ViewID
+	}
+	return ""
+}
+
+func (m *UpdateForwardZoneReq) GetZoneID() string {
+	if m != nil {
+		return m.ZoneID
+	}
+	return ""
+}
+
+func (m *UpdateForwardZoneReq) GetForwardType() string {
+	if m != nil {
+		return m.ForwardType
+	}
+	return ""
+}
+
+func (m *UpdateForwardZoneReq) GetForwards() []string {
+	if m != nil {
+		return m.Forwards
+	}
+	return nil
+}
+
+type DeleteForwardZoneReq struct {
+	ViewID               string   `protobuf:"bytes,1,opt,name=viewID,proto3" json:"viewID,omitempty"`
+	ZoneID               string   `protobuf:"bytes,2,opt,name=zoneID,proto3" json:"zoneID,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteForwardZoneReq) Reset()         { *m = DeleteForwardZoneReq{} }
+func (m *DeleteForwardZoneReq) String() string { return proto.CompactTextString(m) }
+func (*DeleteForwardZoneReq) ProtoMessage()    {}
+func (*DeleteForwardZoneReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{13}
+}
+
+func (m *DeleteForwardZoneReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteForwardZoneReq.Unmarshal(m, b)
+}
+func (m *DeleteForwardZoneReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteForwardZoneReq.Marshal(b, m, deterministic)
+}
+func (m *DeleteForwardZoneReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteForwardZoneReq.Merge(m, src)
+}
+func (m *DeleteForwardZoneReq) XXX_Size() int {
+	return xxx_messageInfo_DeleteForwardZoneReq.Size(m)
+}
+func (m *DeleteForwardZoneReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteForwardZoneReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteForwardZoneReq proto.InternalMessageInfo
+
+func (m *DeleteForwardZoneReq) GetViewID() string {
+	if m != nil {
+		return m.ViewID
+	}
+	return ""
+}
+
+func (m *DeleteForwardZoneReq) GetZoneID() string {
+	if m != nil {
+		return m.ZoneID
+	}
+	return ""
+}
+
 type CreateRRReq struct {
 	ViewID               string   `protobuf:"bytes,1,opt,name=viewID,proto3" json:"viewID,omitempty"`
 	ZoneID               string   `protobuf:"bytes,2,opt,name=zoneID,proto3" json:"zoneID,omitempty"`
 	RRID                 string   `protobuf:"bytes,3,opt,name=rRID,proto3" json:"rRID,omitempty"`
 	Name                 string   `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	Type                 string   `protobuf:"bytes,5,opt,name=type,proto3" json:"type,omitempty"`
-	Value                string   `protobuf:"bytes,6,opt,name=value,proto3" json:"value,omitempty"`
+	RData                string   `protobuf:"bytes,6,opt,name=rData,proto3" json:"rData,omitempty"`
 	TTL                  string   `protobuf:"bytes,7,opt,name=tTL,proto3" json:"tTL,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -535,7 +787,7 @@ func (m *CreateRRReq) Reset()         { *m = CreateRRReq{} }
 func (m *CreateRRReq) String() string { return proto.CompactTextString(m) }
 func (*CreateRRReq) ProtoMessage()    {}
 func (*CreateRRReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{10}
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{14}
 }
 
 func (m *CreateRRReq) XXX_Unmarshal(b []byte) error {
@@ -591,9 +843,9 @@ func (m *CreateRRReq) GetType() string {
 	return ""
 }
 
-func (m *CreateRRReq) GetValue() string {
+func (m *CreateRRReq) GetRData() string {
 	if m != nil {
-		return m.Value
+		return m.RData
 	}
 	return ""
 }
@@ -611,7 +863,7 @@ type UpdateRRReq struct {
 	RRID                 string   `protobuf:"bytes,3,opt,name=rRID,proto3" json:"rRID,omitempty"`
 	Name                 string   `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	Type                 string   `protobuf:"bytes,5,opt,name=type,proto3" json:"type,omitempty"`
-	Value                string   `protobuf:"bytes,6,opt,name=value,proto3" json:"value,omitempty"`
+	RData                string   `protobuf:"bytes,6,opt,name=rData,proto3" json:"rData,omitempty"`
 	TTL                  string   `protobuf:"bytes,7,opt,name=tTL,proto3" json:"tTL,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -622,7 +874,7 @@ func (m *UpdateRRReq) Reset()         { *m = UpdateRRReq{} }
 func (m *UpdateRRReq) String() string { return proto.CompactTextString(m) }
 func (*UpdateRRReq) ProtoMessage()    {}
 func (*UpdateRRReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{11}
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{15}
 }
 
 func (m *UpdateRRReq) XXX_Unmarshal(b []byte) error {
@@ -678,9 +930,9 @@ func (m *UpdateRRReq) GetType() string {
 	return ""
 }
 
-func (m *UpdateRRReq) GetValue() string {
+func (m *UpdateRRReq) GetRData() string {
 	if m != nil {
-		return m.Value
+		return m.RData
 	}
 	return ""
 }
@@ -705,7 +957,7 @@ func (m *DeleteRRReq) Reset()         { *m = DeleteRRReq{} }
 func (m *DeleteRRReq) String() string { return proto.CompactTextString(m) }
 func (*DeleteRRReq) ProtoMessage()    {}
 func (*DeleteRRReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{12}
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{16}
 }
 
 func (m *DeleteRRReq) XXX_Unmarshal(b []byte) error {
@@ -747,89 +999,56 @@ func (m *DeleteRRReq) GetRRID() string {
 	return ""
 }
 
-type UpdateDefaultForwardReq struct {
-	Type                 string   `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+type CreateForwardReq struct {
+	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
 	IPs                  []string `protobuf:"bytes,2,rep,name=iPs,proto3" json:"iPs,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *UpdateDefaultForwardReq) Reset()         { *m = UpdateDefaultForwardReq{} }
-func (m *UpdateDefaultForwardReq) String() string { return proto.CompactTextString(m) }
-func (*UpdateDefaultForwardReq) ProtoMessage()    {}
-func (*UpdateDefaultForwardReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{13}
+func (m *CreateForwardReq) Reset()         { *m = CreateForwardReq{} }
+func (m *CreateForwardReq) String() string { return proto.CompactTextString(m) }
+func (*CreateForwardReq) ProtoMessage()    {}
+func (*CreateForwardReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{17}
 }
 
-func (m *UpdateDefaultForwardReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_UpdateDefaultForwardReq.Unmarshal(m, b)
+func (m *CreateForwardReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateForwardReq.Unmarshal(m, b)
 }
-func (m *UpdateDefaultForwardReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_UpdateDefaultForwardReq.Marshal(b, m, deterministic)
+func (m *CreateForwardReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateForwardReq.Marshal(b, m, deterministic)
 }
-func (m *UpdateDefaultForwardReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_UpdateDefaultForwardReq.Merge(m, src)
+func (m *CreateForwardReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateForwardReq.Merge(m, src)
 }
-func (m *UpdateDefaultForwardReq) XXX_Size() int {
-	return xxx_messageInfo_UpdateDefaultForwardReq.Size(m)
+func (m *CreateForwardReq) XXX_Size() int {
+	return xxx_messageInfo_CreateForwardReq.Size(m)
 }
-func (m *UpdateDefaultForwardReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_UpdateDefaultForwardReq.DiscardUnknown(m)
+func (m *CreateForwardReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateForwardReq.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_UpdateDefaultForwardReq proto.InternalMessageInfo
+var xxx_messageInfo_CreateForwardReq proto.InternalMessageInfo
 
-func (m *UpdateDefaultForwardReq) GetType() string {
+func (m *CreateForwardReq) GetID() string {
 	if m != nil {
-		return m.Type
+		return m.ID
 	}
 	return ""
 }
 
-func (m *UpdateDefaultForwardReq) GetIPs() []string {
+func (m *CreateForwardReq) GetIPs() []string {
 	if m != nil {
 		return m.IPs
 	}
 	return nil
 }
 
-type DeleteDefaultForwardReq struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *DeleteDefaultForwardReq) Reset()         { *m = DeleteDefaultForwardReq{} }
-func (m *DeleteDefaultForwardReq) String() string { return proto.CompactTextString(m) }
-func (*DeleteDefaultForwardReq) ProtoMessage()    {}
-func (*DeleteDefaultForwardReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{14}
-}
-
-func (m *DeleteDefaultForwardReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DeleteDefaultForwardReq.Unmarshal(m, b)
-}
-func (m *DeleteDefaultForwardReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DeleteDefaultForwardReq.Marshal(b, m, deterministic)
-}
-func (m *DeleteDefaultForwardReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteDefaultForwardReq.Merge(m, src)
-}
-func (m *DeleteDefaultForwardReq) XXX_Size() int {
-	return xxx_messageInfo_DeleteDefaultForwardReq.Size(m)
-}
-func (m *DeleteDefaultForwardReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_DeleteDefaultForwardReq.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_DeleteDefaultForwardReq proto.InternalMessageInfo
-
 type UpdateForwardReq struct {
-	ViewID               string   `protobuf:"bytes,1,opt,name=viewID,proto3" json:"viewID,omitempty"`
-	ZoneID               string   `protobuf:"bytes,2,opt,name=zoneID,proto3" json:"zoneID,omitempty"`
-	Type                 string   `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	IPs                  []string `protobuf:"bytes,4,rep,name=iPs,proto3" json:"iPs,omitempty"`
+	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	IPs                  []string `protobuf:"bytes,2,rep,name=iPs,proto3" json:"iPs,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -839,7 +1058,7 @@ func (m *UpdateForwardReq) Reset()         { *m = UpdateForwardReq{} }
 func (m *UpdateForwardReq) String() string { return proto.CompactTextString(m) }
 func (*UpdateForwardReq) ProtoMessage()    {}
 func (*UpdateForwardReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{15}
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{18}
 }
 
 func (m *UpdateForwardReq) XXX_Unmarshal(b []byte) error {
@@ -860,23 +1079,9 @@ func (m *UpdateForwardReq) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_UpdateForwardReq proto.InternalMessageInfo
 
-func (m *UpdateForwardReq) GetViewID() string {
+func (m *UpdateForwardReq) GetID() string {
 	if m != nil {
-		return m.ViewID
-	}
-	return ""
-}
-
-func (m *UpdateForwardReq) GetZoneID() string {
-	if m != nil {
-		return m.ZoneID
-	}
-	return ""
-}
-
-func (m *UpdateForwardReq) GetType() string {
-	if m != nil {
-		return m.Type
+		return m.ID
 	}
 	return ""
 }
@@ -889,8 +1094,7 @@ func (m *UpdateForwardReq) GetIPs() []string {
 }
 
 type DeleteForwardReq struct {
-	ViewID               string   `protobuf:"bytes,1,opt,name=viewID,proto3" json:"viewID,omitempty"`
-	ZoneID               string   `protobuf:"bytes,2,opt,name=zoneID,proto3" json:"zoneID,omitempty"`
+	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -900,7 +1104,7 @@ func (m *DeleteForwardReq) Reset()         { *m = DeleteForwardReq{} }
 func (m *DeleteForwardReq) String() string { return proto.CompactTextString(m) }
 func (*DeleteForwardReq) ProtoMessage()    {}
 func (*DeleteForwardReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{16}
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{19}
 }
 
 func (m *DeleteForwardReq) XXX_Unmarshal(b []byte) error {
@@ -921,16 +1125,9 @@ func (m *DeleteForwardReq) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DeleteForwardReq proto.InternalMessageInfo
 
-func (m *DeleteForwardReq) GetViewID() string {
+func (m *DeleteForwardReq) GetID() string {
 	if m != nil {
-		return m.ViewID
-	}
-	return ""
-}
-
-func (m *DeleteForwardReq) GetZoneID() string {
-	if m != nil {
-		return m.ZoneID
+		return m.ID
 	}
 	return ""
 }
@@ -952,7 +1149,7 @@ func (m *CreateRedirectionReq) Reset()         { *m = CreateRedirectionReq{} }
 func (m *CreateRedirectionReq) String() string { return proto.CompactTextString(m) }
 func (*CreateRedirectionReq) ProtoMessage()    {}
 func (*CreateRedirectionReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{17}
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{20}
 }
 
 func (m *CreateRedirectionReq) XXX_Unmarshal(b []byte) error {
@@ -1039,7 +1236,7 @@ func (m *UpdateRedirectionReq) Reset()         { *m = UpdateRedirectionReq{} }
 func (m *UpdateRedirectionReq) String() string { return proto.CompactTextString(m) }
 func (*UpdateRedirectionReq) ProtoMessage()    {}
 func (*UpdateRedirectionReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{18}
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{21}
 }
 
 func (m *UpdateRedirectionReq) XXX_Unmarshal(b []byte) error {
@@ -1122,7 +1319,7 @@ func (m *DeleteRedirectionReq) Reset()         { *m = DeleteRedirectionReq{} }
 func (m *DeleteRedirectionReq) String() string { return proto.CompactTextString(m) }
 func (*DeleteRedirectionReq) ProtoMessage()    {}
 func (*DeleteRedirectionReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{19}
+	return fileDescriptor_638ff8d8aaf3d8ae, []int{22}
 }
 
 func (m *DeleteRedirectionReq) XXX_Unmarshal(b []byte) error {
@@ -1160,171 +1357,6 @@ func (m *DeleteRedirectionReq) GetID() string {
 func (m *DeleteRedirectionReq) GetRedirectType() string {
 	if m != nil {
 		return m.RedirectType
-	}
-	return ""
-}
-
-type CreateDefaultDNS64Req struct {
-	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	Prefix               string   `protobuf:"bytes,2,opt,name=Prefix,proto3" json:"Prefix,omitempty"`
-	ClientACL            string   `protobuf:"bytes,3,opt,name=ClientACL,proto3" json:"ClientACL,omitempty"`
-	AAddress             string   `protobuf:"bytes,4,opt,name=AAddress,proto3" json:"AAddress,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *CreateDefaultDNS64Req) Reset()         { *m = CreateDefaultDNS64Req{} }
-func (m *CreateDefaultDNS64Req) String() string { return proto.CompactTextString(m) }
-func (*CreateDefaultDNS64Req) ProtoMessage()    {}
-func (*CreateDefaultDNS64Req) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{20}
-}
-
-func (m *CreateDefaultDNS64Req) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CreateDefaultDNS64Req.Unmarshal(m, b)
-}
-func (m *CreateDefaultDNS64Req) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CreateDefaultDNS64Req.Marshal(b, m, deterministic)
-}
-func (m *CreateDefaultDNS64Req) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CreateDefaultDNS64Req.Merge(m, src)
-}
-func (m *CreateDefaultDNS64Req) XXX_Size() int {
-	return xxx_messageInfo_CreateDefaultDNS64Req.Size(m)
-}
-func (m *CreateDefaultDNS64Req) XXX_DiscardUnknown() {
-	xxx_messageInfo_CreateDefaultDNS64Req.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CreateDefaultDNS64Req proto.InternalMessageInfo
-
-func (m *CreateDefaultDNS64Req) GetID() string {
-	if m != nil {
-		return m.ID
-	}
-	return ""
-}
-
-func (m *CreateDefaultDNS64Req) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *CreateDefaultDNS64Req) GetClientACL() string {
-	if m != nil {
-		return m.ClientACL
-	}
-	return ""
-}
-
-func (m *CreateDefaultDNS64Req) GetAAddress() string {
-	if m != nil {
-		return m.AAddress
-	}
-	return ""
-}
-
-type UpdateDefaultDNS64Req struct {
-	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	Prefix               string   `protobuf:"bytes,2,opt,name=Prefix,proto3" json:"Prefix,omitempty"`
-	ClientACL            string   `protobuf:"bytes,3,opt,name=ClientACL,proto3" json:"ClientACL,omitempty"`
-	AAddress             string   `protobuf:"bytes,4,opt,name=AAddress,proto3" json:"AAddress,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *UpdateDefaultDNS64Req) Reset()         { *m = UpdateDefaultDNS64Req{} }
-func (m *UpdateDefaultDNS64Req) String() string { return proto.CompactTextString(m) }
-func (*UpdateDefaultDNS64Req) ProtoMessage()    {}
-func (*UpdateDefaultDNS64Req) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{21}
-}
-
-func (m *UpdateDefaultDNS64Req) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_UpdateDefaultDNS64Req.Unmarshal(m, b)
-}
-func (m *UpdateDefaultDNS64Req) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_UpdateDefaultDNS64Req.Marshal(b, m, deterministic)
-}
-func (m *UpdateDefaultDNS64Req) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_UpdateDefaultDNS64Req.Merge(m, src)
-}
-func (m *UpdateDefaultDNS64Req) XXX_Size() int {
-	return xxx_messageInfo_UpdateDefaultDNS64Req.Size(m)
-}
-func (m *UpdateDefaultDNS64Req) XXX_DiscardUnknown() {
-	xxx_messageInfo_UpdateDefaultDNS64Req.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_UpdateDefaultDNS64Req proto.InternalMessageInfo
-
-func (m *UpdateDefaultDNS64Req) GetID() string {
-	if m != nil {
-		return m.ID
-	}
-	return ""
-}
-
-func (m *UpdateDefaultDNS64Req) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *UpdateDefaultDNS64Req) GetClientACL() string {
-	if m != nil {
-		return m.ClientACL
-	}
-	return ""
-}
-
-func (m *UpdateDefaultDNS64Req) GetAAddress() string {
-	if m != nil {
-		return m.AAddress
-	}
-	return ""
-}
-
-type DeleteDefaultDNS64Req struct {
-	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *DeleteDefaultDNS64Req) Reset()         { *m = DeleteDefaultDNS64Req{} }
-func (m *DeleteDefaultDNS64Req) String() string { return proto.CompactTextString(m) }
-func (*DeleteDefaultDNS64Req) ProtoMessage()    {}
-func (*DeleteDefaultDNS64Req) Descriptor() ([]byte, []int) {
-	return fileDescriptor_638ff8d8aaf3d8ae, []int{22}
-}
-
-func (m *DeleteDefaultDNS64Req) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DeleteDefaultDNS64Req.Unmarshal(m, b)
-}
-func (m *DeleteDefaultDNS64Req) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DeleteDefaultDNS64Req.Marshal(b, m, deterministic)
-}
-func (m *DeleteDefaultDNS64Req) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteDefaultDNS64Req.Merge(m, src)
-}
-func (m *DeleteDefaultDNS64Req) XXX_Size() int {
-	return xxx_messageInfo_DeleteDefaultDNS64Req.Size(m)
-}
-func (m *DeleteDefaultDNS64Req) XXX_DiscardUnknown() {
-	xxx_messageInfo_DeleteDefaultDNS64Req.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_DeleteDefaultDNS64Req proto.InternalMessageInfo
-
-func (m *DeleteDefaultDNS64Req) GetID() string {
-	if m != nil {
-		return m.ID
 	}
 	return ""
 }
@@ -1825,20 +1857,20 @@ func init() {
 	proto.RegisterType((*UpdateViewReq)(nil), "pb.UpdateViewReq")
 	proto.RegisterType((*DeleteViewReq)(nil), "pb.DeleteViewReq")
 	proto.RegisterType((*CreateZoneReq)(nil), "pb.CreateZoneReq")
+	proto.RegisterType((*UpdateZoneReq)(nil), "pb.UpdateZoneReq")
 	proto.RegisterType((*DeleteZoneReq)(nil), "pb.DeleteZoneReq")
+	proto.RegisterType((*CreateForwardZoneReq)(nil), "pb.CreateForwardZoneReq")
+	proto.RegisterType((*UpdateForwardZoneReq)(nil), "pb.UpdateForwardZoneReq")
+	proto.RegisterType((*DeleteForwardZoneReq)(nil), "pb.DeleteForwardZoneReq")
 	proto.RegisterType((*CreateRRReq)(nil), "pb.CreateRRReq")
 	proto.RegisterType((*UpdateRRReq)(nil), "pb.UpdateRRReq")
 	proto.RegisterType((*DeleteRRReq)(nil), "pb.DeleteRRReq")
-	proto.RegisterType((*UpdateDefaultForwardReq)(nil), "pb.UpdateDefaultForwardReq")
-	proto.RegisterType((*DeleteDefaultForwardReq)(nil), "pb.DeleteDefaultForwardReq")
+	proto.RegisterType((*CreateForwardReq)(nil), "pb.CreateForwardReq")
 	proto.RegisterType((*UpdateForwardReq)(nil), "pb.UpdateForwardReq")
 	proto.RegisterType((*DeleteForwardReq)(nil), "pb.DeleteForwardReq")
 	proto.RegisterType((*CreateRedirectionReq)(nil), "pb.CreateRedirectionReq")
 	proto.RegisterType((*UpdateRedirectionReq)(nil), "pb.UpdateRedirectionReq")
 	proto.RegisterType((*DeleteRedirectionReq)(nil), "pb.DeleteRedirectionReq")
-	proto.RegisterType((*CreateDefaultDNS64Req)(nil), "pb.CreateDefaultDNS64Req")
-	proto.RegisterType((*UpdateDefaultDNS64Req)(nil), "pb.UpdateDefaultDNS64Req")
-	proto.RegisterType((*DeleteDefaultDNS64Req)(nil), "pb.DeleteDefaultDNS64Req")
 	proto.RegisterType((*CreateDNS64Req)(nil), "pb.CreateDNS64Req")
 	proto.RegisterType((*UpdateDNS64Req)(nil), "pb.UpdateDNS64Req")
 	proto.RegisterType((*DeleteDNS64Req)(nil), "pb.DeleteDNS64Req")
@@ -1854,81 +1886,81 @@ func init() {
 func init() { proto.RegisterFile("dns.proto", fileDescriptor_638ff8d8aaf3d8ae) }
 
 var fileDescriptor_638ff8d8aaf3d8ae = []byte{
-	// 1169 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x58, 0xdd, 0x6e, 0x23, 0x35,
-	0x14, 0x66, 0x92, 0x34, 0x6d, 0x4e, 0xd3, 0x90, 0x9a, 0xfe, 0x4c, 0x0b, 0x5a, 0x55, 0x96, 0xd8,
-	0x56, 0xa0, 0x2d, 0x82, 0x45, 0xb0, 0x5c, 0x55, 0xd9, 0x0c, 0x15, 0x45, 0xa1, 0x94, 0xa4, 0xf4,
-	0x82, 0xbb, 0x69, 0xe2, 0x76, 0x47, 0x0c, 0x33, 0xd9, 0x99, 0x49, 0x4b, 0x91, 0x10, 0xf7, 0xbc,
-	0x05, 0xaf, 0xc1, 0x53, 0xf1, 0x08, 0xc8, 0x3e, 0xf6, 0xd8, 0x93, 0x71, 0xa6, 0xb4, 0x42, 0xfc,
-	0xdc, 0xf9, 0x38, 0xfe, 0x3e, 0x7f, 0x3e, 0x73, 0xec, 0xf3, 0xb5, 0xd0, 0x9a, 0x44, 0xe9, 0xe1,
-	0x34, 0x89, 0xb3, 0x98, 0xd4, 0xa6, 0x97, 0xbb, 0x30, 0xcb, 0x82, 0x10, 0x63, 0xfa, 0x2e, 0xac,
-	0x7a, 0xa7, 0xa3, 0x51, 0xe6, 0x27, 0xd9, 0x90, 0xbd, 0x26, 0x5b, 0xd0, 0x1c, 0xc7, 0xd1, 0x55,
-	0x70, 0xed, 0x3a, 0x7b, 0xce, 0x41, 0x6b, 0x28, 0x23, 0xda, 0x06, 0x10, 0xcb, 0xe2, 0xe9, 0x90,
-	0xbd, 0xa6, 0x1e, 0xb4, 0xfb, 0x09, 0xf3, 0x33, 0xd6, 0xeb, 0x0f, 0x38, 0x8a, 0x40, 0x23, 0xf2,
-	0x7f, 0x60, 0x12, 0x23, 0xc6, 0xa4, 0x03, 0xb5, 0xc0, 0x73, 0x6b, 0x62, 0xa6, 0x16, 0x78, 0xa4,
-	0x0b, 0xf5, 0xe0, 0x2c, 0x75, 0xeb, 0x7b, 0xf5, 0x83, 0xd6, 0x90, 0x0f, 0xe9, 0x97, 0xd0, 0xfe,
-	0x76, 0x3a, 0xd1, 0x2c, 0x88, 0x70, 0x72, 0x84, 0x62, 0xad, 0x19, 0xac, 0x5b, 0xd0, 0x8c, 0xd8,
-	0xed, 0x49, 0x4e, 0x24, 0x23, 0xfa, 0x04, 0xda, 0x1e, 0x0b, 0xd9, 0x22, 0x2e, 0x9a, 0xc2, 0x1a,
-	0x2a, 0xbe, 0x08, 0xd8, 0x2d, 0x5f, 0xb0, 0x0b, 0x2b, 0x37, 0x01, 0xbb, 0x3d, 0xd5, 0xb2, 0xf3,
-	0x98, 0x6f, 0xc2, 0xc7, 0x27, 0x4a, 0xbe, 0x8c, 0x38, 0x66, 0x9a, 0x04, 0x71, 0x12, 0x64, 0x77,
-	0x6e, 0x7d, 0xcf, 0x39, 0x58, 0x1b, 0xe6, 0x31, 0x17, 0xeb, 0xf7, 0x07, 0xa9, 0xdb, 0x10, 0xb2,
-	0xc4, 0x98, 0xfe, 0x0c, 0x6b, 0x78, 0x40, 0xb5, 0xa9, 0x26, 0x76, 0x16, 0x12, 0xd7, 0xe6, 0x88,
-	0x9f, 0x00, 0x4c, 0xd4, 0xc9, 0xd4, 0xa9, 0x8d, 0x19, 0xe2, 0xc2, 0xb2, 0x3f, 0x99, 0xf4, 0xf4,
-	0xde, 0x2a, 0xa4, 0xfb, 0xb0, 0x86, 0x39, 0xb9, 0x67, 0x7b, 0xfa, 0x8b, 0x4a, 0xce, 0x77, 0x71,
-	0xc4, 0xaa, 0x74, 0x6e, 0x41, 0xf3, 0xa7, 0x38, 0x62, 0x3a, 0x31, 0x18, 0x71, 0xfd, 0x7c, 0x24,
-	0x92, 0x59, 0xc7, 0x64, 0xaa, 0x98, 0x50, 0x68, 0xf3, 0xf1, 0x71, 0x10, 0xe2, 0xef, 0x0d, 0xf1,
-	0x7b, 0x61, 0x8e, 0x1e, 0x29, 0xa5, 0x8f, 0x14, 0x40, 0x7f, 0x73, 0x60, 0x15, 0x8f, 0x30, 0x1c,
-	0x3e, 0xe6, 0x00, 0x04, 0x1a, 0xc9, 0xf0, 0xc4, 0x93, 0xe2, 0xc5, 0x38, 0x2f, 0xbf, 0x86, 0x51,
-	0x7e, 0x04, 0x1a, 0xd9, 0xdd, 0x94, 0xb9, 0x4b, 0x38, 0xc7, 0xc7, 0x64, 0x03, 0x96, 0x6e, 0xfc,
-	0x70, 0xc6, 0xdc, 0xa6, 0x98, 0xc4, 0x80, 0x97, 0x7b, 0x76, 0x3e, 0x70, 0x97, 0xc5, 0x1c, 0x1f,
-	0x0a, 0x8d, 0x58, 0x0e, 0xff, 0x5d, 0x8d, 0xdf, 0xc0, 0x2a, 0x7e, 0x88, 0xbf, 0x4d, 0x22, 0x3d,
-	0x82, 0x6d, 0x3c, 0xb5, 0xc7, 0xae, 0xfc, 0x59, 0x98, 0x1d, 0xc7, 0xc9, 0xad, 0x9f, 0x4c, 0xe4,
-	0xb3, 0x21, 0x94, 0x3a, 0x86, 0x52, 0xf9, 0x4c, 0xd4, 0xf4, 0x33, 0xb1, 0x03, 0xdb, 0xa8, 0xa9,
-	0x44, 0x40, 0x5f, 0x41, 0x17, 0xb9, 0x0d, 0xd2, 0x47, 0x68, 0x16, 0x22, 0xea, 0x65, 0x11, 0x0d,
-	0x2d, 0xe2, 0x25, 0x74, 0x51, 0xc4, 0xe3, 0x77, 0xa2, 0xbf, 0x3b, 0xb0, 0x21, 0x8b, 0x94, 0x4d,
-	0x82, 0x84, 0x8d, 0xb3, 0x20, 0x8e, 0xe4, 0x63, 0x95, 0x93, 0xd4, 0x90, 0xc0, 0xfa, 0xfe, 0x10,
-	0x68, 0x18, 0x57, 0x4c, 0x8c, 0xb9, 0xd4, 0xf3, 0xf3, 0x81, 0x2c, 0x00, 0x3e, 0xe4, 0x97, 0xd1,
-	0xf3, 0x33, 0xff, 0x5c, 0xd7, 0x40, 0x1e, 0xf3, 0x3a, 0xb8, 0x30, 0xeb, 0x40, 0x04, 0xfc, 0x8a,
-	0x2a, 0x45, 0x02, 0x85, 0x05, 0x51, 0x98, 0x13, 0xe2, 0x65, 0xf5, 0xfe, 0xff, 0xc4, 0x5f, 0xc2,
-	0x86, 0x2c, 0xeb, 0xa2, 0xf6, 0x45, 0x5f, 0x10, 0xcf, 0x54, 0xcb, 0xcf, 0x34, 0xbf, 0x47, 0xdd,
-	0xb2, 0xc7, 0x1d, 0x6c, 0xe2, 0xc7, 0x95, 0x65, 0xea, 0x9d, 0x8e, 0x3e, 0xf9, 0x78, 0x41, 0x82,
-	0xce, 0x12, 0x76, 0x15, 0xfc, 0xa8, 0x12, 0x84, 0x11, 0x79, 0x07, 0x5a, 0xfd, 0x30, 0x60, 0x51,
-	0xd6, 0xeb, 0x0f, 0xe4, 0x0e, 0x7a, 0x82, 0x27, 0xa6, 0xd7, 0x9b, 0x4c, 0x12, 0x96, 0xa6, 0x32,
-	0x5f, 0x79, 0xcc, 0xb7, 0x2e, 0x5c, 0xb1, 0x7f, 0x70, 0xeb, 0x7d, 0xd8, 0x2c, 0x5c, 0xce, 0x45,
-	0x5b, 0xd3, 0x5f, 0x1d, 0xe8, 0xc8, 0xfc, 0x54, 0xa8, 0xbb, 0x28, 0x54, 0xce, 0x45, 0x7e, 0x9f,
-	0xa4, 0xea, 0xfa, 0x62, 0xd5, 0x8d, 0x2a, 0xd5, 0x4b, 0x73, 0xaa, 0xb9, 0x18, 0x99, 0xb1, 0x7f,
-	0x5f, 0xcc, 0x0b, 0xe8, 0xc8, 0x14, 0x3e, 0x50, 0x0b, 0x7d, 0xa1, 0xde, 0x93, 0x93, 0xb3, 0x97,
-	0xa1, 0x3f, 0xfe, 0xfe, 0x8b, 0x38, 0x64, 0x36, 0x7c, 0x17, 0xea, 0x5c, 0x15, 0x82, 0xf9, 0x90,
-	0x23, 0xf1, 0xfc, 0x0f, 0x46, 0x3e, 0x55, 0x57, 0xa9, 0x1a, 0x49, 0x03, 0x78, 0x4b, 0x3d, 0x17,
-	0xe3, 0x59, 0xd2, 0x8f, 0xa3, 0xf1, 0x8c, 0x2f, 0x7b, 0x0f, 0xba, 0x62, 0x22, 0x0d, 0x6e, 0x18,
-	0xa6, 0x27, 0x95, 0xa0, 0xd2, 0x3c, 0x79, 0x0a, 0x9d, 0x63, 0x96, 0x8d, 0x5f, 0xb1, 0xf4, 0x8c,
-	0x25, 0xdc, 0x19, 0x48, 0x1d, 0x73, 0xb3, 0x74, 0x1f, 0xd6, 0x31, 0x0d, 0xa3, 0x38, 0xc9, 0x06,
-	0x41, 0x9a, 0xc9, 0xde, 0x22, 0x3c, 0x91, 0x83, 0x7e, 0x4c, 0x1a, 0xa2, 0x75, 0xd4, 0xf4, 0x17,
-	0x16, 0xe2, 0x21, 0xef, 0x59, 0xf8, 0xd1, 0x1f, 0x1d, 0x68, 0xf7, 0xae, 0x59, 0x94, 0x7d, 0xe5,
-	0x47, 0xfe, 0x35, 0x4b, 0xc8, 0x33, 0x58, 0x11, 0x5e, 0xda, 0x3b, 0x1d, 0x91, 0x37, 0x0f, 0xa7,
-	0x97, 0x87, 0x86, 0xb9, 0xde, 0xed, 0xf0, 0x89, 0xaf, 0xa7, 0x2c, 0x19, 0xb2, 0x74, 0x16, 0x66,
-	0xf4, 0x0d, 0xf2, 0x3e, 0x2c, 0x73, 0x4f, 0xcd, 0x57, 0x77, 0xf2, 0xd5, 0xc2, 0x63, 0x5b, 0x16,
-	0x7f, 0x00, 0xad, 0xdc, 0x75, 0x93, 0x2e, 0xff, 0xd9, 0x34, 0xe1, 0x76, 0x40, 0x6e, 0xb0, 0x11,
-	0x60, 0xfa, 0x6d, 0x3b, 0x20, 0x77, 0xd1, 0x08, 0x30, 0x4d, 0xb5, 0x05, 0xf0, 0x21, 0x80, 0xb6,
-	0xd5, 0x64, 0x5d, 0x6b, 0x92, 0x96, 0xd3, 0x0e, 0xd1, 0xa6, 0x18, 0x21, 0x05, 0x93, 0x6c, 0x87,
-	0x68, 0x23, 0x8b, 0x90, 0x82, 0xb1, 0xad, 0x12, 0xc6, 0x2b, 0xc4, 0x14, 0x26, 0x1d, 0x66, 0xd5,
-	0x2e, 0x1a, 0x52, 0x30, 0xa5, 0x16, 0xc8, 0x33, 0x58, 0x51, 0xae, 0x13, 0xbf, 0xb6, 0xe1, 0x41,
-	0xed, 0xcb, 0x95, 0x01, 0xc4, 0xe5, 0x86, 0x1d, 0xb4, 0x2f, 0x57, 0x66, 0x4c, 0xd6, 0x92, 0xb6,
-	0x66, 0x96, 0xe5, 0x9f, 0xab, 0x3b, 0x5d, 0xf4, 0x49, 0xe4, 0x6d, 0xbd, 0x53, 0xc9, 0x41, 0xd9,
-	0x69, 0x6c, 0x76, 0x0b, 0x69, 0x16, 0x18, 0x31, 0x0b, 0xcd, 0xa7, 0xea, 0x6f, 0x1f, 0x85, 0xdf,
-	0xd0, 0x32, 0xee, 0x03, 0x16, 0x9c, 0x16, 0x02, 0xe7, 0xcd, 0x97, 0x05, 0x78, 0xa4, 0x9e, 0x01,
-	0xa3, 0xc9, 0x13, 0xd7, 0xf8, 0x2a, 0x85, 0xde, 0x6f, 0x27, 0x28, 0x39, 0x1c, 0x24, 0xb0, 0x19,
-	0x1f, 0x3b, 0x41, 0xc9, 0x66, 0x20, 0x81, 0xcd, 0x7d, 0x58, 0x08, 0x7a, 0x40, 0xca, 0x1e, 0x82,
-	0xec, 0xe8, 0x33, 0xcc, 0x75, 0x59, 0x3b, 0x45, 0xd9, 0x0b, 0x20, 0x85, 0xd5, 0x23, 0xd8, 0x29,
-	0xca, 0x3d, 0x1d, 0x29, 0xac, 0xbd, 0xde, 0x42, 0xf1, 0x5c, 0xfd, 0x39, 0x86, 0x58, 0x62, 0x9c,
-	0xa0, 0x12, 0x64, 0x34, 0x65, 0x04, 0x15, 0xbb, 0xb4, 0x1d, 0x64, 0x74, 0x4f, 0x04, 0x15, 0xdb,
-	0x69, 0x55, 0xa9, 0x18, 0x4d, 0xcc, 0x2c, 0x95, 0x62, 0x6f, 0xab, 0x2a, 0x95, 0x12, 0x81, 0xad,
-	0xad, 0x56, 0x95, 0x4a, 0x89, 0xc0, 0xd6, 0x5d, 0x2d, 0x04, 0xc7, 0xb0, 0x63, 0xf4, 0x57, 0xd1,
-	0x36, 0x79, 0x8f, 0x4d, 0x12, 0x16, 0x65, 0x64, 0xdb, 0x2c, 0x5a, 0xa3, 0xfd, 0x5a, 0x78, 0x3e,
-	0x53, 0xb6, 0x4c, 0xb5, 0x3a, 0xb2, 0xa9, 0xf3, 0x60, 0xb4, 0x3f, 0x3b, 0xb4, 0xd8, 0x4e, 0x11,
-	0x5a, 0x6a, 0xb1, 0x76, 0x68, 0xb1, 0xc1, 0x22, 0xb4, 0xd4, 0x74, 0xcb, 0xd0, 0xcb, 0xa6, 0xf8,
-	0xbf, 0xd5, 0xf3, 0x3f, 0x03, 0x00, 0x00, 0xff, 0xff, 0xec, 0x5c, 0x01, 0x3e, 0xd4, 0x12, 0x00,
-	0x00,
+	// 1172 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x58, 0xd1, 0x6e, 0x23, 0x35,
+	0x14, 0x65, 0x92, 0x34, 0x4d, 0x6e, 0xd3, 0x90, 0x35, 0xa1, 0x0c, 0x15, 0x42, 0x95, 0x25, 0x76,
+	0x2b, 0xd0, 0x16, 0xc1, 0x56, 0xb0, 0x3c, 0xad, 0x42, 0xa2, 0x88, 0xa0, 0x50, 0xba, 0x93, 0xd0,
+	0x07, 0xde, 0xa6, 0x89, 0x5b, 0x46, 0x84, 0x99, 0xec, 0xcc, 0x64, 0xc3, 0xf2, 0xcc, 0x0b, 0xbc,
+	0xf1, 0x07, 0xf0, 0x1b, 0x7c, 0x01, 0x9f, 0x85, 0xec, 0x6b, 0xcf, 0xd8, 0x19, 0x67, 0x76, 0xb7,
+	0x0b, 0x52, 0xf7, 0xcd, 0xd7, 0xf1, 0xb9, 0x3e, 0x3e, 0xbe, 0x9e, 0x7b, 0x5a, 0x68, 0xce, 0xc3,
+	0xe4, 0x64, 0x19, 0x47, 0x69, 0x44, 0x2a, 0xcb, 0xcb, 0x43, 0x58, 0xa5, 0xc1, 0x02, 0x63, 0xfa,
+	0x01, 0xec, 0x0d, 0xce, 0x26, 0x93, 0xd4, 0x8f, 0x53, 0x8f, 0x3d, 0x21, 0x07, 0x50, 0x9f, 0x45,
+	0xe1, 0x55, 0x70, 0xed, 0x3a, 0x47, 0xce, 0x71, 0xd3, 0x93, 0x11, 0x6d, 0x01, 0x88, 0x65, 0xd1,
+	0xd2, 0x63, 0x4f, 0xe8, 0x00, 0x5a, 0xfd, 0x98, 0xf9, 0x29, 0xeb, 0xf5, 0xc7, 0x1c, 0x45, 0xa0,
+	0x16, 0xfa, 0x3f, 0x31, 0x89, 0x11, 0x63, 0xd2, 0x86, 0x4a, 0x30, 0x70, 0x2b, 0x62, 0xa6, 0x12,
+	0x0c, 0x48, 0x07, 0xaa, 0xc1, 0x79, 0xe2, 0x56, 0x8f, 0xaa, 0xc7, 0x4d, 0x8f, 0x0f, 0xe9, 0xd7,
+	0xd0, 0xfa, 0x6e, 0x39, 0xcf, 0xb3, 0x20, 0xc2, 0xc9, 0x10, 0x2a, 0x6b, 0x45, 0xcb, 0x7a, 0x00,
+	0xf5, 0x90, 0xad, 0x47, 0x59, 0x22, 0x19, 0xd1, 0xf7, 0xa1, 0x35, 0x60, 0x0b, 0xb6, 0x2d, 0x17,
+	0xfd, 0xcd, 0x81, 0x7d, 0xa4, 0x7c, 0x11, 0xb0, 0x35, 0x5f, 0x71, 0x08, 0x8d, 0xa7, 0x01, 0x5b,
+	0x9f, 0xe5, 0xbc, 0xb3, 0x98, 0xef, 0xc2, 0xc7, 0x23, 0xc5, 0x5f, 0x46, 0x1c, 0xb3, 0x8c, 0x83,
+	0x28, 0x0e, 0xd2, 0x67, 0x6e, 0xf5, 0xc8, 0x39, 0xde, 0xf7, 0xb2, 0x98, 0xb3, 0xf5, 0xfb, 0xe3,
+	0xc4, 0xad, 0x09, 0x5e, 0x62, 0x4c, 0xba, 0xb0, 0x33, 0x3f, 0x9b, 0x7c, 0x76, 0xea, 0xee, 0x88,
+	0x34, 0x18, 0xd0, 0x04, 0xf6, 0xf1, 0xdc, 0x8a, 0x4a, 0xbe, 0x9d, 0xb3, 0x75, 0xbb, 0xca, 0xc6,
+	0x76, 0x2e, 0xec, 0x86, 0x6c, 0xdd, 0xe3, 0x3b, 0xa2, 0x12, 0x2a, 0xdc, 0xb2, 0xe9, 0x3d, 0xd8,
+	0x47, 0x81, 0x9e, 0xb3, 0x29, 0xfd, 0x23, 0x53, 0xea, 0xfb, 0x28, 0x64, 0x65, 0xf4, 0x0e, 0xa0,
+	0xfe, 0x4b, 0x14, 0xb2, 0x5c, 0x25, 0x8c, 0x38, 0x6d, 0x3e, 0x12, 0xca, 0x56, 0x51, 0x59, 0x15,
+	0x13, 0x0a, 0x2d, 0x3e, 0x1e, 0x06, 0x0b, 0xfc, 0xbd, 0x26, 0x7e, 0x37, 0xe6, 0x78, 0xa5, 0xa4,
+	0xd3, 0xb1, 0xdb, 0x10, 0x27, 0xe6, 0x43, 0xfa, 0x58, 0x29, 0x76, 0x53, 0x4a, 0x32, 0x65, 0x3d,
+	0x4f, 0xf9, 0x48, 0xe9, 0x71, 0xc3, 0x94, 0xf4, 0x4f, 0x07, 0xba, 0xa8, 0xd3, 0x30, 0x8a, 0xd7,
+	0x7e, 0x3c, 0xff, 0x3f, 0xe4, 0x3a, 0x84, 0xc6, 0x15, 0x66, 0x4f, 0xdc, 0xba, 0xb8, 0xe6, 0x2c,
+	0x26, 0x47, 0xb0, 0x27, 0xc7, 0xd3, 0x67, 0x4b, 0xe6, 0xee, 0x0a, 0xa8, 0x3e, 0x45, 0x7f, 0x75,
+	0xa0, 0x8b, 0xba, 0xbd, 0x22, 0xc5, 0x8d, 0xad, 0x6a, 0x85, 0xad, 0x0c, 0xa2, 0x3b, 0x26, 0x51,
+	0x3a, 0x84, 0x2e, 0x4a, 0xfd, 0x6a, 0x2c, 0xe8, 0x5f, 0x0e, 0xec, 0xa1, 0xe2, 0x9e, 0x77, 0x93,
+	0x53, 0x10, 0xa8, 0xc5, 0xde, 0x68, 0x20, 0x45, 0x16, 0xe3, 0xec, 0x1b, 0x53, 0xd3, 0xbe, 0x31,
+	0x04, 0x6a, 0x29, 0x3f, 0x26, 0xbe, 0x1f, 0x31, 0xe6, 0x8f, 0x2a, 0x1e, 0xf8, 0xa9, 0x2f, 0x4a,
+	0xa8, 0xe9, 0x61, 0xa0, 0xca, 0x0a, 0xa5, 0x17, 0x65, 0xc5, 0x39, 0xa2, 0xe4, 0xb7, 0x97, 0xe3,
+	0x63, 0xd8, 0xc3, 0xfb, 0xf8, 0xcf, 0x28, 0xd2, 0x53, 0xe8, 0x18, 0x6f, 0x41, 0x7e, 0x82, 0xb3,
+	0x9c, 0x95, 0x51, 0xd6, 0x00, 0x2a, 0x79, 0x03, 0x38, 0x85, 0x8e, 0x51, 0x9e, 0x2f, 0x86, 0xa2,
+	0xd0, 0x31, 0xca, 0xc9, 0x82, 0xa2, 0x7f, 0x67, 0x8f, 0xd3, 0x63, 0xf3, 0x20, 0x66, 0xb3, 0x34,
+	0x88, 0x42, 0x5b, 0xfa, 0x6d, 0x5f, 0x7a, 0x02, 0x35, 0xed, 0x41, 0xd6, 0xd4, 0x77, 0x69, 0x3a,
+	0x1d, 0xcb, 0x6b, 0xe0, 0x43, 0x5e, 0xf5, 0x5c, 0xe3, 0x69, 0x7e, 0x13, 0x59, 0xcc, 0x6f, 0xe3,
+	0xc2, 0x5f, 0xac, 0x98, 0xba, 0x0d, 0x11, 0xf0, 0xef, 0x9f, 0x62, 0xa4, 0xbd, 0x5a, 0x63, 0x4e,
+	0x90, 0x97, 0x35, 0xf4, 0xfa, 0x91, 0xbf, 0x54, 0x8f, 0x7d, 0x83, 0xfb, 0xb6, 0x2a, 0xc3, 0x33,
+	0x55, 0xb2, 0x33, 0x6d, 0xee, 0x51, 0xb5, 0xec, 0xf1, 0xbb, 0x03, 0x6d, 0xbc, 0xdd, 0x01, 0xef,
+	0x6d, 0x5b, 0xa4, 0xb9, 0x30, 0xa4, 0xb9, 0xc8, 0x8a, 0xfa, 0x3c, 0x66, 0x57, 0xc1, 0xcf, 0x32,
+	0xb1, 0x8c, 0xc8, 0x7b, 0xd0, 0xec, 0x2f, 0x02, 0x16, 0xa6, 0xbd, 0xbe, 0x12, 0x29, 0x9f, 0xe0,
+	0x52, 0xf5, 0x7a, 0xf3, 0x79, 0xcc, 0x92, 0x44, 0x49, 0xa5, 0x62, 0x41, 0x06, 0x6f, 0xeb, 0x16,
+	0x90, 0x79, 0x08, 0x6d, 0x54, 0xff, 0x65, 0xb9, 0xd0, 0x87, 0xea, 0xc1, 0x8c, 0xce, 0xbf, 0x5c,
+	0xf8, 0xb3, 0x1f, 0xbf, 0x8a, 0x16, 0x6c, 0xcb, 0x7b, 0xe4, 0xac, 0x10, 0xcc, 0x87, 0x1c, 0x89,
+	0xe7, 0x7f, 0x69, 0xe4, 0x5d, 0x55, 0x2b, 0xe5, 0x48, 0x1a, 0xc0, 0x5b, 0xea, 0x3d, 0xcc, 0x56,
+	0x71, 0x3f, 0x0a, 0x67, 0x2b, 0xbe, 0xec, 0x43, 0xe8, 0x88, 0x89, 0x24, 0x78, 0xca, 0x50, 0x9e,
+	0x44, 0x82, 0x0a, 0xf3, 0xe4, 0x2e, 0xb4, 0x87, 0x2c, 0x9d, 0xfd, 0xc0, 0x92, 0x73, 0x16, 0xf3,
+	0x06, 0x24, 0x79, 0x6c, 0xcc, 0xd2, 0x7b, 0x70, 0x07, 0x65, 0x98, 0x44, 0x71, 0x3a, 0x0e, 0x92,
+	0x54, 0xda, 0x5b, 0x61, 0xb4, 0x1c, 0xb4, 0x76, 0x7c, 0xcc, 0x17, 0x22, 0xa7, 0x17, 0x58, 0x88,
+	0x87, 0x7c, 0xce, 0xc2, 0x4f, 0xff, 0x69, 0x43, 0xab, 0x77, 0xcd, 0xc2, 0xf4, 0x1b, 0x3f, 0xf4,
+	0xaf, 0x59, 0x4c, 0xee, 0x43, 0x43, 0xf8, 0xf2, 0xc1, 0xd9, 0x84, 0xbc, 0x79, 0xb2, 0xbc, 0x3c,
+	0xd1, 0x8c, 0xfa, 0x61, 0x9b, 0x4f, 0x7c, 0xbb, 0x64, 0xb1, 0xc7, 0x92, 0xd5, 0x22, 0xa5, 0x6f,
+	0x90, 0x8f, 0x60, 0x97, 0xfb, 0x73, 0xbe, 0xba, 0x9d, 0xad, 0x16, 0x7e, 0xdd, 0xb2, 0xf8, 0x63,
+	0x68, 0x66, 0x0e, 0x9e, 0x74, 0xf8, 0xcf, 0xba, 0xa1, 0xb7, 0x03, 0x32, 0xb3, 0x8e, 0x00, 0xdd,
+	0xbb, 0xdb, 0x01, 0x99, 0x23, 0x47, 0x80, 0x6e, 0xd0, 0x2d, 0x80, 0x4f, 0x00, 0x72, 0x87, 0x4e,
+	0xee, 0xe4, 0x9c, 0xa4, 0x63, 0xb5, 0x43, 0x72, 0x27, 0x8d, 0x10, 0xc3, 0x59, 0xdb, 0x21, 0xb9,
+	0x0f, 0x46, 0x88, 0xe1, 0x8b, 0xcb, 0x88, 0xf1, 0x0a, 0xd1, 0x89, 0x49, 0x23, 0x53, 0x46, 0x2c,
+	0x87, 0x18, 0x06, 0xb6, 0x8c, 0x58, 0x0e, 0x31, 0x0c, 0xaa, 0x05, 0xf2, 0x48, 0x15, 0xab, 0x66,
+	0xac, 0x88, 0x9b, 0xf3, 0x33, 0xfd, 0x96, 0x3d, 0x41, 0xc1, 0x1f, 0x62, 0x02, 0x9b, 0x6d, 0xb4,
+	0x27, 0x28, 0x58, 0x3b, 0x4c, 0x60, 0x73, 0x7c, 0x96, 0x04, 0xf7, 0xa1, 0xa1, 0x2c, 0x1d, 0xd6,
+	0xb8, 0x66, 0xf0, 0xec, 0xcb, 0x95, 0xbb, 0xc2, 0xe5, 0x9a, 0xd7, 0xb2, 0x2f, 0x57, 0x4e, 0x47,
+	0xbe, 0xa0, 0xdc, 0xf7, 0x58, 0x96, 0x7f, 0xae, 0xfe, 0xf2, 0x91, 0xb4, 0x49, 0xb7, 0xa0, 0xe5,
+	0x56, 0xa0, 0x21, 0x18, 0x02, 0x37, 0xbd, 0x8d, 0x1d, 0x68, 0x08, 0x85, 0xc0, 0x4d, 0x7b, 0x53,
+	0x76, 0xf5, 0x5a, 0x9b, 0xd5, 0xaf, 0xde, 0xec, 0xbe, 0x65, 0x57, 0x5f, 0x48, 0x60, 0xb3, 0x1e,
+	0x65, 0x57, 0x5f, 0x48, 0x60, 0xeb, 0xff, 0x96, 0x04, 0x0f, 0x94, 0x9b, 0x17, 0xbd, 0x8a, 0x90,
+	0x9c, 0xbc, 0x6a, 0x5e, 0x76, 0x90, 0xd6, 0x6c, 0x11, 0x64, 0x76, 0x5f, 0x3b, 0x48, 0xeb, 0x8a,
+	0x08, 0x32, 0xdb, 0x64, 0x99, 0xc2, 0x5a, 0x73, 0xd2, 0x15, 0x36, 0x7b, 0x56, 0x99, 0xc2, 0x85,
+	0x04, 0xb6, 0x76, 0x59, 0xa6, 0x70, 0x21, 0x81, 0xad, 0x6b, 0x5a, 0x12, 0x0c, 0xe1, 0x5d, 0xad,
+	0x6f, 0x8a, 0x76, 0xc8, 0x7b, 0x67, 0x1c, 0xb3, 0x30, 0x25, 0xef, 0xe8, 0x77, 0xad, 0xb5, 0x55,
+	0x4b, 0x9e, 0x2f, 0x94, 0xdd, 0x52, 0x2d, 0x8c, 0xbc, 0x9d, 0xeb, 0xa0, 0xb5, 0x35, 0x3b, 0xd4,
+	0x6c, 0x93, 0x08, 0x2d, 0xb4, 0x4e, 0x3b, 0xd4, 0x6c, 0x9c, 0x08, 0x2d, 0x34, 0xd3, 0x22, 0xf4,
+	0xb2, 0x2e, 0xfe, 0xb7, 0xf5, 0xe0, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x69, 0xeb, 0xfe, 0x8d,
+	0xf8, 0x12, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1952,20 +1984,20 @@ type AgentManagerClient interface {
 	UpdateView(ctx context.Context, in *UpdateViewReq, opts ...grpc.CallOption) (*OperResult, error)
 	DeleteView(ctx context.Context, in *DeleteViewReq, opts ...grpc.CallOption) (*OperResult, error)
 	CreateZone(ctx context.Context, in *CreateZoneReq, opts ...grpc.CallOption) (*OperResult, error)
+	UpdateZone(ctx context.Context, in *UpdateZoneReq, opts ...grpc.CallOption) (*OperResult, error)
 	DeleteZone(ctx context.Context, in *DeleteZoneReq, opts ...grpc.CallOption) (*OperResult, error)
+	CreateForwardZone(ctx context.Context, in *CreateForwardZoneReq, opts ...grpc.CallOption) (*OperResult, error)
+	UpdateForwardZone(ctx context.Context, in *UpdateForwardZoneReq, opts ...grpc.CallOption) (*OperResult, error)
+	DeleteForwardZone(ctx context.Context, in *DeleteForwardZoneReq, opts ...grpc.CallOption) (*OperResult, error)
 	CreateRR(ctx context.Context, in *CreateRRReq, opts ...grpc.CallOption) (*OperResult, error)
 	UpdateRR(ctx context.Context, in *UpdateRRReq, opts ...grpc.CallOption) (*OperResult, error)
 	DeleteRR(ctx context.Context, in *DeleteRRReq, opts ...grpc.CallOption) (*OperResult, error)
-	UpdateDefaultForward(ctx context.Context, in *UpdateDefaultForwardReq, opts ...grpc.CallOption) (*OperResult, error)
-	DeleteDefaultForward(ctx context.Context, in *DeleteDefaultForwardReq, opts ...grpc.CallOption) (*OperResult, error)
+	CreateForward(ctx context.Context, in *CreateForwardReq, opts ...grpc.CallOption) (*OperResult, error)
 	UpdateForward(ctx context.Context, in *UpdateForwardReq, opts ...grpc.CallOption) (*OperResult, error)
 	DeleteForward(ctx context.Context, in *DeleteForwardReq, opts ...grpc.CallOption) (*OperResult, error)
 	CreateRedirection(ctx context.Context, in *CreateRedirectionReq, opts ...grpc.CallOption) (*OperResult, error)
 	UpdateRedirection(ctx context.Context, in *UpdateRedirectionReq, opts ...grpc.CallOption) (*OperResult, error)
 	DeleteRedirection(ctx context.Context, in *DeleteRedirectionReq, opts ...grpc.CallOption) (*OperResult, error)
-	CreateDefaultDNS64(ctx context.Context, in *CreateDefaultDNS64Req, opts ...grpc.CallOption) (*OperResult, error)
-	UpdateDefaultDNS64(ctx context.Context, in *UpdateDefaultDNS64Req, opts ...grpc.CallOption) (*OperResult, error)
-	DeleteDefaultDNS64(ctx context.Context, in *DeleteDefaultDNS64Req, opts ...grpc.CallOption) (*OperResult, error)
 	CreateDNS64(ctx context.Context, in *CreateDNS64Req, opts ...grpc.CallOption) (*OperResult, error)
 	UpdateDNS64(ctx context.Context, in *UpdateDNS64Req, opts ...grpc.CallOption) (*OperResult, error)
 	DeleteDNS64(ctx context.Context, in *DeleteDNS64Req, opts ...grpc.CallOption) (*OperResult, error)
@@ -2067,9 +2099,45 @@ func (c *agentManagerClient) CreateZone(ctx context.Context, in *CreateZoneReq, 
 	return out, nil
 }
 
+func (c *agentManagerClient) UpdateZone(ctx context.Context, in *UpdateZoneReq, opts ...grpc.CallOption) (*OperResult, error) {
+	out := new(OperResult)
+	err := c.cc.Invoke(ctx, "/pb.AgentManager/UpdateZone", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentManagerClient) DeleteZone(ctx context.Context, in *DeleteZoneReq, opts ...grpc.CallOption) (*OperResult, error) {
 	out := new(OperResult)
 	err := c.cc.Invoke(ctx, "/pb.AgentManager/DeleteZone", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentManagerClient) CreateForwardZone(ctx context.Context, in *CreateForwardZoneReq, opts ...grpc.CallOption) (*OperResult, error) {
+	out := new(OperResult)
+	err := c.cc.Invoke(ctx, "/pb.AgentManager/CreateForwardZone", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentManagerClient) UpdateForwardZone(ctx context.Context, in *UpdateForwardZoneReq, opts ...grpc.CallOption) (*OperResult, error) {
+	out := new(OperResult)
+	err := c.cc.Invoke(ctx, "/pb.AgentManager/UpdateForwardZone", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentManagerClient) DeleteForwardZone(ctx context.Context, in *DeleteForwardZoneReq, opts ...grpc.CallOption) (*OperResult, error) {
+	out := new(OperResult)
+	err := c.cc.Invoke(ctx, "/pb.AgentManager/DeleteForwardZone", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2103,18 +2171,9 @@ func (c *agentManagerClient) DeleteRR(ctx context.Context, in *DeleteRRReq, opts
 	return out, nil
 }
 
-func (c *agentManagerClient) UpdateDefaultForward(ctx context.Context, in *UpdateDefaultForwardReq, opts ...grpc.CallOption) (*OperResult, error) {
+func (c *agentManagerClient) CreateForward(ctx context.Context, in *CreateForwardReq, opts ...grpc.CallOption) (*OperResult, error) {
 	out := new(OperResult)
-	err := c.cc.Invoke(ctx, "/pb.AgentManager/UpdateDefaultForward", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *agentManagerClient) DeleteDefaultForward(ctx context.Context, in *DeleteDefaultForwardReq, opts ...grpc.CallOption) (*OperResult, error) {
-	out := new(OperResult)
-	err := c.cc.Invoke(ctx, "/pb.AgentManager/DeleteDefaultForward", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.AgentManager/CreateForward", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2160,33 +2219,6 @@ func (c *agentManagerClient) UpdateRedirection(ctx context.Context, in *UpdateRe
 func (c *agentManagerClient) DeleteRedirection(ctx context.Context, in *DeleteRedirectionReq, opts ...grpc.CallOption) (*OperResult, error) {
 	out := new(OperResult)
 	err := c.cc.Invoke(ctx, "/pb.AgentManager/DeleteRedirection", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *agentManagerClient) CreateDefaultDNS64(ctx context.Context, in *CreateDefaultDNS64Req, opts ...grpc.CallOption) (*OperResult, error) {
-	out := new(OperResult)
-	err := c.cc.Invoke(ctx, "/pb.AgentManager/CreateDefaultDNS64", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *agentManagerClient) UpdateDefaultDNS64(ctx context.Context, in *UpdateDefaultDNS64Req, opts ...grpc.CallOption) (*OperResult, error) {
-	out := new(OperResult)
-	err := c.cc.Invoke(ctx, "/pb.AgentManager/UpdateDefaultDNS64", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *agentManagerClient) DeleteDefaultDNS64(ctx context.Context, in *DeleteDefaultDNS64Req, opts ...grpc.CallOption) (*OperResult, error) {
-	out := new(OperResult)
-	err := c.cc.Invoke(ctx, "/pb.AgentManager/DeleteDefaultDNS64", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2294,20 +2326,20 @@ type AgentManagerServer interface {
 	UpdateView(context.Context, *UpdateViewReq) (*OperResult, error)
 	DeleteView(context.Context, *DeleteViewReq) (*OperResult, error)
 	CreateZone(context.Context, *CreateZoneReq) (*OperResult, error)
+	UpdateZone(context.Context, *UpdateZoneReq) (*OperResult, error)
 	DeleteZone(context.Context, *DeleteZoneReq) (*OperResult, error)
+	CreateForwardZone(context.Context, *CreateForwardZoneReq) (*OperResult, error)
+	UpdateForwardZone(context.Context, *UpdateForwardZoneReq) (*OperResult, error)
+	DeleteForwardZone(context.Context, *DeleteForwardZoneReq) (*OperResult, error)
 	CreateRR(context.Context, *CreateRRReq) (*OperResult, error)
 	UpdateRR(context.Context, *UpdateRRReq) (*OperResult, error)
 	DeleteRR(context.Context, *DeleteRRReq) (*OperResult, error)
-	UpdateDefaultForward(context.Context, *UpdateDefaultForwardReq) (*OperResult, error)
-	DeleteDefaultForward(context.Context, *DeleteDefaultForwardReq) (*OperResult, error)
+	CreateForward(context.Context, *CreateForwardReq) (*OperResult, error)
 	UpdateForward(context.Context, *UpdateForwardReq) (*OperResult, error)
 	DeleteForward(context.Context, *DeleteForwardReq) (*OperResult, error)
 	CreateRedirection(context.Context, *CreateRedirectionReq) (*OperResult, error)
 	UpdateRedirection(context.Context, *UpdateRedirectionReq) (*OperResult, error)
 	DeleteRedirection(context.Context, *DeleteRedirectionReq) (*OperResult, error)
-	CreateDefaultDNS64(context.Context, *CreateDefaultDNS64Req) (*OperResult, error)
-	UpdateDefaultDNS64(context.Context, *UpdateDefaultDNS64Req) (*OperResult, error)
-	DeleteDefaultDNS64(context.Context, *DeleteDefaultDNS64Req) (*OperResult, error)
 	CreateDNS64(context.Context, *CreateDNS64Req) (*OperResult, error)
 	UpdateDNS64(context.Context, *UpdateDNS64Req) (*OperResult, error)
 	DeleteDNS64(context.Context, *DeleteDNS64Req) (*OperResult, error)
@@ -2351,8 +2383,20 @@ func (*UnimplementedAgentManagerServer) DeleteView(ctx context.Context, req *Del
 func (*UnimplementedAgentManagerServer) CreateZone(ctx context.Context, req *CreateZoneReq) (*OperResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateZone not implemented")
 }
+func (*UnimplementedAgentManagerServer) UpdateZone(ctx context.Context, req *UpdateZoneReq) (*OperResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateZone not implemented")
+}
 func (*UnimplementedAgentManagerServer) DeleteZone(ctx context.Context, req *DeleteZoneReq) (*OperResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteZone not implemented")
+}
+func (*UnimplementedAgentManagerServer) CreateForwardZone(ctx context.Context, req *CreateForwardZoneReq) (*OperResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateForwardZone not implemented")
+}
+func (*UnimplementedAgentManagerServer) UpdateForwardZone(ctx context.Context, req *UpdateForwardZoneReq) (*OperResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateForwardZone not implemented")
+}
+func (*UnimplementedAgentManagerServer) DeleteForwardZone(ctx context.Context, req *DeleteForwardZoneReq) (*OperResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteForwardZone not implemented")
 }
 func (*UnimplementedAgentManagerServer) CreateRR(ctx context.Context, req *CreateRRReq) (*OperResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateRR not implemented")
@@ -2363,11 +2407,8 @@ func (*UnimplementedAgentManagerServer) UpdateRR(ctx context.Context, req *Updat
 func (*UnimplementedAgentManagerServer) DeleteRR(ctx context.Context, req *DeleteRRReq) (*OperResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRR not implemented")
 }
-func (*UnimplementedAgentManagerServer) UpdateDefaultForward(ctx context.Context, req *UpdateDefaultForwardReq) (*OperResult, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateDefaultForward not implemented")
-}
-func (*UnimplementedAgentManagerServer) DeleteDefaultForward(ctx context.Context, req *DeleteDefaultForwardReq) (*OperResult, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteDefaultForward not implemented")
+func (*UnimplementedAgentManagerServer) CreateForward(ctx context.Context, req *CreateForwardReq) (*OperResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateForward not implemented")
 }
 func (*UnimplementedAgentManagerServer) UpdateForward(ctx context.Context, req *UpdateForwardReq) (*OperResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateForward not implemented")
@@ -2383,15 +2424,6 @@ func (*UnimplementedAgentManagerServer) UpdateRedirection(ctx context.Context, r
 }
 func (*UnimplementedAgentManagerServer) DeleteRedirection(ctx context.Context, req *DeleteRedirectionReq) (*OperResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRedirection not implemented")
-}
-func (*UnimplementedAgentManagerServer) CreateDefaultDNS64(ctx context.Context, req *CreateDefaultDNS64Req) (*OperResult, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateDefaultDNS64 not implemented")
-}
-func (*UnimplementedAgentManagerServer) UpdateDefaultDNS64(ctx context.Context, req *UpdateDefaultDNS64Req) (*OperResult, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateDefaultDNS64 not implemented")
-}
-func (*UnimplementedAgentManagerServer) DeleteDefaultDNS64(ctx context.Context, req *DeleteDefaultDNS64Req) (*OperResult, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteDefaultDNS64 not implemented")
 }
 func (*UnimplementedAgentManagerServer) CreateDNS64(ctx context.Context, req *CreateDNS64Req) (*OperResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateDNS64 not implemented")
@@ -2590,6 +2622,24 @@ func _AgentManager_CreateZone_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentManager_UpdateZone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateZoneReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentManagerServer).UpdateZone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.AgentManager/UpdateZone",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentManagerServer).UpdateZone(ctx, req.(*UpdateZoneReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentManager_DeleteZone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteZoneReq)
 	if err := dec(in); err != nil {
@@ -2604,6 +2654,60 @@ func _AgentManager_DeleteZone_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentManagerServer).DeleteZone(ctx, req.(*DeleteZoneReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentManager_CreateForwardZone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateForwardZoneReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentManagerServer).CreateForwardZone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.AgentManager/CreateForwardZone",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentManagerServer).CreateForwardZone(ctx, req.(*CreateForwardZoneReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentManager_UpdateForwardZone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateForwardZoneReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentManagerServer).UpdateForwardZone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.AgentManager/UpdateForwardZone",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentManagerServer).UpdateForwardZone(ctx, req.(*UpdateForwardZoneReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentManager_DeleteForwardZone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteForwardZoneReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentManagerServer).DeleteForwardZone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.AgentManager/DeleteForwardZone",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentManagerServer).DeleteForwardZone(ctx, req.(*DeleteForwardZoneReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2662,38 +2766,20 @@ func _AgentManager_DeleteRR_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AgentManager_UpdateDefaultForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateDefaultForwardReq)
+func _AgentManager_CreateForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateForwardReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentManagerServer).UpdateDefaultForward(ctx, in)
+		return srv.(AgentManagerServer).CreateForward(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pb.AgentManager/UpdateDefaultForward",
+		FullMethod: "/pb.AgentManager/CreateForward",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentManagerServer).UpdateDefaultForward(ctx, req.(*UpdateDefaultForwardReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AgentManager_DeleteDefaultForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteDefaultForwardReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentManagerServer).DeleteDefaultForward(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.AgentManager/DeleteDefaultForward",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentManagerServer).DeleteDefaultForward(ctx, req.(*DeleteDefaultForwardReq))
+		return srv.(AgentManagerServer).CreateForward(ctx, req.(*CreateForwardReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2784,60 +2870,6 @@ func _AgentManager_DeleteRedirection_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentManagerServer).DeleteRedirection(ctx, req.(*DeleteRedirectionReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AgentManager_CreateDefaultDNS64_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateDefaultDNS64Req)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentManagerServer).CreateDefaultDNS64(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.AgentManager/CreateDefaultDNS64",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentManagerServer).CreateDefaultDNS64(ctx, req.(*CreateDefaultDNS64Req))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AgentManager_UpdateDefaultDNS64_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateDefaultDNS64Req)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentManagerServer).UpdateDefaultDNS64(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.AgentManager/UpdateDefaultDNS64",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentManagerServer).UpdateDefaultDNS64(ctx, req.(*UpdateDefaultDNS64Req))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AgentManager_DeleteDefaultDNS64_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteDefaultDNS64Req)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentManagerServer).DeleteDefaultDNS64(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.AgentManager/DeleteDefaultDNS64",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentManagerServer).DeleteDefaultDNS64(ctx, req.(*DeleteDefaultDNS64Req))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3063,8 +3095,24 @@ var _AgentManager_serviceDesc = grpc.ServiceDesc{
 			Handler:    _AgentManager_CreateZone_Handler,
 		},
 		{
+			MethodName: "UpdateZone",
+			Handler:    _AgentManager_UpdateZone_Handler,
+		},
+		{
 			MethodName: "DeleteZone",
 			Handler:    _AgentManager_DeleteZone_Handler,
+		},
+		{
+			MethodName: "CreateForwardZone",
+			Handler:    _AgentManager_CreateForwardZone_Handler,
+		},
+		{
+			MethodName: "UpdateForwardZone",
+			Handler:    _AgentManager_UpdateForwardZone_Handler,
+		},
+		{
+			MethodName: "DeleteForwardZone",
+			Handler:    _AgentManager_DeleteForwardZone_Handler,
 		},
 		{
 			MethodName: "CreateRR",
@@ -3079,12 +3127,8 @@ var _AgentManager_serviceDesc = grpc.ServiceDesc{
 			Handler:    _AgentManager_DeleteRR_Handler,
 		},
 		{
-			MethodName: "UpdateDefaultForward",
-			Handler:    _AgentManager_UpdateDefaultForward_Handler,
-		},
-		{
-			MethodName: "DeleteDefaultForward",
-			Handler:    _AgentManager_DeleteDefaultForward_Handler,
+			MethodName: "CreateForward",
+			Handler:    _AgentManager_CreateForward_Handler,
 		},
 		{
 			MethodName: "UpdateForward",
@@ -3105,18 +3149,6 @@ var _AgentManager_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteRedirection",
 			Handler:    _AgentManager_DeleteRedirection_Handler,
-		},
-		{
-			MethodName: "CreateDefaultDNS64",
-			Handler:    _AgentManager_CreateDefaultDNS64_Handler,
-		},
-		{
-			MethodName: "UpdateDefaultDNS64",
-			Handler:    _AgentManager_UpdateDefaultDNS64_Handler,
-		},
-		{
-			MethodName: "DeleteDefaultDNS64",
-			Handler:    _AgentManager_DeleteDefaultDNS64_Handler,
 		},
 		{
 			MethodName: "CreateDNS64",

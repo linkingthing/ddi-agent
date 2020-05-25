@@ -36,8 +36,8 @@ view "{{$view.Name}}" {
 	{{range $kk, $acl := $view.ACLs}}{{$acl.Name}};{{end}}
 	key key{{$view.Name}};
 	};
-	allow-update {key key{{$view.Name}};};{{range $i, $zone := $view.Zones}}{{if $zone.Forwarder}}
-	zone "{{$zone.Name}}" { type forward; forward {{$zone.ForwardType}}; forwarders { {{range $ii,$ip := $zone.Forwarder.IPs}}{{$ip}}; {{end}}}; };{{end}}{{end}}{{range $k, $dns64:= .DNS64s}}
+	allow-update {key key{{$view.Name}};};{{range $i, $zone := $view.Zones}}
+	zone "{{$zone.Name}}" { type forward; forward {{$zone.ForwardType}}; forwarders { {{range $ii,$ip := $zone.IPs}}{{$ip}}; {{end}}}; };{{end}}{{range $k, $dns64:= .DNS64s}}
         dns64 {{$dns64.Prefix}} {
         clients { {{$dns64.ClientACLName}}; };
         mapped { {{$dns64.AAddressACLName}}; };
@@ -61,5 +61,5 @@ controls {
         allow { 127.0.0.1; } keys { "rndc-key"; };
 };
 {{range $k, $acl := .ACLNames}}
-include "{{$acl}}.conf";{{end}}
+include "/root/bindtest/{{$acl}}.conf";{{end}}
 
