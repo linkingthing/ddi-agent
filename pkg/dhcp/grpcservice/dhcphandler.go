@@ -2,7 +2,6 @@ package grpcservice
 
 import (
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -20,6 +19,7 @@ import (
 	"github.com/zdnscloud/cement/log"
 
 	"github.com/linkingthing/ddi-agent/config"
+	"github.com/linkingthing/ddi-agent/pkg/dhcp/util"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
@@ -827,7 +827,7 @@ func (h *DHCPHandler) GetPool4LeasesCount(req *pb.GetPool4LeasesCountRequest) (u
 }
 
 func ipv4StrToUint32(ipv4 string) uint32 {
-	return binary.BigEndian.Uint32(net.ParseIP(ipv4).To4())
+	return util.Ipv4ToUint32(net.ParseIP(ipv4))
 }
 
 func (h *DHCPHandler) GetReservation4LeasesCount(req *pb.GetReservation4LeasesCountRequest) (uint64, error) {
@@ -856,8 +856,12 @@ type Lease6 struct {
 }
 
 func (h *DHCPHandler) GetSubnet6Leases(req *pb.GetSubnet6LeasesRequest) ([]*pb.DHCPLease, error) {
+	return h.getSubnet6Leases(req.GetId())
+}
+
+func (h *DHCPHandler) getSubnet6Leases(subnetID uint32) ([]*pb.DHCPLease, error) {
 	rows, err := h.db.Query(context.Background(), "select * from lease6 where subnet_id = $1 and state = 0 and expire > now()",
-		req.GetId())
+		subnetID)
 	if err != nil {
 		return nil, err
 	}
@@ -890,8 +894,28 @@ func (h *DHCPHandler) GetSubnet6LeasesCount(req *pb.GetSubnet6LeasesCountRequest
 }
 
 func (h *DHCPHandler) GetPool6LeasesCount(req *pb.GetPool6LeasesCountRequest) (uint64, error) {
-	return h.getLeasesCountFromDB("select count(*) from lease6 where subnet_id = $1 and address between $2 and $3 and state = 0 and expire > now()",
-		req.GetSubnetId(), req.GetBeginAddress(), req.GetEndAddress())
+	pblease6s, err := h.getSubnet6Leases(req.GetSubnetId())
+	if err != nil {
+		return 0, fmt.Errorf("get subnet6 %s leases from db failed: %s", req.GetSubnetId(), err.Error())
+	}
+
+	var count uint64
+	for _, lease6 := range pblease6s {
+		if ipV6InPool(lease6.Address, req.GetBeginAddress(), req.GetEndAddress()) {
+			count += 1
+		}
+	}
+
+	return count, nil
+}
+
+func ipV6InPool(ip, begin, end string) bool {
+	if util.Ipv6ToBigInt(net.ParseIP(end)).Cmp(util.Ipv6ToBigInt(net.ParseIP(ip))) == -1 ||
+		util.Ipv6ToBigInt(net.ParseIP(ip)).Cmp(util.Ipv6ToBigInt(net.ParseIP(begin))) == -1 {
+		return false
+	}
+
+	return true
 }
 
 func (h *DHCPHandler) GetReservation6LeasesCount(req *pb.GetReservation6LeasesCountRequest) (uint64, error) {

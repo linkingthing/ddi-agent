@@ -85,7 +85,9 @@ func (dhcp *DHCPCollector) Run() {
 				if statsName == DHCP4StatsAck {
 					if v, ok := getStatsValue(stats); ok {
 						now := time.Now()
-						lps = (v - dhcp.lastAckCount) / uint64(now.Sub(dhcp.lastGetTime).Seconds())
+						if dhcp.lastAckCount != 0 {
+							lps = (v - dhcp.lastAckCount) / uint64(now.Sub(dhcp.lastGetTime).Seconds())
+						}
 						dhcp.lastAckCount = v
 						dhcp.lastGetTime = now
 					}

@@ -77,7 +77,9 @@ func (dns *DNSCollector) Run() {
 						if c.Name == OpcodeQUERY {
 							if seconds := statistics.Server.CurrentTime.Sub(dns.lastGetTime).Seconds(); seconds != 0 &&
 								c.Counter >= dns.lastQueryCount {
-								qps = (c.Counter - dns.lastQueryCount) / uint64(seconds)
+								if dns.lastQueryCount != 0 {
+									qps = (c.Counter - dns.lastQueryCount) / uint64(seconds)
+								}
 								dns.lastQueryCount = c.Counter
 								dns.lastGetTime = statistics.Server.CurrentTime
 							}
@@ -115,7 +117,7 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, cs := range statistics.Server.Counters {
 		switch cs.Type {
 		case ServerCounterTypeOpCode:
-			dns.collectQueryTotal(ch, cs.Counters, statistics.Server.CurrentTime)
+			dns.collectQueryTotal(ch, cs.Counters)
 		case ServerCounterTypeRCode:
 			dns.collectRCode(ch, cs.Counters)
 		case ServerCounterTypeQType:
@@ -133,7 +135,7 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (dns *DNSCollector) collectQueryTotal(ch chan<- prometheus.Metric, counters []Counter, currentTime time.Time) {
+func (dns *DNSCollector) collectQueryTotal(ch chan<- prometheus.Metric, counters []Counter) {
 	for _, c := range counters {
 		if c.Name == OpcodeQUERY {
 			ch <- prometheus.MustNewConstMetric(DNSQueries, prometheus.CounterValue, float64(c.Counter), dns.nodeIP)
