@@ -10,7 +10,7 @@ import (
 	"github.com/zdnscloud/cement/log"
 
 	"github.com/linkingthing/ddi-agent/config"
-	"github.com/linkingthing/ddi-agent/pkg/pb"
+	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 	"github.com/linkingthing/ddi-metric/register"
 )
 

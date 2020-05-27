@@ -16,7 +16,7 @@ import (
 	"github.com/zdnscloud/g53"
 
 	"github.com/linkingthing/ddi-agent/pkg/boltdb"
-	"github.com/linkingthing/ddi-agent/pkg/pb"
+	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 	"github.com/linkingthing/ddi-metric/utils/random"
 )
 

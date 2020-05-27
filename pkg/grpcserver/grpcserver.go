@@ -11,7 +11,7 @@ import (
 
 	"github.com/linkingthing/ddi-agent/config"
 	dnssrv "github.com/linkingthing/ddi-agent/pkg/dns/grpcservice"
-	"github.com/linkingthing/ddi-agent/pkg/pb"
+	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 type GRPCServer struct {
