@@ -14,12 +14,12 @@ import (
 )
 
 func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
-	if conf.Server.DHCPEnabled == false {
+	if conf.DHCP.Enabled == false {
 		return
 	}
 
 	register.RegisterNode(conf.Server.Hostname, conf.Prometheus.IP, conf.Prometheus.Port,
-		conf.Server.IP, conf.Server.ParentIP, register.DHCPRole, conf.Kafka.Addr)
+		conf.Server.IP, conf.Controller.IP, register.DHCPRole, conf.Kafka.Addr)
 
 	run(pb.NewDHCPManagerClient(conn), kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{conf.Kafka.Addr},

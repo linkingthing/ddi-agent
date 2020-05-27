@@ -5,17 +5,17 @@ import (
 )
 
 var (
-	DNSQPS              = prometheus.NewDesc("lx_dns_qps", "the gauge of dns qps", []string{"server", "module"}, nil)
-	DNSQueries          = prometheus.NewDesc("lx_dns_queries", "the counter of dns queries", []string{"server", "module"}, nil)
-	DNSRecrusiveQueries = prometheus.NewDesc("lx_dns_recursive_queries", "the counter of dns recursive queries", []string{"server", "module"}, nil)
-	DNSCacheHits        = prometheus.NewDesc("lx_dns_cache_hits", "the counter of dns cache hits", []string{"server", "module"}, nil)
-	DNSRetCodeNOERROR   = prometheus.NewDesc("lx_dns_retcode_noerror", "the counter of dns noerror return code", []string{"server", "module"}, nil)
-	DNSRetCodeNXDOMAIN  = prometheus.NewDesc("lx_dns_retcode_nxdomain", "the counter of dns nxdomain return code", []string{"server", "module"}, nil)
-	DNSRetCodeSERVFAIL  = prometheus.NewDesc("lx_dns_retcode_servfail", "the counter of dns servfail return code", []string{"server", "module"}, nil)
-	DNSRetCodeREFUSED   = prometheus.NewDesc("lx_dns_retcode_refused", "the counter of dns refused return code", []string{"server", "module"}, nil)
-	DHCPPacketStatistic = prometheus.NewDesc("lx_dhcp_packet_statistic", "the gauge of dhcp packet statistic", []string{"server", "module"}, nil)
-	DHCPLeaseStatistic  = prometheus.NewDesc("lx_dhcp_lease_statistic", "the gauge of dhcp lease statistic", []string{"server", "module"}, nil)
-	DHCPUsageStatistic  = prometheus.NewDesc("lx_dhcp_usage_statistic", "the gauge of dhcp usage statistic", []string{"server", "module"}, nil)
+	DNSQPS        = prometheus.NewDesc("lx_dns_qps", "dns qps per node", []string{"node"}, nil)
+	DNSQueries    = prometheus.NewDesc("lx_dns_queries_total", "dns queries per node", []string{"node"}, nil)
+	DNSQueryTypes = prometheus.NewDesc("lx_dns_query_types", "dns query types per type of node", []string{"node", "type"}, nil)
+	DNSCacheHits  = prometheus.NewDesc("lx_dns_cache_hits", "dns cache hits per view of node", []string{"node", "view"}, nil)
+	DNSRCodes     = prometheus.NewDesc("lx_dns_rcodes", "dns return code per node", []string{"node", "rcode"}, nil)
+
+	DHCPLPS     = prometheus.NewDesc("lx_dhcp_lps", "dhcp lps per node", []string{"node"}, nil)
+	DHCPPackets = prometheus.NewDesc("lx_dhcp_packets_stats", "dhcp packets statistic per type of node", []string{"node", "type"}, nil)
+	DHCPLeases  = prometheus.NewDesc("lx_dhcp_leases_total", "dhcp leases statistic per node", []string{"node"}, nil)
+	DHCPUsages  = prometheus.NewDesc("lx_dhcp_usages", "dhcp usages statistic per subnet of node", []string{"node", "subnet_id"}, nil)
 )
 
-var PrometheusDescs = []*prometheus.Desc{DNSQPS, DNSQueries, DNSRecrusiveQueries, DNSCacheHits, DNSRetCodeNOERROR, DNSRetCodeNXDOMAIN, DNSRetCodeSERVFAIL, DNSRetCodeREFUSED, DHCPPacketStatistic, DHCPLeaseStatistic, DHCPUsageStatistic}
+var DNSPrometheusDescs = []*prometheus.Desc{DNSQPS, DNSQueries, DNSQueryTypes, DNSCacheHits, DNSRCodes}
+var DHCPPrometheusDescs = []*prometheus.Desc{DHCPLPS, DHCPPackets, DHCPLeases, DHCPUsages}

@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/ben-han-cn/kvzoo v0.0.0-20191109225302-5dc1198904af
 	github.com/golang/protobuf v1.4.2
+	github.com/jackc/pgx/v4 v4.6.0
 	github.com/lib/pq v1.3.0
 	github.com/linkingthing/ddi-metric v0.0.0-20200514035438-eb63d1ba6fe6
 	github.com/prometheus/client_golang v1.6.0

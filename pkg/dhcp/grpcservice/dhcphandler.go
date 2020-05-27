@@ -1,13 +1,14 @@
 package grpcservice
 
 import (
-	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -15,8 +16,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
 
 	"github.com/linkingthing/ddi-agent/config"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
@@ -38,13 +39,15 @@ const (
 	PostgresqlConnStr      = "user=%s password=%s host=localhost port=%d database=%s sslmode=disable pool_max_conns=10"
 	TableLease4            = "lease4"
 	TableLease6            = "lease6"
+	HttpClientTimeout      = 10
+	HttpScheme             = "http://"
 )
 
 type DHCPHandler struct {
-	cmdAddr    string
+	cmdUrl     string
 	conf       *DHCPConfig
 	lock       sync.RWMutex
-	db         restdb.ResourceStore
+	db         *pgxpool.Pool
 	httpClient *http.Client
 }
 
@@ -54,18 +57,18 @@ type DHCPConfig struct {
 }
 
 func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
-	meta, err := restdb.NewResourceMeta(nil)
+	cmdUrl, err := url.Parse(HttpScheme + conf.DHCP.CmdAddr)
+	if err != nil {
+		return nil, fmt.Errorf("parse dhcp cmd url %s failed: %s", HttpScheme+conf.DHCP.CmdAddr, err.Error())
+	}
+
+	db, err := pgxpool.Connect(context.Background(), fmt.Sprintf(PostgresqlConnStr, conf.DHCP.DB.User, conf.DHCP.DB.Password,
+		conf.DHCP.DB.Port, conf.DHCP.DB.Name))
 	if err != nil {
 		return nil, err
 	}
 
-	db, err := restdb.NewRStore(fmt.Sprintf(PostgresqlConnStr, conf.DHCP.DB.User, conf.DHCP.DB.Password,
-		conf.DHCP.DB.Port, conf.DHCP.DB.Name), meta)
-	if err != nil {
-		return nil, err
-	}
-
-	handler := &DHCPHandler{cmdAddr: conf.DHCP.CmdAddr, db: db, httpClient: &http.Client{}}
+	handler := &DHCPHandler{cmdUrl: cmdUrl.String(), db: db, httpClient: &http.Client{Timeout: HttpClientTimeout * time.Second}}
 	if err := handler.loadDHCPConfig(conf.DHCP.ConfigDir); err != nil {
 		return nil, err
 	}
@@ -215,39 +218,25 @@ func (h *DHCPHandler) reconfig(services []string, configPath string, conf interf
 }
 
 func (h *DHCPHandler) setDHCPConfigToMemory(services []string, conf interface{}) error {
-	resp, err := SendHttpRequestToDHCP(h.httpClient, h.cmdAddr, &DHCPCmdRequest{
+	_, err := SendHttpRequestToDHCP(h.httpClient, h.cmdUrl, &DHCPCmdRequest{
 		Command:   DHCPCommandConfigSet,
 		Services:  services,
 		Arguments: conf,
 	})
-	if err != nil {
-		return err
-	}
 
-	if len(resp) != 0 && resp[0].Result != 0 {
-		return fmt.Errorf("set %v config failed: %s", services, resp[0].Text)
-	}
-
-	return nil
+	return err
 }
 
 func (h *DHCPHandler) writeDHCPConfigToFile(services []string, configPath string) error {
-	resp, err := SendHttpRequestToDHCP(h.httpClient, h.cmdAddr, &DHCPCmdRequest{
+	_, err := SendHttpRequestToDHCP(h.httpClient, h.cmdUrl, &DHCPCmdRequest{
 		Command:  DHCPCommandConfigWrite,
 		Services: services,
 		Arguments: map[string]interface{}{
 			"filename": configPath,
 		},
 	})
-	if err != nil {
-		return err
-	}
 
-	if len(resp) != 0 && resp[0].Result != 0 {
-		return fmt.Errorf("write %v config failed: %s", services, resp[0].Text)
-	}
-
-	return nil
+	return err
 }
 
 func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
@@ -782,43 +771,32 @@ type Lease4 struct {
 }
 
 func (h *DHCPHandler) GetSubnet4Leases(req *pb.GetSubnet4LeasesRequest) ([]*pb.DHCPLease, error) {
-	var lease4s []*Lease4
-	if err := h.getLeasesFromDB(map[string]interface{}{"subnet_id": req.GetId()}, &lease4s); err != nil {
-		return nil, fmt.Errorf("get subnet4 %s leases from db failed: %s", req.GetId(), err.Error())
+	rows, err := h.db.Query(context.Background(), "select * from lease4 where subnet_id=$1 and state = 0 and expire > now()",
+		req.GetId())
+	if err != nil {
+		return nil, err
 	}
 
-	return lease4sToPbDHCPLeases(lease4s), nil
-}
-
-func (h *DHCPHandler) getLeasesFromDB(conds map[string]interface{}, resources interface{}) error {
-	return restdb.WithTx(h.db, func(tx restdb.Transaction) error {
-		return tx.Fill(conds, resources)
-	})
-}
-
-func lease4sToPbDHCPLeases(lease4s []*Lease4) []*pb.DHCPLease {
 	var pbleases []*pb.DHCPLease
-	now := time.Now()
-	for _, lease := range lease4s {
-		if lease.Expire.After(now) {
-			pbleases = append(pbleases, lease4ToPbDHCPLease(lease))
+	for rows.Next() {
+		var lease4 Lease4
+		if err := rows.Scan(&lease4.Address, &lease4.Hwaddr, &lease4.ClientId, &lease4.ValidLifetime, &lease4.Expire,
+			&lease4.SubnetId, &lease4.FqdnFwd, &lease4.FqdnRev, &lease4.Hostname, &lease4.State, &lease4.UserContext,
+		); err != nil {
+			return nil, err
 		}
+
+		pbleases = append(pbleases, &pb.DHCPLease{
+			Address:       ipv4FromUint32(lease4.Address).String(),
+			HwAddress:     string(lease4.Hwaddr),
+			SubnetId:      lease4.SubnetId,
+			ValidLifetime: lease4.ValidLifetime,
+			Expire:        lease4.Expire.Unix(),
+			Hostname:      lease4.Hostname,
+		})
 	}
 
-	return pbleases
-}
-
-func lease4ToPbDHCPLease(lease *Lease4) *pb.DHCPLease {
-	return &pb.DHCPLease{
-		Address:       ipv4FromUint32(lease.Address).String(),
-		HwAddress:     string(lease.Hwaddr),
-		ClientId:      string(lease.ClientId),
-		SubnetId:      lease.SubnetId,
-		ValidLifetime: lease.ValidLifetime,
-		Expire:        lease.Expire.Unix(),
-		Hostname:      lease.Hostname,
-		State:         lease.State,
-	}
+	return pbleases, nil
 }
 
 func ipv4FromUint32(ipInt uint32) net.IP {
@@ -831,26 +809,21 @@ func ipv4FromUint32(ipInt uint32) net.IP {
 }
 
 func (h *DHCPHandler) GetSubnet4LeasesCount(req *pb.GetSubnet4LeasesCountRequest) (uint64, error) {
-	var count uint64
-	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
-		c, err := tx.Count(TableLease4, map[string]interface{}{"subnet_id": req.GetId()})
-		count = uint64(c)
-		return err
-	})
+	return h.getLeasesCountFromDB("select count(*) from lease4 where subnet_id = $1 and state = 0 and expire > now()", req.GetId())
+}
 
-	return count, err
+func (h *DHCPHandler) getLeasesCountFromDB(sql string, args ...interface{}) (uint64, error) {
+	var count uint64
+	if err := h.db.QueryRow(context.Background(), sql, args...).Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (h *DHCPHandler) GetPool4LeasesCount(req *pb.GetPool4LeasesCountRequest) (uint64, error) {
-	var count uint64
-	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
-		c, err := tx.CountEx(TableLease4, "select count(*) from lease4 where subnet_id = $1 and address between $2 and $3",
-			req.GetSubnetId(), ipv4StrToUint32(req.GetBeginAddress()), ipv4StrToUint32(req.GetEndAddress()))
-		count = uint64(c)
-		return err
-	})
-
-	return count, err
+	return h.getLeasesCountFromDB("select count(*) from lease4 where subnet_id = $1 and address between $2 and $3 and state = 0 and expire > now()",
+		req.GetSubnetId(), ipv4StrToUint32(req.GetBeginAddress()), ipv4StrToUint32(req.GetEndAddress()))
 }
 
 func ipv4StrToUint32(ipv4 string) uint32 {
@@ -858,14 +831,8 @@ func ipv4StrToUint32(ipv4 string) uint32 {
 }
 
 func (h *DHCPHandler) GetReservation4LeasesCount(req *pb.GetReservation4LeasesCountRequest) (uint64, error) {
-	var count uint64
-	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
-		c, err := tx.Count(TableLease4, map[string]interface{}{"subnet_id": req.GetSubnetId(), "hwaddr": req.GetHwAddress()})
-		count = uint64(c)
-		return err
-	})
-
-	return count, err
+	return h.getLeasesCountFromDB("select count(*) from lease4 where subnet_id = $1 and hwaddr = $2 and state = 0 and expire > now()",
+		req.GetSubnetId(), req.GetHwAddress())
 }
 
 type Lease6 struct {
@@ -889,72 +856,45 @@ type Lease6 struct {
 }
 
 func (h *DHCPHandler) GetSubnet6Leases(req *pb.GetSubnet6LeasesRequest) ([]*pb.DHCPLease, error) {
-	var lease6s []*Lease6
-	if err := h.getLeasesFromDB(map[string]interface{}{"subnet_id": req.GetId()}, &lease6s); err != nil {
-		return nil, fmt.Errorf("get subnet6 %s leases from db failed: %s", req.GetId(), err.Error())
+	rows, err := h.db.Query(context.Background(), "select * from lease6 where subnet_id = $1 and state = 0 and expire > now()",
+		req.GetId())
+	if err != nil {
+		return nil, err
 	}
 
-	return lease6sToPbDHCPLeases(lease6s), nil
-}
-
-func lease6sToPbDHCPLeases(lease6s []*Lease6) []*pb.DHCPLease {
 	var pbleases []*pb.DHCPLease
-	now := time.Now()
-	for _, lease := range lease6s {
-		if lease.Expire.After(now) {
-			pbleases = append(pbleases, lease6ToPbDHCPLease(lease))
+	for rows.Next() {
+		var lease6 Lease6
+		if err := rows.Scan(&lease6.Address, &lease6.Duid, &lease6.ValidLifetime, &lease6.Expire, &lease6.SubnetId,
+			&lease6.PrefLifetime, &lease6.LeaseType, &lease6.Iaid, &lease6.PrefixLen, &lease6.FqdnFwd, &lease6.FqdnRev,
+			&lease6.Hostname, &lease6.State, &lease6.Hwaddr, &lease6.Hwtype, &lease6.HwaddrSource, &lease6.UserContext,
+		); err != nil {
+			return nil, err
 		}
+
+		pbleases = append(pbleases, &pb.DHCPLease{
+			Address:       lease6.Address,
+			SubnetId:      lease6.SubnetId,
+			HwAddress:     string(lease6.Hwaddr),
+			ValidLifetime: lease6.ValidLifetime,
+			Expire:        lease6.Expire.Unix(),
+			Hostname:      lease6.Hostname,
+		})
 	}
 
-	return pbleases
-}
-
-func lease6ToPbDHCPLease(lease *Lease6) *pb.DHCPLease {
-	return &pb.DHCPLease{
-		Address:         lease.Address,
-		SubnetId:        lease.SubnetId,
-		HwAddress:       string(lease.Hwaddr),
-		HwAddressSource: lease.HwaddrSource,
-		Duid:            string(lease.Duid),
-		ValidLifetime:   lease.ValidLifetime,
-		Expire:          lease.Expire.Unix(),
-		PrefixLen:       lease.PrefixLen,
-		LeaseType:       pb.DHCPLease_LeaseType(lease.LeaseType),
-		State:           lease.State,
-		Hostname:        lease.Hostname,
-	}
+	return pbleases, nil
 }
 
 func (h *DHCPHandler) GetSubnet6LeasesCount(req *pb.GetSubnet6LeasesCountRequest) (uint64, error) {
-	var count uint64
-	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
-		c, err := tx.Count(TableLease6, map[string]interface{}{"subnet_id": req.GetId()})
-		count = uint64(c)
-		return err
-	})
-
-	return count, err
+	return h.getLeasesCountFromDB("select count(*) from lease6 where subnet_id = $1 and state = 0 and expire > now()", req.GetId())
 }
 
 func (h *DHCPHandler) GetPool6LeasesCount(req *pb.GetPool6LeasesCountRequest) (uint64, error) {
-	var count uint64
-	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
-		c, err := tx.CountEx(TableLease6, "select count(*) from lease6 where subnet_id = $1 and address between $2 and $3",
-			req.GetSubnetId(), req.GetBeginAddress(), req.GetEndAddress())
-		count = uint64(c)
-		return err
-	})
-
-	return count, err
+	return h.getLeasesCountFromDB("select count(*) from lease6 where subnet_id = $1 and address between $2 and $3 and state = 0 and expire > now()",
+		req.GetSubnetId(), req.GetBeginAddress(), req.GetEndAddress())
 }
 
 func (h *DHCPHandler) GetReservation6LeasesCount(req *pb.GetReservation6LeasesCountRequest) (uint64, error) {
-	var count uint64
-	err := restdb.WithTx(h.db, func(tx restdb.Transaction) error {
-		c, err := tx.Count(TableLease6, map[string]interface{}{"subnet_id": req.GetSubnetId(), "hwaddr": req.GetHwAddress()})
-		count = uint64(c)
-		return err
-	})
-
-	return count, err
+	return h.getLeasesCountFromDB("select count(*) from lease6 where subnet_id = $1 and hwaddr = $2 and state = 0 and expire > now()",
+		req.GetSubnetId(), req.GetHwAddress())
 }

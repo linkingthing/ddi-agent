@@ -32,7 +32,11 @@ func main() {
 		log.Fatalf("new db failed: %s", err.Error())
 	}
 
-	metric.Init(conf)
+	m, err := metric.New(conf)
+	if err != nil {
+		log.Fatalf("new metric failed: %s", err.Error())
+	}
+	go m.Run()
 
 	s, err := grpcserver.New(conf)
 	if err != nil {

@@ -1,4 +1,4 @@
-package util
+package grpcservice
 
 import (
 	"bytes"
@@ -22,10 +22,17 @@ type DHCPCmdResponse struct {
 	Arguments interface{} `json:"arguments"`
 }
 
-func SendHttpRequestToDHCP(cli *http.Client, dhcpCmdAddr string, req *DHCPCmdRequest) ([]DHCPCmdResponse, error) {
+func SendHttpRequestToDHCP(cli *http.Client, url string, req *DHCPCmdRequest) ([]DHCPCmdResponse, error) {
 	var resp []DHCPCmdResponse
-	err := sendHttpRequest(cli, MethodPost, "http://"+dhcpCmdAddr, req, &resp)
-	return resp, err
+	if err := sendHttpRequest(cli, MethodPost, url, req, &resp); err != nil {
+		return nil, err
+	}
+
+	if len(resp) != 0 && resp[0].Result != 0 {
+		return nil, fmt.Errorf("send cmd %s to dhcp failed: %s", req.Command, resp[0].Text)
+	}
+
+	return resp, nil
 }
 
 func sendHttpRequest(cli *http.Client, httpMethod, url string, req, resp interface{}) error {

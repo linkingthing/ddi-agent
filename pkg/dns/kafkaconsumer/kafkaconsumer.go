@@ -55,12 +55,12 @@ var (
 )
 
 func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
-	if conf.Server.DNSEnabled == false {
+	if conf.DNS.Enabled == false {
 		return
 	}
 
 	register.RegisterNode(conf.Server.Hostname, conf.Prometheus.IP, conf.Prometheus.Port,
-		conf.Server.IP, conf.Server.ParentIP, register.DNSRole, conf.Kafka.Addr)
+		conf.Server.IP, conf.Controller.IP, register.DNSRole, conf.Kafka.Addr)
 
 	cli := pb.NewAgentManagerClient(conn)
 	kafkaReader := kg.NewReader(kg.ReaderConfig{

@@ -1,84 +1,199 @@
 package metric
 
 import (
-	"sort"
-	"strconv"
+	"encoding/xml"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"sync/atomic"
+	"time"
 
-	"github.com/linkingthing/ddi-agent/pkg/boltdb"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/zdnscloud/cement/log"
+
+	"github.com/linkingthing/ddi-agent/config"
 )
 
 const (
-	TableQuery      = "queries"
-	TableRecurQuery = "recurqueries"
-	TableCacheHit   = "cachehit"
-	TableNOERROR    = "noerror"
-	TableSERVFAIL   = "servfail"
-	TableNXDOMAIN   = "nxdomain"
-	TableREFUSED    = "refused"
+	HttpScheme                = "http://"
+	StatsServerPath           = "/xml/v3/server"
+	ServerCounterTypeOpCode   = "opcode"
+	ServerCounterTypeRCode    = "rcode"
+	ServerCounterTypeQType    = "qtype"
+	ViewCounterTypeCacheStats = "cachestats"
+	CacheStatsQueryHits       = "QueryHits"
+	OpcodeQUERY               = "QUERY"
+	RcodeNOERROR              = "NOERROR"
+	RcodeSERVFAIL             = "SERVFAIL"
+	RcodeNXDOMAIN             = "NXDOMAIN"
+	RcodeREFUSED              = "REFUSED"
 )
 
 type DNSCollector struct {
+	enabled        bool
+	nodeIP         string
+	url            string
+	httpClient     *http.Client
+	lastQueryCount uint64
+	lastGetTime    time.Time
+	qps            uint64
 }
 
-func newDNSCollector() *DNSCollector {
-	return &DNSCollector{}
-}
-
-func (c *DNSCollector) GetQPS(table string) (float64, error) {
-	if kvs, timestamps, err := getKVsAndTimestampsFromDB(table); err != nil {
-		return 0, err
-	} else if len(kvs) > 1 {
-		numPrev, err := strconv.Atoi(timestamps[len(timestamps)-2])
-		if err != nil {
-			return 0, err
-		}
-
-		numLast, err := strconv.Atoi(timestamps[len(timestamps)-1])
-		if err != nil {
-			return 0, err
-		}
-
-		queryPrev, err := strconv.Atoi(string(kvs[timestamps[len(timestamps)-2]]))
-		if err != nil {
-			return 0, err
-		}
-
-		queryLast, err := strconv.Atoi(string(kvs[timestamps[len(timestamps)-1]]))
-		if err != nil {
-			return 0, err
-		}
-
-		if queryLast-queryPrev > 0 && numLast-numPrev > 0 {
-			return float64(queryLast-queryPrev) / float64(numLast-numPrev), nil
-		}
+func newDNSCollector(conf *config.AgentConfig, cli *http.Client) (*DNSCollector, error) {
+	if conf.DNS.Enabled {
+		return &DNSCollector{enabled: conf.DNS.Enabled}, nil
 	}
 
-	return 0, nil
-}
-
-func getKVsAndTimestampsFromDB(table string) (map[string][]byte, []string, error) {
-	kvs, err := boltdb.GetDB().GetTableKVs(table)
+	u, err := url.Parse(HttpScheme + conf.DNS.StatsAddr + StatsServerPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	var timestamps []string
-	for k, _ := range kvs {
-		timestamps = append(timestamps, k)
+	c := &DNSCollector{
+		enabled:    conf.DNS.Enabled,
+		nodeIP:     conf.Server.IP,
+		url:        u.String(),
+		httpClient: cli,
 	}
-
-	sort.Strings(timestamps)
-	return kvs, timestamps, nil
+	go c.Run()
+	return c, nil
 }
 
-func (c *DNSCollector) GetQueries(table string) (float64, error) {
-	var query int
-	kvs, timestamps, err := getKVsAndTimestampsFromDB(table)
-	if err != nil {
-		return 0, err
-	} else if len(kvs) > 1 {
-		query, err = strconv.Atoi(string(kvs[timestamps[len(timestamps)-1]]))
+func (dns *DNSCollector) Run() {
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			statistics, err := dns.getStats()
+			if err != nil {
+				continue
+			}
+
+			var qps uint64
+			for _, cs := range statistics.Server.Counters {
+				if cs.Type == ServerCounterTypeOpCode {
+					for _, c := range cs.Counters {
+						if c.Name == OpcodeQUERY {
+							if seconds := statistics.Server.CurrentTime.Sub(dns.lastGetTime).Seconds(); seconds != 0 &&
+								c.Counter >= dns.lastQueryCount {
+								qps = (c.Counter - dns.lastQueryCount) / uint64(seconds)
+								dns.lastQueryCount = c.Counter
+								dns.lastGetTime = statistics.Server.CurrentTime
+							}
+						}
+					}
+				}
+			}
+
+			atomic.StoreUint64(&dns.qps, qps)
+		}
+	}
+}
+
+func (dns *DNSCollector) Describe(ch chan<- *prometheus.Desc) {
+	if dns.enabled {
+		for _, desc := range DNSPrometheusDescs {
+			ch <- desc
+		}
+	}
+}
+
+func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
+	if dns.enabled == false {
+		return
 	}
 
-	return float64(query), err
+	statistics, err := dns.getStats()
+	if err != nil {
+		log.Warnf("get dns statistics with node %s failed: %s", dns.nodeIP, err.Error())
+		return
+	}
+
+	ch <- prometheus.MustNewConstMetric(DNSQPS, prometheus.CounterValue, float64(atomic.LoadUint64(&dns.qps)), dns.nodeIP)
+
+	for _, cs := range statistics.Server.Counters {
+		switch cs.Type {
+		case ServerCounterTypeOpCode:
+			dns.collectQueryTotal(ch, cs.Counters, statistics.Server.CurrentTime)
+		case ServerCounterTypeRCode:
+			dns.collectRCode(ch, cs.Counters)
+		case ServerCounterTypeQType:
+			dns.collectQType(ch, cs.Counters)
+		}
+	}
+
+	for _, v := range statistics.Views {
+		for _, c := range v.Counters {
+			if c.Type == ViewCounterTypeCacheStats {
+				dns.collectCacheHits(ch, v.Name, c.Counters)
+				break
+			}
+		}
+	}
+}
+
+func (dns *DNSCollector) collectQueryTotal(ch chan<- prometheus.Metric, counters []Counter, currentTime time.Time) {
+	for _, c := range counters {
+		if c.Name == OpcodeQUERY {
+			ch <- prometheus.MustNewConstMetric(DNSQueries, prometheus.CounterValue, float64(c.Counter), dns.nodeIP)
+			return
+		}
+	}
+}
+
+func (dns *DNSCollector) collectRCode(ch chan<- prometheus.Metric, counters []Counter) {
+	for _, c := range counters {
+		switch c.Name {
+		case RcodeNOERROR, RcodeSERVFAIL, RcodeNXDOMAIN, RcodeREFUSED:
+			ch <- prometheus.MustNewConstMetric(DNSRCodes, prometheus.CounterValue, float64(c.Counter), dns.nodeIP, c.Name)
+		}
+	}
+}
+
+func (dns *DNSCollector) collectQType(ch chan<- prometheus.Metric, counters []Counter) {
+	for _, c := range counters {
+		ch <- prometheus.MustNewConstMetric(DNSQueryTypes, prometheus.CounterValue, float64(c.Counter), dns.nodeIP, c.Name)
+	}
+}
+
+func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, view string, counters []Counter) {
+	for _, c := range counters {
+		if c.Name == CacheStatsQueryHits {
+			ch <- prometheus.MustNewConstMetric(DNSCacheHits, prometheus.CounterValue, float64(c.Counter), dns.nodeIP, view)
+			return
+		}
+	}
+}
+
+func (dns *DNSCollector) getStats() (*DNSStatistics, error) {
+	var stats DNSStatistics
+	if err := dns.get(&stats); err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
+}
+
+func (dns *DNSCollector) get(resp interface{}) error {
+	httpResp, err := dns.httpClient.Get(dns.url)
+	if err != nil {
+		return fmt.Errorf("query dns stats failed: %s", err.Error())
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("query dns stats failed with status code %s", httpResp.Status)
+	}
+
+	body, err := ioutil.ReadAll(httpResp.Body)
+	if err != nil {
+		return fmt.Errorf("read dns stats response failed: %s", err.Error())
+	}
+
+	if err := xml.Unmarshal(body, resp); err != nil {
+		return fmt.Errorf("unmarshal dns stats with XML failed: %s", err.Error())
+	}
+
+	return nil
 }

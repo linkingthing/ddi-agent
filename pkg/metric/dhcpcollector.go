@@ -1,140 +1,200 @@
 package metric
 
 import (
-	"encoding/json"
-	"os/exec"
+	"net/http"
+	"net/url"
 	"regexp"
+	"sync/atomic"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/zdnscloud/cement/log"
+
+	"github.com/linkingthing/ddi-agent/config"
+	dhcpsrv "github.com/linkingthing/ddi-agent/pkg/dhcp/grpcservice"
 )
 
-type CurlKeaArguments struct {
-	Pkt4Received []interface{} `json:"pkt4-received"`
-}
-type CurlKeaStats struct {
-	Arguments CurlKeaArguments `json:"arguments"`
-	Result    string           `json:"result"`
-}
+const (
+	GetStatisticAll         = "statistic-get-all"
+	DHCP4StatsDiscover      = "pkt4-discover-received"
+	DHCP4StatsOffer         = "pkt4-offer-sent"
+	DHCP4StatsRequest       = "pkt4-request-received"
+	DHCP4StatsAck           = "pkt4-ack-sent"
+	DHCP4PacketTypeDiscover = "discover"
+	DHCP4PacketTypeOffer    = "offer"
+	DHCP4PacketTypeRequest  = "request"
+	DHCP4PacketTypeAck      = "ack"
+	TimeLayout              = "2006-01-02 15:04:05"
+)
 
-type CurlKeaStatsAll struct {
-	Arguments map[string][]interface{} `json:"arguments"`
-	Result    string                   `json:"result"`
+var (
+	SubnetRegexp                  = regexp.MustCompile(`^subnet\[(\d+)\]\.(\S+)`)
+	SubnetTotalAddressesRegexp    = regexp.MustCompile(`^subnet\[(\d+)\]\.total-addresses`)
+	SubnetAssignedAddressesRegexp = regexp.MustCompile(`^subnet\[(\d+)\]\.assigned-addresses`)
+)
+
+type SubnetStats map[string]SubnetAddressStats
+
+type SubnetAddressStats struct {
+	assignedAddrsCount uint64
+	totalAddrsCount    uint64
 }
 
 type DHCPCollector struct {
-	dhcpAddr string
+	enabled      bool
+	nodeIP       string
+	url          string
+	httpClient   *http.Client
+	lastAckCount uint64
+	lastGetTime  time.Time
+	lps          uint64
 }
 
-func newDHCPCollector(addr string) *DHCPCollector {
-	return &DHCPCollector{dhcpAddr: addr}
-}
-
-func (c *DHCPCollector) GetDhcpPacketStatistics() (float64, error) {
-	out, err := RunCmd("curl -X POST http://\"" + c.dhcpAddr + "\"" + " -H 'Content-Type: application/json' -d '" +
-		`   { "command": "statistic-get", "service": ["dhcp4"], "arguments": { "name": "pkt4-received" } } ' 2>/dev/null`)
-	if err != nil {
-		return 0, err
+func newDHCPCollector(conf *config.AgentConfig, cli *http.Client) (*DHCPCollector, error) {
+	if conf.DHCP.Enabled {
+		return &DHCPCollector{enabled: conf.DHCP.Enabled}, nil
 	}
 
-	if len(out) <= 1 {
-		return 0, nil
-	}
-
-	var curlRet CurlKeaStats
-	if err := json.Unmarshal(out[1:len(out)-1], &curlRet); err != nil {
-		return 0, err
-	}
-
-	return float64(len(curlRet.Arguments.Pkt4Received)), nil
-}
-
-func GetKeaStatisticsAll(dhcpAddr string) (*CurlKeaStatsAll, error) {
-	out, err := RunCmd("curl -X POST http://\"" + dhcpAddr + "\"" + " -H 'Content-Type: application/json' -d '" +
-		`   { "command": "statistic-get-all", "service": ["dhcp4"], "arguments": { }}' 2>/dev/null`)
+	cmdUrl, err := url.Parse(HttpScheme + conf.DHCP.CmdAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(out) <= 1 {
-		return nil, nil
+	c := &DHCPCollector{
+		enabled:    conf.DHCP.Enabled,
+		nodeIP:     conf.Server.IP,
+		url:        cmdUrl.String(),
+		httpClient: cli,
 	}
-
-	var curlRet CurlKeaStatsAll
-	if err := json.Unmarshal(out[1:len(out)-1], &curlRet); err != nil {
-		return nil, err
-	}
-
-	return &curlRet, nil
+	go c.Run()
+	return c, nil
 }
 
-func (c *DHCPCollector) GetDhcpLeasesStatistics() (float64, error) {
-	curlRet, err := GetKeaStatisticsAll(c.dhcpAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	if curlRet == nil {
-		return 0, nil
-	}
-
-	leaseNum := 0
-	rex := regexp.MustCompile(`^subnet\[(\d+)\]\.assigned-addresses`)
-	for k, v := range curlRet.Arguments {
-		out := rex.FindAllStringSubmatch(k, -1)
-		if len(out) > 0 {
-			for range out {
-				leaseNum += len(v)
-			}
-		}
-	}
-
-	return float64(leaseNum), nil
-}
-
-func (c *DHCPCollector) GetDhcpUsageStatistics() (float64, error) {
-	out, err := RunCmd("curl -X POST http://\"" + c.dhcpAddr + "\"" + " -H 'Content-Type: application/json' -d '" +
-		`   { "command": "statistic-get-all", "service": ["dhcp4"], "arguments": { } } ' 2>/dev/null`)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(out) <= 1 {
-		return 0, nil
-	}
-
-	var curlRet CurlKeaStatsAll
-	if err := json.Unmarshal(out[1:len(out)-1], &curlRet); err != nil {
-		return 0, err
-	}
-
-	var leaseNum, totalNum float64
-	rex := regexp.MustCompile(`^subnet\[(\d+)\]\.(\S+)`)
-	for k, v := range curlRet.Arguments {
-		if len(v) == 0 {
-			continue
-		}
-
-		for _, i := range rex.FindAllStringSubmatch(k, -1) {
-			if len(i) < 3 {
+func (dhcp *DHCPCollector) Run() {
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			statistics, err := dhcp.getStats()
+			if err != nil {
 				continue
 			}
 
-			addrType := i[2]
-			if addrType == "total-addresses" {
-				if totals, ok := v[0].([]interface{}); ok {
-					totalNum += totals[0].(float64)
+			var lps uint64
+			for statsName, stats := range statistics {
+				if statsName == DHCP4StatsAck {
+					if v, ok := getStatsValue(stats); ok {
+						now := time.Now()
+						lps = (v - dhcp.lastAckCount) / uint64(now.Sub(dhcp.lastGetTime).Seconds())
+						dhcp.lastAckCount = v
+						dhcp.lastGetTime = now
+					}
 				}
-			} else if addrType == "assigned-addresses" {
-				leaseNum += float64(len(v))
+			}
+
+			atomic.StoreUint64(&dhcp.lps, lps)
+		}
+	}
+}
+
+func (dhcp *DHCPCollector) Describe(ch chan<- *prometheus.Desc) {
+	if dhcp.enabled {
+		for _, desc := range DHCPPrometheusDescs {
+			ch <- desc
+		}
+	}
+}
+
+func (dhcp *DHCPCollector) Collect(ch chan<- prometheus.Metric) {
+	if dhcp.enabled == false {
+		return
+	}
+
+	statistics, err := dhcp.getStats()
+	if err != nil {
+		log.Warnf("get dhcp statistics with node %s failed: %s", dhcp.nodeIP, err.Error())
+		return
+	}
+
+	ch <- prometheus.MustNewConstMetric(DHCPLPS, prometheus.GaugeValue, float64(atomic.LoadUint64(&dhcp.lps)), dhcp.nodeIP)
+
+	subnetStats := make(SubnetStats)
+	for statsName, stats := range statistics {
+		switch statsName {
+		case DHCP4StatsDiscover:
+			dhcp.collectPacketStats(ch, DHCP4PacketTypeDiscover, stats)
+		case DHCP4StatsOffer:
+			dhcp.collectPacketStats(ch, DHCP4PacketTypeOffer, stats)
+		case DHCP4StatsRequest:
+			dhcp.collectPacketStats(ch, DHCP4PacketTypeRequest, stats)
+		case DHCP4StatsAck:
+			dhcp.collectPacketStats(ch, DHCP4PacketTypeAck, stats)
+		}
+
+		if totalAddrsSlice := SubnetTotalAddressesRegexp.FindAllStringSubmatch(statsName, -1); len(totalAddrsSlice) == 1 &&
+			len(totalAddrsSlice[0]) == 2 {
+			if v, ok := getStatsValue(stats); ok {
+				if addrStats, ok := subnetStats[totalAddrsSlice[0][1]]; ok == false {
+					subnetStats[totalAddrsSlice[0][1]] = SubnetAddressStats{totalAddrsCount: v}
+				} else {
+					addrStats.totalAddrsCount = v
+					subnetStats[totalAddrsSlice[0][1]] = addrStats
+				}
+			}
+		}
+
+		if assignedAddrsSlice := SubnetAssignedAddressesRegexp.FindAllStringSubmatch(statsName, -1); len(assignedAddrsSlice) == 1 &&
+			len(assignedAddrsSlice[0]) == 2 {
+			if v, ok := getStatsValue(stats); ok {
+				if addrStats, ok := subnetStats[assignedAddrsSlice[0][1]]; ok == false {
+					subnetStats[assignedAddrsSlice[0][1]] = SubnetAddressStats{assignedAddrsCount: v}
+				} else {
+					addrStats.assignedAddrsCount = v
+					subnetStats[assignedAddrsSlice[0][1]] = addrStats
+				}
 			}
 		}
 	}
 
-	if totalNum > 0 {
-		return leaseNum / totalNum * 100, nil
+	var leasesCount uint64
+	for subnetID, addrStats := range subnetStats {
+		if addrStats.totalAddrsCount != 0 {
+			leasesCount += addrStats.assignedAddrsCount
+			ch <- prometheus.MustNewConstMetric(DHCPUsages, prometheus.GaugeValue,
+				float64(addrStats.assignedAddrsCount)/float64(addrStats.totalAddrsCount), dhcp.nodeIP, subnetID)
+		}
 	}
 
-	return 0, nil
+	ch <- prometheus.MustNewConstMetric(DHCPLeases, prometheus.GaugeValue,
+		float64(leasesCount), dhcp.nodeIP)
+
 }
 
-func RunCmd(command string) ([]byte, error) {
-	return exec.Command("bash", "-c", command).Output()
+func (dhcp *DHCPCollector) collectPacketStats(ch chan<- prometheus.Metric, packetType string, stats [][]interface{}) {
+	if v, ok := getStatsValue(stats); ok {
+		ch <- prometheus.MustNewConstMetric(DHCPPackets, prometheus.GaugeValue, float64(v), dhcp.nodeIP, packetType)
+	}
+}
+
+func getStatsValue(stats [][]interface{}) (uint64, bool) {
+	for _, ss := range stats {
+		for _, s := range ss {
+			if v, ok := s.(uint64); ok {
+				return v, true
+			}
+		}
+	}
+
+	return 0, false
+}
+
+func (dhcp *DHCPCollector) getStats() (map[string][][]interface{}, error) {
+	resp, err := dhcpsrv.SendHttpRequestToDHCP(dhcp.httpClient, dhcp.url, &dhcpsrv.DHCPCmdRequest{
+		Command: GetStatisticAll,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp[0].Arguments.(map[string][][]interface{}), nil
 }

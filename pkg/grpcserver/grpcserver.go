@@ -29,7 +29,7 @@ func New(conf *config.AgentConfig) (*GRPCServer, error) {
 		listener: listener,
 	}
 
-	if conf.Server.DNSEnabled {
+	if conf.DNS.Enabled {
 		dnsService, err := dnssrv.New(conf)
 		if err != nil {
 			return nil, fmt.Errorf("create dns grpc service failed: %s", err.Error())
@@ -37,7 +37,7 @@ func New(conf *config.AgentConfig) (*GRPCServer, error) {
 		pb.RegisterAgentManagerServer(grpcServer.server, dnsService)
 	}
 
-	if conf.Server.DHCPEnabled {
+	if conf.DHCP.Enabled {
 		dhcpService, err := dhcpsrv.New(conf)
 		if err != nil {
 			return nil, fmt.Errorf("create dhcp grpc service failed: %s", err.Error())
