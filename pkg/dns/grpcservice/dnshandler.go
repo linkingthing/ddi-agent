@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -303,7 +304,7 @@ func (handler *DNSHandler) Start(req pb.DNSStartReq) error {
 	}
 
 	var param string = "-c" + handler.dnsConfPath + mainConfName
-	if _, err := shell.Shell("named", param); err != nil {
+	if _, err := shell.Shell(strings.Join([]string{handler.dnsConfPath, "named"}, "/"), param); err != nil {
 		return err
 	}
 	return nil
