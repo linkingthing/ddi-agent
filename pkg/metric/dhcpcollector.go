@@ -167,14 +167,14 @@ func (dhcp *DHCPCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 
-	ch <- prometheus.MustNewConstMetric(DHCPLeases, prometheus.GaugeValue,
+	ch <- prometheus.MustNewConstMetric(DHCPLeasesTotal, prometheus.GaugeValue,
 		float64(leasesCount), dhcp.nodeIP)
 
 }
 
 func (dhcp *DHCPCollector) collectPacketStats(ch chan<- prometheus.Metric, packetType string, stats [][]interface{}) {
 	if v, ok := getStatsValue(stats); ok {
-		ch <- prometheus.MustNewConstMetric(DHCPPackets, prometheus.GaugeValue, float64(v), dhcp.nodeIP, packetType)
+		ch <- prometheus.MustNewConstMetric(DHCPPacketsStats, prometheus.GaugeValue, float64(v), dhcp.nodeIP, packetType)
 	}
 }
 

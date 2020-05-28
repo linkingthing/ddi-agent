@@ -119,7 +119,7 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	ch <- prometheus.MustNewConstMetric(DNSQueries, prometheus.CounterValue, totalQueries, dns.nodeIP)
+	ch <- prometheus.MustNewConstMetric(DNSQueriesTotal, prometheus.CounterValue, totalQueries, dns.nodeIP)
 	for _, cs := range statistics.Server.Counters {
 		switch cs.Type {
 		case ServerCounterTypeRCode:
@@ -165,7 +165,7 @@ func (dns *DNSCollector) collectRCodeRatio(ch chan<- prometheus.Metric, totalQue
 	for _, c := range counters {
 		switch c.Name {
 		case RcodeNOERROR, RcodeSERVFAIL, RcodeNXDOMAIN, RcodeREFUSED:
-			ch <- prometheus.MustNewConstMetric(DNSResolveRatios, prometheus.CounterValue,
+			ch <- prometheus.MustNewConstMetric(DNSResolvedRatios, prometheus.CounterValue,
 				float64(c.Counter)/totalQueries, dns.nodeIP, c.Name)
 		}
 	}
@@ -173,7 +173,7 @@ func (dns *DNSCollector) collectRCodeRatio(ch chan<- prometheus.Metric, totalQue
 
 func (dns *DNSCollector) collectQTypeRatio(ch chan<- prometheus.Metric, totalQueries float64, counters []Counter) {
 	for _, c := range counters {
-		ch <- prometheus.MustNewConstMetric(DNSQueryTypes, prometheus.CounterValue, float64(c.Counter)/totalQueries, dns.nodeIP, c.Name)
+		ch <- prometheus.MustNewConstMetric(DNSQueryTypeRatios, prometheus.CounterValue, float64(c.Counter)/totalQueries, dns.nodeIP, c.Name)
 	}
 }
 
