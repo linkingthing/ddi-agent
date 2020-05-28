@@ -113,58 +113,67 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	ch <- prometheus.MustNewConstMetric(DNSQPS, prometheus.CounterValue, float64(atomic.LoadUint64(&dns.qps)), dns.nodeIP)
-
-	for _, cs := range statistics.Server.Counters {
-		switch cs.Type {
-		case ServerCounterTypeOpCode:
-			dns.collectQueryTotal(ch, cs.Counters)
-		case ServerCounterTypeRCode:
-			dns.collectRCode(ch, cs.Counters)
-		case ServerCounterTypeQType:
-			dns.collectQType(ch, cs.Counters)
-		}
+	dns.collectCacheHits(ch, statistics.Views)
+	totalQueries, ok := dns.getQueryTotal(statistics.Server.Counters)
+	if ok == false || totalQueries == 0 {
+		return
 	}
 
-	for _, v := range statistics.Views {
-		for _, c := range v.Counters {
-			if c.Type == ViewCounterTypeCacheStats {
-				dns.collectCacheHits(ch, v.Name, c.Counters)
+	ch <- prometheus.MustNewConstMetric(DNSQueries, prometheus.CounterValue, totalQueries, dns.nodeIP)
+	for _, cs := range statistics.Server.Counters {
+		switch cs.Type {
+		case ServerCounterTypeRCode:
+			dns.collectRCodeRatio(ch, totalQueries, cs.Counters)
+		case ServerCounterTypeQType:
+			dns.collectQTypeRatio(ch, totalQueries, cs.Counters)
+		}
+	}
+}
+
+func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []View) {
+	for _, v := range views {
+		for _, cs := range v.Counters {
+			if cs.Type == ViewCounterTypeCacheStats {
+				for _, c := range cs.Counters {
+					if c.Name == CacheStatsQueryHits {
+						ch <- prometheus.MustNewConstMetric(DNSCacheHits, prometheus.CounterValue, float64(c.Counter),
+							dns.nodeIP, v.Name)
+						break
+					}
+				}
 				break
 			}
 		}
 	}
 }
 
-func (dns *DNSCollector) collectQueryTotal(ch chan<- prometheus.Metric, counters []Counter) {
-	for _, c := range counters {
-		if c.Name == OpcodeQUERY {
-			ch <- prometheus.MustNewConstMetric(DNSQueries, prometheus.CounterValue, float64(c.Counter), dns.nodeIP)
-			return
+func (dns *DNSCollector) getQueryTotal(counters []Counters) (float64, bool) {
+	for _, cs := range counters {
+		if cs.Type == ServerCounterTypeOpCode {
+			for _, c := range cs.Counters {
+				if c.Name == OpcodeQUERY {
+					return float64(c.Counter), true
+				}
+			}
 		}
 	}
+
+	return 0, false
 }
 
-func (dns *DNSCollector) collectRCode(ch chan<- prometheus.Metric, counters []Counter) {
+func (dns *DNSCollector) collectRCodeRatio(ch chan<- prometheus.Metric, totalQueries float64, counters []Counter) {
 	for _, c := range counters {
 		switch c.Name {
 		case RcodeNOERROR, RcodeSERVFAIL, RcodeNXDOMAIN, RcodeREFUSED:
-			ch <- prometheus.MustNewConstMetric(DNSRCodes, prometheus.CounterValue, float64(c.Counter), dns.nodeIP, c.Name)
+			ch <- prometheus.MustNewConstMetric(DNSResolveRatios, prometheus.CounterValue,
+				float64(c.Counter)/totalQueries, dns.nodeIP, c.Name)
 		}
 	}
 }
 
-func (dns *DNSCollector) collectQType(ch chan<- prometheus.Metric, counters []Counter) {
+func (dns *DNSCollector) collectQTypeRatio(ch chan<- prometheus.Metric, totalQueries float64, counters []Counter) {
 	for _, c := range counters {
-		ch <- prometheus.MustNewConstMetric(DNSQueryTypes, prometheus.CounterValue, float64(c.Counter), dns.nodeIP, c.Name)
-	}
-}
-
-func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, view string, counters []Counter) {
-	for _, c := range counters {
-		if c.Name == CacheStatsQueryHits {
-			ch <- prometheus.MustNewConstMetric(DNSCacheHits, prometheus.CounterValue, float64(c.Counter), dns.nodeIP, view)
-			return
-		}
+		ch <- prometheus.MustNewConstMetric(DNSQueryTypes, prometheus.CounterValue, float64(c.Counter)/totalQueries, dns.nodeIP, c.Name)
 	}
 }
 
