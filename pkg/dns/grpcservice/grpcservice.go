@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/linkingthing/ddi-agent/config"
-	"github.com/linkingthing/ddi-metric/pb"
+	"github.com/linkingthing/ddi-agent/pkg/pb"
 )
 
 const (

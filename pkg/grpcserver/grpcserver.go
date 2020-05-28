@@ -9,8 +9,8 @@ import (
 	"github.com/linkingthing/ddi-agent/config"
 	dhcpsrv "github.com/linkingthing/ddi-agent/pkg/dhcp/grpcservice"
 	dnssrv "github.com/linkingthing/ddi-agent/pkg/dns/grpcservice"
+	"github.com/linkingthing/ddi-agent/pkg/pb"
 	"github.com/linkingthing/ddi-agent/pkg/proto"
-	"github.com/linkingthing/ddi-metric/pb"
 )
 
 type GRPCServer struct {

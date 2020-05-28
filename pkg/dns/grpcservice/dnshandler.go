@@ -16,7 +16,7 @@ import (
 	"github.com/zdnscloud/g53"
 
 	"github.com/linkingthing/ddi-agent/pkg/boltdb"
-	"github.com/linkingthing/ddi-metric/pb"
+	"github.com/linkingthing/ddi-agent/pkg/pb"
 	"github.com/linkingthing/ddi-metric/utils/random"
 )
 
@@ -398,7 +398,7 @@ func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
 		return err
 	}
 	//insert aCLIDs into viewid table
-	for _, id := range req.ACLIDs {
+	for _, id := range req.ACLs {
 		if _, err := boltdb.GetDB().GetTables(viewsPath + req.ViewID + aCLsPath + id); err != nil {
 			return err
 		}
@@ -418,13 +418,13 @@ func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 		return err
 	}
 	//delete aclids for aCL
-	for _, id := range req.DeleteACLIDs {
+	for _, id := range req.DeleteACLs {
 		if err := boltdb.GetDB().DeleteTable(viewsPath + req.ViewID + aCLsPath + id); err != nil {
 			return err
 		}
 	}
 	//add new aclids for aCL
-	for _, id := range req.AddACLIDs {
+	for _, id := range req.AddACLs {
 		if _, err := boltdb.GetDB().CreateOrGetTable(viewsPath + req.ViewID + aCLsPath + id); err != nil {
 			return err
 		}
@@ -1748,7 +1748,7 @@ func (handler *DNSHandler) DeleteDNS64(req pb.DeleteDNS64Req) error {
 func (handler *DNSHandler) CreateIPBlackHole(req pb.CreateIPBlackHoleReq) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
-	kvs["aclid"] = []byte(req.ACLID)
+	kvs["aclid"] = []byte(req.ACL)
 	if err := boltdb.GetDB().AddKVs(ipBlackHolePath+req.ID, kvs); err != nil {
 		return err
 	}
@@ -1765,7 +1765,7 @@ func (handler *DNSHandler) CreateIPBlackHole(req pb.CreateIPBlackHoleReq) error 
 func (handler *DNSHandler) UpdateIPBlackHole(req pb.UpdateIPBlackHoleReq) error {
 	//update the data into the data base.
 	kvs := map[string][]byte{}
-	kvs["aclid"] = []byte(req.ACLID)
+	kvs["aclid"] = []byte(req.ACL)
 	if err := boltdb.GetDB().UpdateKVs(ipBlackHolePath+req.ID, kvs); err != nil {
 		return err
 	}
@@ -1824,24 +1824,24 @@ func (handler *DNSHandler) UpdateRecursiveConcurrent(req pb.UpdateRecurConcuReq)
 func (handler *DNSHandler) CreateSortList(req pb.CreateSortListReq) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
-	if len(req.ACLIDs) == 0 {
+	if len(req.ACLs) == 0 {
 		return nil
 	}
-	kvs["next"] = []byte(req.ACLIDs[0])
+	kvs["next"] = []byte(req.ACLs[0])
 	if err := boltdb.GetDB().AddKVs(sortListEndPath, kvs); err != nil {
 		return err
 	}
-	for k, v := range req.ACLIDs {
+	for k, v := range req.ACLs {
 		kvs := map[string][]byte{}
 		if k == 0 {
 			kvs["prev"] = []byte("")
 		} else {
-			kvs["prev"] = []byte(req.ACLIDs[k-1])
+			kvs["prev"] = []byte(req.ACLs[k-1])
 		}
-		if k == len(req.ACLIDs)-1 {
+		if k == len(req.ACLs)-1 {
 			kvs["next"] = []byte("")
 		} else {
-			kvs["next"] = []byte(req.ACLIDs[k+1])
+			kvs["next"] = []byte(req.ACLs[k+1])
 		}
 		if err := boltdb.GetDB().AddKVs(sortListPath+v, kvs); err != nil {
 			return err
@@ -1859,9 +1859,9 @@ func (handler *DNSHandler) CreateSortList(req pb.CreateSortListReq) error {
 }
 func (handler *DNSHandler) UpdateSortList(req pb.UpdateSortListReq) error {
 	//update the data into the data base.
-	delReq := pb.DeleteSortListReq{ACLIDs: req.ACLIDs}
+	delReq := pb.DeleteSortListReq{ACLs: req.ACLs}
 	handler.DeleteSortList(delReq)
-	createReq := pb.CreateSortListReq{ACLIDs: req.ACLIDs}
+	createReq := pb.CreateSortListReq{ACLs: req.ACLs}
 	handler.CreateSortList(createReq)
 	return nil
 }
