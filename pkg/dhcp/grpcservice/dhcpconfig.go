@@ -1,17 +1,28 @@
 package grpcservice
 
+const (
+	DHCP4SocketName = "/tmp/kea-dhcp4-ctrl.sock"
+	DHCP6SocketName = "/tmp/kea-dhcp6-ctrl.sock"
+	DHCP4LogName    = "kea-dhcp4"
+	DHCP6LogName    = "kea-dhcp6"
+)
+
 func genDefaultDHCP4Config() DHCP4Config {
 	return DHCP4Config{
 		DHCP4: DHCP4{
-			GenenalConfig: genDefaultGeneralConfig(),
+			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName),
 		},
 	}
 }
 
-func genDefaultGeneralConfig() GenenalConfig {
+func genDefaultGeneralConfig(socketName, logName string) GenenalConfig {
 	return GenenalConfig{
 		InterfacesConfig: InterfacesConfig{
 			Interfaces: []string{"*"},
+		},
+		ControlSocket: ControlSocket{
+			SocketType: "unix",
+			SocketName: socketName,
 		},
 		LeaseDatabase: LeaseDatabase{
 			Type:     "postgresql",
@@ -26,7 +37,7 @@ func genDefaultGeneralConfig() GenenalConfig {
 		MinValidLifetime: 10800,
 		Loggers: []Logger{
 			{
-				Name:       "kea-dhcp4",
+				Name:       logName,
 				DebugLevel: 0,
 				Severity:   "INFO",
 			},
@@ -46,6 +57,7 @@ type DHCP4 struct {
 
 type GenenalConfig struct {
 	InterfacesConfig InterfacesConfig `json:"interfaces-config,omitempty"`
+	ControlSocket    ControlSocket    `json:"control-socket,omitempty"`
 	LeaseDatabase    LeaseDatabase    `json:"lease-database,omitempty"`
 	ValidLifetime    uint32           `json:"valid-lifetime,omitempty"`
 	MaxValidLifetime uint32           `json:"max-valid-lifetime,omitempty"`
@@ -56,7 +68,12 @@ type GenenalConfig struct {
 }
 
 type InterfacesConfig struct {
-	Interfaces []string `json:"interfaces,omitempty"`
+	Interfaces []string `json:"interfaces"`
+}
+
+type ControlSocket struct {
+	SocketType string `json:"socket-type,omitempty"`
+	SocketName string `json:"socket-name,omitempty"`
 }
 
 type LeaseDatabase struct {
@@ -125,7 +142,7 @@ type RelayAgent struct {
 func genDefaultDHCP6Config() DHCP6Config {
 	return DHCP6Config{
 		DHCP6: DHCP6{
-			GenenalConfig: genDefaultGeneralConfig(),
+			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName),
 		},
 	}
 }

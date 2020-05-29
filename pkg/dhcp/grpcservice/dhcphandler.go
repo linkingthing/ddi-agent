@@ -183,7 +183,7 @@ func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
 		MaxValidLifetime: req.GetMaxValidLifetime(),
 		MinValidLifetime: req.GetMinValidLifetime(),
 		OptionDatas:      genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), req.GetRouters()),
-		Relay:            RelayAgent{IPAddresses: req.GetRelayAgentAddresses()},
+		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
 	})
 	h.lock.Unlock()
 
@@ -207,6 +207,14 @@ func genDHCPOptionDatas(optionNameDNS string, domainServers []string, routers []
 	}
 
 	return options
+}
+
+func genRelayAgent(relayAgentAddrs []string) RelayAgent {
+	if len(relayAgentAddrs) == 0 {
+		return RelayAgent{IPAddresses: make([]string, 0)}
+	}
+
+	return RelayAgent{IPAddresses: relayAgentAddrs}
 }
 
 func (h *DHCPHandler) reconfig(services []string, configPath string, conf interface{}) error {
@@ -250,7 +258,7 @@ func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
 			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].MinValidLifetime = req.GetMinValidLifetime()
 			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].OptionDatas = genDHCPOptionDatas(
 				Option4DNSServers, req.GetDomainServers(), req.GetRouters())
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Relay = RelayAgent{IPAddresses: req.GetRelayAgentAddresses()}
+			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
 			exists = true
 			break
 		}
@@ -293,7 +301,7 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 		MaxValidLifetime: req.GetMaxValidLifetime(),
 		MinValidLifetime: req.GetMinValidLifetime(),
 		OptionDatas:      genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil),
-		Relay:            RelayAgent{IPAddresses: req.GetRelayAgentAddresses()},
+		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
 	})
 
 	h.lock.Unlock()
@@ -311,7 +319,7 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].MaxValidLifetime = req.GetMaxValidLifetime()
 			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].MinValidLifetime = req.GetMinValidLifetime()
 			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Relay = RelayAgent{IPAddresses: req.GetRelayAgentAddresses()}
+			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
 			exists = true
 			break
 		}
