@@ -4,18 +4,37 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var (
-	DNSQPS              = prometheus.NewDesc("lx_dns_qps", "the gauge of dns qps", []string{"server", "module"}, nil)
-	DNSQueries          = prometheus.NewDesc("lx_dns_queries", "the counter of dns queries", []string{"server", "module"}, nil)
-	DNSRecrusiveQueries = prometheus.NewDesc("lx_dns_recursive_queries", "the counter of dns recursive queries", []string{"server", "module"}, nil)
-	DNSCacheHits        = prometheus.NewDesc("lx_dns_cache_hits", "the counter of dns cache hits", []string{"server", "module"}, nil)
-	DNSRetCodeNOERROR   = prometheus.NewDesc("lx_dns_retcode_noerror", "the counter of dns noerror return code", []string{"server", "module"}, nil)
-	DNSRetCodeNXDOMAIN  = prometheus.NewDesc("lx_dns_retcode_nxdomain", "the counter of dns nxdomain return code", []string{"server", "module"}, nil)
-	DNSRetCodeSERVFAIL  = prometheus.NewDesc("lx_dns_retcode_servfail", "the counter of dns servfail return code", []string{"server", "module"}, nil)
-	DNSRetCodeREFUSED   = prometheus.NewDesc("lx_dns_retcode_refused", "the counter of dns refused return code", []string{"server", "module"}, nil)
-	DHCPPacketStatistic = prometheus.NewDesc("lx_dhcp_packet_statistic", "the gauge of dhcp packet statistic", []string{"server", "module"}, nil)
-	DHCPLeaseStatistic  = prometheus.NewDesc("lx_dhcp_lease_statistic", "the gauge of dhcp lease statistic", []string{"server", "module"}, nil)
-	DHCPUsageStatistic  = prometheus.NewDesc("lx_dhcp_usage_statistic", "the gauge of dhcp usage statistic", []string{"server", "module"}, nil)
+const (
+	MetricLabelNode     = "node"
+	MetricLabelType     = "type"
+	MetricLabelView     = "view"
+	MetricLabelRcode    = "rcode"
+	MetricLabelSubnetId = "subnet_id"
+
+	MetricNameDNSQPS             = "lx_dns_qps"
+	MetricNameDNSQueriesTotal    = "lx_dns_queries_total"
+	MetricNameDNSQueryTypeRatios = "lx_dns_query_type_ratios"
+	MetricNameDNSCacheHits       = "lx_dns_cache_hits"
+	MetricNameDNSResolvedRatios  = "lx_dns_resolved_ratios"
+
+	MetricNameDHCPLPS          = "lx_dhcp_lps"
+	MetricNameDHCPPacketsStats = "lx_dhcp_packets_stats"
+	MetricNameDHCPLeasesTotal  = "lx_dhcp_leases_total"
+	MetricNameDHCPUsages       = "lx_dhcp_usages"
 )
 
-var PrometheusDescs = []*prometheus.Desc{DNSQPS, DNSQueries, DNSRecrusiveQueries, DNSCacheHits, DNSRetCodeNOERROR, DNSRetCodeNXDOMAIN, DNSRetCodeSERVFAIL, DNSRetCodeREFUSED, DHCPPacketStatistic, DHCPLeaseStatistic, DHCPUsageStatistic}
+var (
+	DNSQPS             = prometheus.NewDesc(MetricNameDNSQPS, "dns qps per node", []string{MetricLabelNode}, nil)
+	DNSQueriesTotal    = prometheus.NewDesc(MetricNameDNSQueriesTotal, "dns queries per node", []string{MetricLabelNode}, nil)
+	DNSQueryTypeRatios = prometheus.NewDesc(MetricNameDNSQueryTypeRatios, "dns qtypes ratio per node,type", []string{MetricLabelNode, MetricLabelType}, nil)
+	DNSCacheHits       = prometheus.NewDesc(MetricNameDNSCacheHits, "dns cache hits per node,view", []string{MetricLabelNode, MetricLabelView}, nil)
+	DNSResolvedRatios  = prometheus.NewDesc(MetricNameDNSResolvedRatios, "dns resolve ratio per node,rcode", []string{MetricLabelNode, MetricLabelRcode}, nil)
+
+	DHCPLPS          = prometheus.NewDesc(MetricNameDHCPLPS, "dhcp lps per node", []string{MetricLabelNode}, nil)
+	DHCPPacketsStats = prometheus.NewDesc(MetricNameDHCPPacketsStats, "dhcp packets stats per node,type", []string{MetricLabelNode, MetricLabelType}, nil)
+	DHCPLeasesTotal  = prometheus.NewDesc(MetricNameDHCPLeasesTotal, "dhcp leases statistic per node", []string{MetricLabelNode}, nil)
+	DHCPUsages       = prometheus.NewDesc(MetricNameDHCPUsages, "dhcp usages statistic per node,subnet", []string{MetricLabelNode, MetricLabelSubnetId}, nil)
+)
+
+var DNSPrometheusDescs = []*prometheus.Desc{DNSQPS, DNSQueriesTotal, DNSQueryTypeRatios, DNSCacheHits, DNSResolvedRatios}
+var DHCPPrometheusDescs = []*prometheus.Desc{DHCPLPS, DHCPPacketsStats, DHCPLeasesTotal, DHCPUsages}

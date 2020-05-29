@@ -7,22 +7,45 @@ import (
 type AgentConfig struct {
 	Path       string         `yaml:"-"`
 	Server     ServerConf     `yaml:"server"`
+	Controller ControllerConf `yaml:"controller"`
+	DNS        DNSConf        `yaml:"dns"`
+	DHCP       DHCPConf       `yaml:"dhcp"`
 	Grpc       GrpcConf       `yaml:"grpc"`
 	Kafka      KafkaConf      `yaml:"kafka"`
 	Prometheus PrometheusConf `yaml:"prometheus"`
 	Metric     MetricConf     `yaml:"metric"`
-	Dns        DnsConf        `yaml:"dns"`
-	Dhcp       DhcpConf       `yaml:"dhcp"`
-	DB         DBConf         `yaml:"db"`
+	DB         BoltDBConf     `yaml:"db"`
 }
 
 type ServerConf struct {
-	ControllerEnabled bool   `yaml:"controller_enabled"`
-	DHCPEnabled       bool   `yaml:"dhcp_enabled"`
-	DNSEnabled        bool   `yaml:"dns_enabled"`
-	IP                string `yaml:"ip"`
-	Hostname          string `yaml:"hostname"`
-	ParentIP          string `yaml:"parent_ip"`
+	IP       string `yaml:"ip"`
+	Hostname string `yaml:"hostname"`
+}
+
+type ControllerConf struct {
+	IP            string `yaml:"ip"`
+	IsCurrentNode bool   `yaml:"is_current_node"`
+}
+
+type DNSConf struct {
+	Enabled   bool   `yaml:"enabled"`
+	ConfDir   string `yaml:"conf_dir"`
+	DBDir     string `yaml:"db_dir"`
+	StatsAddr string `yaml:"stats_addr"`
+}
+
+type DHCPConf struct {
+	Enabled   bool       `yaml:"enabled"`
+	CmdAddr   string     `yaml:"cmd_addr"`
+	ConfigDir string     `yaml:"config_dir"`
+	DB        DHCPDBConf `yaml:"db"`
+}
+
+type DHCPDBConf struct {
+	Name     string `json:"name"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Port     uint32 `json:"port"`
 }
 
 type GrpcConf struct {
@@ -40,21 +63,10 @@ type PrometheusConf struct {
 }
 
 type MetricConf struct {
-	Port          string `yaml:"port"`
-	HistoryLength int    `yaml:"history_length"`
-	Period        int    `yaml:"period"`
+	Port uint32 `yaml:"port"`
 }
 
-type DnsConf struct {
-	ConfDir string `yaml:"conf_dir"`
-	DBDir   string `yaml:"db_dir"`
-}
-
-type DhcpConf struct {
-	Addr string `yaml:"addr"`
-}
-
-type DBConf struct {
+type BoltDBConf struct {
 	Dir string `yaml:"dir"`
 }
 

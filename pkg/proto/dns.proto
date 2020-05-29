@@ -1,41 +1,41 @@
 syntax = "proto3";
 
-package pb;
-import "util.proto";
+package proto;
+import "ddi_response.proto";
 service AgentManager{
-rpc StartDNS(DNSStartReq) returns (OperResult){}
-rpc StopDNS(DNSStopReq) returns (OperResult){}
-rpc CreateACL(CreateACLReq) returns (OperResult){}
-rpc UpdateACL(UpdateACLReq) returns (OperResult){}
-rpc DeleteACL(DeleteACLReq) returns (OperResult){}
-rpc CreateView(CreateViewReq) returns (OperResult){}
-rpc UpdateView(UpdateViewReq) returns (OperResult){}
-rpc DeleteView(DeleteViewReq) returns (OperResult){}
-rpc CreateZone(CreateZoneReq) returns (OperResult){}
-rpc UpdateZone(UpdateZoneReq) returns (OperResult){}
-rpc DeleteZone(DeleteZoneReq) returns (OperResult){}
-rpc CreateForwardZone(CreateForwardZoneReq) returns (OperResult){}
-rpc UpdateForwardZone(UpdateForwardZoneReq) returns (OperResult){}
-rpc DeleteForwardZone(DeleteForwardZoneReq) returns (OperResult){}
-rpc CreateRR(CreateRRReq) returns (OperResult){}
-rpc UpdateRR(UpdateRRReq) returns (OperResult){}
-rpc DeleteRR(DeleteRRReq) returns (OperResult){} 
-rpc CreateForward(CreateForwardReq) returns (OperResult){}
-rpc UpdateForward(UpdateForwardReq) returns (OperResult){}
-rpc DeleteForward(DeleteForwardReq) returns (OperResult){} 
-rpc CreateRedirection(CreateRedirectionReq) returns (OperResult){}
-rpc UpdateRedirection(UpdateRedirectionReq) returns (OperResult){}
-rpc DeleteRedirection(DeleteRedirectionReq) returns (OperResult){}
-rpc CreateDNS64(CreateDNS64Req) returns (OperResult){}
-rpc UpdateDNS64(UpdateDNS64Req) returns (OperResult){}
-rpc DeleteDNS64(DeleteDNS64Req) returns (OperResult){}
-rpc CreateIPBlackHole(CreateIPBlackHoleReq) returns (OperResult){}
-rpc UpdateIPBlackHole(UpdateIPBlackHoleReq) returns (OperResult){}
-rpc DeleteIPBlackHole(DeleteIPBlackHoleReq) returns (OperResult){}
-rpc UpdateRecursiveConcurrent(UpdateRecurConcuReq) returns (OperResult){}
-rpc CreateSortList(CreateSortListReq) returns (OperResult){}
-rpc UpdateSortList(UpdateSortListReq) returns (OperResult){}
-rpc DeleteSortList(DeleteSortListReq) returns (OperResult){}
+rpc StartDNS(DNSStartReq) returns (DDIResponse){}
+rpc StopDNS(DNSStopReq) returns (DDIResponse){}
+rpc CreateACL(CreateACLReq) returns (DDIResponse){}
+rpc UpdateACL(UpdateACLReq) returns (DDIResponse){}
+rpc DeleteACL(DeleteACLReq) returns (DDIResponse){}
+rpc CreateView(CreateViewReq) returns (DDIResponse){}
+rpc UpdateView(UpdateViewReq) returns (DDIResponse){}
+rpc DeleteView(DeleteViewReq) returns (DDIResponse){}
+rpc CreateZone(CreateZoneReq) returns (DDIResponse){}
+rpc UpdateZone(UpdateZoneReq) returns (DDIResponse){}
+rpc DeleteZone(DeleteZoneReq) returns (DDIResponse){}
+rpc CreateForwardZone(CreateForwardZoneReq) returns (DDIResponse){}
+rpc UpdateForwardZone(UpdateForwardZoneReq) returns (DDIResponse){}
+rpc DeleteForwardZone(DeleteForwardZoneReq) returns (DDIResponse){}
+rpc CreateRR(CreateRRReq) returns (DDIResponse){}
+rpc UpdateRR(UpdateRRReq) returns (DDIResponse){}
+rpc DeleteRR(DeleteRRReq) returns (DDIResponse){} 
+rpc CreateForward(CreateForwardReq) returns (DDIResponse){}
+rpc UpdateForward(UpdateForwardReq) returns (DDIResponse){}
+rpc DeleteForward(DeleteForwardReq) returns (DDIResponse){} 
+rpc CreateRedirection(CreateRedirectionReq) returns (DDIResponse){}
+rpc UpdateRedirection(UpdateRedirectionReq) returns (DDIResponse){}
+rpc DeleteRedirection(DeleteRedirectionReq) returns (DDIResponse){}
+rpc CreateDNS64(CreateDNS64Req) returns (DDIResponse){}
+rpc UpdateDNS64(UpdateDNS64Req) returns (DDIResponse){}
+rpc DeleteDNS64(DeleteDNS64Req) returns (DDIResponse){}
+rpc CreateIPBlackHole(CreateIPBlackHoleReq) returns (DDIResponse){}
+rpc UpdateIPBlackHole(UpdateIPBlackHoleReq) returns (DDIResponse){}
+rpc DeleteIPBlackHole(DeleteIPBlackHoleReq) returns (DDIResponse){}
+rpc UpdateRecursiveConcurrent(UpdateRecurConcuReq) returns (DDIResponse){}
+rpc CreateSortList(CreateSortListReq) returns (DDIResponse){}
+rpc UpdateSortList(UpdateSortListReq) returns (DDIResponse){}
+rpc DeleteSortList(DeleteSortListReq) returns (DDIResponse){}
 }
 
 message DNSStartReq{

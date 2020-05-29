@@ -1,292 +1,302 @@
 syntax = "proto3";
 
-package pb;
-import "util.proto";
-//import "google/protobuf/timestamp.proto";
-service Dhcpv4Manager {
+package proto;
+import "ddi_response.proto";
 
-    rpc StartDHCPv4(startDHCPv4Req) returns (OperResult){}
-    rpc StopDHCPv4(stopDHCPv4Req)   returns (OperResult){}
+service DHCPManager {
+    rpc CreateSubnet4(CreateSubnet4Request) returns (DDIResponse) {}
+    rpc DeleteSubnet4(DeleteSubnet4Request) returns (DDIResponse) {}
+    rpc UpdateSubnet4(UpdateSubnet4Request) returns (DDIResponse) {}
 
-    rpc CreateSubnetv4(CreateSubnetv4Req)   returns (OperResult){}
-    rpc UpdateSubnetv4(UpdateSubnetv4Req)   returns (OperResult){}
-    rpc DeleteSubnetv4(DeleteSubnetv4Req)   returns (OperResult){}
+    rpc CreateSubnet6(CreateSubnet6Request) returns (DDIResponse) {}
+    rpc DeleteSubnet6(DeleteSubnet6Request) returns (DDIResponse) {}
+    rpc UpdateSubnet6(UpdateSubnet6Request) returns (DDIResponse) {}
 
-    rpc CreateSubnetv4Pool(CreateSubnetv4PoolReq)   returns (OperResult){}
-    rpc UpdateSubnetv4Pool(UpdateSubnetv4PoolReq)   returns (OperResult){}
-    rpc DeleteSubnetv4Pool(DeleteSubnetv4PoolReq)   returns (OperResult){}
+    rpc CreatePool4(CreatePool4Request) returns (DDIResponse) {}
+    rpc DeletePool4(DeletePool4Request) returns (DDIResponse) {}
+    rpc UpdatePool4(UpdatePool4Request) returns (DDIResponse) {}
 
-    rpc CreateSubnetv4Reservation(CreateSubnetv4ReservationReq)   returns (OperResult){}
-    rpc UpdateSubnetv4Reservation(UpdateSubnetv4ReservationReq)   returns (OperResult){}
-    rpc DeleteSubnetv4Reservation(DeleteSubnetv4ReservationReq)   returns (OperResult){}
+    rpc CreatePool6(CreatePool6Request) returns (DDIResponse) {}
+    rpc DeletePool6(DeletePool6Request) returns (DDIResponse) {}
+    rpc UpdatePool6(UpdatePool6Request) returns (DDIResponse) {}
 
-    rpc GetLeases(GetLeasesReq) returns (GetLeasesResp){}
+    rpc CreatePDPool(CreatePDPoolRequest) returns (DDIResponse) {}
+    rpc DeletePDPool(DeletePDPoolRequest) returns (DDIResponse) {}
+    rpc UpdatePDPool(UpdatePDPoolRequest) returns (DDIResponse) {}
+
+    rpc CreateReservation4(CreateReservation4Request) returns (DDIResponse) {}
+    rpc DeleteReservation4(DeleteReservation4Request) returns (DDIResponse) {}
+    rpc UpdateReservation4(UpdateReservation4Request) returns (DDIResponse) {}
+
+    rpc CreateReservation6(CreateReservation6Request) returns (DDIResponse) {}
+    rpc DeleteReservation6(DeleteReservation6Request) returns (DDIResponse) {}
+    rpc UpdateReservation6(UpdateReservation6Request) returns (DDIResponse) {}
+
+    rpc CreateClientClass4(CreateClientClass4Request) returns (DDIResponse) {}
+    rpc DeleteClientClass4(DeleteClientClass4Request) returns (DDIResponse) {}
+    rpc UpdateClientClass4(UpdateClientClass4Request) returns (DDIResponse) {}
+    
+    rpc UpdateGlobalConfig(UpdateGlobalConfigRequest) returns (DDIResponse) {}
+
+
+    rpc GetSubnet4LeasesCount(GetSubnet4LeasesCountRequest) returns (GetLeasesCountResponse){}
+    rpc GetPool4LeasesCount(GetPool4LeasesCountRequest) returns (GetLeasesCountResponse){}
+    rpc GetReservation4LeasesCount(GetReservation4LeasesCountRequest) returns (GetLeasesCountResponse){}
+
+
+    rpc GetSubnet6LeasesCount(GetSubnet6LeasesCountRequest) returns (GetLeasesCountResponse){}
+    rpc GetPool6LeasesCount(GetPool6LeasesCountRequest) returns (GetLeasesCountResponse){}
+    rpc GetReservation6LeasesCount(GetReservation6LeasesCountRequest) returns (GetLeasesCountResponse){}
+
+    rpc GetSubnet4Leases(GetSubnet4LeasesRequest) returns (GetLeasesResponse){}
+
+    rpc GetSubnet6Leases(GetSubnet6LeasesRequest) returns (GetLeasesResponse){}
 }
 
-service Dhcpv6Manager {
-    rpc StartDHCPv6(startDHCPv6Req) returns (OperResult){}
-    rpc StopDHCPv6(stopDHCPv6Req)   returns (OperResult){}
-
-    rpc CreateSubnetv6(CreateSubnetv6Req)   returns (OperResult){}
-    rpc UpdateSubnetv6(UpdateSubnetv6Req)   returns (OperResult){}
-    rpc DeleteSubnetv6(DeleteSubnetv6Req)   returns (OperResult){}
-
-    rpc CreateSubnetv6Pool(CreateSubnetv6PoolReq)   returns (OperResult){}
-    rpc UpdateSubnetv6Pool(UpdateSubnetv6PoolReq)   returns (OperResult){}
-    rpc DeleteSubnetv6Pool(DeleteSubnetv6PoolReq)   returns (OperResult){}
-
-    rpc CreateSubnetv6Reservation(CreateSubnetv6ReservationReq)   returns (OperResult){}
-    rpc UpdateSubnetv6Reservation(UpdateSubnetv6ReservationReq)   returns (OperResult){}
-    rpc DeleteSubnetv6Reservation(DeleteSubnetv6ReservationReq)   returns (OperResult){}
-
+message CreateSubnet4Request {
+    uint32 id = 1;
+    string ipnet = 2;
+    uint32 valid_lifetime = 3;
+    uint32 max_valid_lifetime = 4;
+    uint32 min_valid_lifetime = 5;
+    repeated string domain_servers = 6;
+    repeated string routers = 7;
+    string client_class = 8;
+    repeated string relay_agent_addresses = 9;
 }
 
-message Option{
-    bool alwaysSend = 1;
-    uint64   code           = 2;
-    bool    csvFormat       = 3;
-    string  data            = 4;
-    string  name            = 5;
-    string  space           = 6;
+message DeleteSubnet4Request {
+    uint32 id = 1;
 }
 
-message Reservation{
-    string prefixes         = 1;
-    string hostname         = 2;
-    string duid             = 3;
-    string ipAddresses      = 4;
-    string nextServer       = 5;
-    repeated    Option optData = 6;
-    string hwAddress = 7;
-    string circuitId = 8;
-    string clientId = 9;
-    string serverHostname = 10;
-    string bootFileName = 11;
-    string resvType = 12;
+message UpdateSubnet4Request {
+    uint32 id = 1;
+    uint32 valid_lifetime = 2;
+    uint32 max_valid_lifetime = 3;
+    uint32 min_valid_lifetime = 4;
+    repeated string domain_servers = 5;
+    repeated string routers = 6;
+    string client_class = 7;
+    repeated string relay_agent_addresses = 8;
 }
 
-message Pools{
-    repeated    Option options  = 1;
-                string pool     = 2;
-                string validLifetime = 3;
-                string maxValidLifetime = 4;
-                string gateway = 5;
-                string dnsServer = 6;
-}
-message Poolv6s{
-    repeated    Option options  = 1;
-                string pool     = 2;
-                string validLifetime = 3;
-                string maxValidLifetime = 4;
-                string gateway = 5;
-                string dnsServer = 6;
-}
-message startDHCPv4Req{
-    string      config      = 1;
+message CreateSubnet6Request {
+    uint32 id = 1;
+    string ipnet = 2;
+    uint32 valid_lifetime = 3;
+    uint32 max_valid_lifetime = 4;
+    uint32 min_valid_lifetime = 5;
+    repeated string dns_servers = 6;
+    string client_class = 7;
+    repeated string relay_agent_addresses = 8;
 }
 
-message stopDHCPv4Req{
-    string config = 1;
+message DeleteSubnet6Request {
+    uint32 id = 1;
 }
 
-message CreateSubnetv4Req{
-    uint32      id                          = 1;
-    string      subnet                      = 2;
-    repeated    Option      options         = 3;
-    repeated    Reservation reservations    = 4;
-    string      validLifetime               = 5;
-    repeated    Pools       pool            = 6;
-    string      gateway                     = 7;
-    string      dnsServer                   = 8;
-    string      maxValidLifetime            = 9;
+message UpdateSubnet6Request {
+    uint32 id = 1;
+    uint32 valid_lifetime = 2;
+    uint32 max_valid_lifetime = 3;
+    uint32 min_valid_lifetime = 4;
+    repeated string dns_servers= 5;
+    string client_class = 6;
+    repeated string relay_agent_addresses = 7;
 }
 
-message UpdateSubnetv4Req{
-    string      id                          = 1;
-    string      subnet                      = 2;
-    repeated    Option      options         = 3;
-    repeated    Reservation reservations    = 4;
-    string      validLifetime               = 5;
-    repeated    Pools    pool               = 6;
-    string      gateway                     = 7;
-    string      dnsServer                   = 8;
-    string      maxValidLifetime            = 9;
+message CreatePool4Request {
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+    repeated string domain_servers = 4;
+    repeated string routers = 5;
+    string client_class = 6;
 }
 
-message DeleteSubnetv4Req{
-    string subnet = 1;
-    string id = 2;
+message DeletePool4Request {
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
 }
 
-
-message CreateSubnetv4PoolReq{
-    string      id = 1;
-    string      subnet = 2;
-    repeated    Option options = 3;
-    string      pool = 4;
-    string      validLifetime = 5;
-    string      maxValidLifetime = 6;
-    string      gateway                     = 7;
-    string      dnsServer = 8;
+message UpdatePool4Request {
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+    repeated string domain_servers = 4;
+    repeated string routers = 5;
+    string client_class = 6;
 }
 
-message UpdateSubnetv4PoolReq{
-    string      id = 1;
-    repeated    Option options = 2;
-    string      pool = 3;
-    string      subnet = 4;
-    string      oldpool = 5;
-    string      validLifetime = 6;
-    string      maxValidLifetime = 7;
-    string      gateway = 9;
-    string      dnsServer = 10;
+message CreatePool6Request {
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+    repeated string dns_servers = 4;
+    string client_class = 5;
 }
 
-message DeleteSubnetv4PoolReq{
-    string  subnet  = 1;
-    string  pool    = 2;
+message DeletePool6Request {
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
 }
 
-message CreateSubnetv4ReservationReq{
-    string  subnet  = 1;
-    string duid = 2;
-    string hostname = 3;
-    string ipAddr = 4;
-    string nextServer = 5;
-    repeated Option options = 6;
-    string bootFileName = 7;
-    string circuitId = 8;
-    string clientId = 9;
-    string hwAddress = 10;
-    string resvType = 11;
-    //repeated string clientClasses = 8;
+message UpdatePool6Request {
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+    repeated string dns_servers = 4;
+    string client_class = 5;
 }
 
-message UpdateSubnetv4ReservationReq{
-    string subnet  = 1;
-    string duid = 2;
-    string hostname = 3;
-    string ipAddr = 4;
-    string nextServer = 5;
-    repeated Option options = 6;
-    string bootFileName = 7;
-    string serverHostname = 8;
-    string oldRsvIP = 9;
-    //    string circuitId = 10;
-    //    string clientId = 11;
-    //    string hwAddress = 12;
+message CreateReservation4Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+    string ip_address = 3;
+    repeated string domain_servers = 4;
+    repeated string routers = 5;
 }
 
-message DeleteSubnetv4ReservationReq{
-    string  subnet  = 1;
-    string duid = 2;
-    string ipAddr = 3;
-    string serverHostname = 4;
+message DeleteReservation4Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
 }
 
-
-/// start of dhcpv6
-message startDHCPv6Req{
-    string      config      = 1;
+message UpdateReservation4Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+    repeated string domain_servers = 3;
+    repeated string routers = 4;
 }
 
-message stopDHCPv6Req{
+message CreateReservation6Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+    repeated string ip_addresses = 3;
+    repeated string dns_servers = 4;
 }
 
-message CreateSubnetv6Req{
-    uint32      id          = 1;
-    string      subnet      = 2;
-    repeated    Option      options     = 3;
-    repeated    Reservation reservations    = 4;
-    string      validLifetime   = 5;
-    repeated    Pools    pool = 6;
-    string      dnsServer = 7;
+message DeleteReservation6Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
 }
 
-message UpdateSubnetv6Req{
-    string      id          = 1;
-    string      subnet      = 2;
-    repeated    Option      options     = 3;
-    repeated    Reservation reservations    = 4;
-    string      validLifetime   = 5;
-    repeated    Pools    pool = 6;
-    string      dnsServer = 7;
+message UpdateReservation6Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+    repeated string dns_servers = 3;
 }
 
-message DeleteSubnetv6Req{
-    string subnet = 1;
-    string id = 2;
+message CreatePDPoolRequest {
+    uint32 subnet_id = 1;
+    string prefix = 2;
+    uint32 prefix_len = 3;
+    uint32 delegated_len = 4;
+    repeated string dns_servers = 5;
+    string client_class = 6;
 }
 
-
-message CreateSubnetv6PoolReq{
-    string      id = 1;
-    string      subnet = 2;
-    repeated    Option options = 3;
-    repeated    Pools  pool = 4;
-    string      validLifetime = 5;
-    string      maxValidLifetime = 6;
-    repeated    Reservation reservations    = 7;
-    string      dnsServer = 8;
+message DeletePDPoolRequest {
+    uint32 subnet_id = 1;
+    string prefix = 2;
 }
 
-message UpdateSubnetv6PoolReq{
-    string  id = 1;
-    repeated    Option options = 2;
-    string      pool = 3;
-    string      subnet = 4;
-    string      oldpool = 5;
-    string      validLifetime = 6;
-    string      maxValidLifetime = 7;
-    string      dnsServer = 8;
+message UpdatePDPoolRequest {
+    uint32 subnet_id = 1;
+    string prefix = 2;
+    repeated string dns_servers = 3;
+    string client_class = 4;
 }
 
-message DeleteSubnetv6PoolReq{
-    string  subnet  = 1;
-    string  pool    = 2;
+message CreateClientClass4Request {
+    string name = 1;
+    string regexp = 2;
 }
 
-
-message CreateSubnetv6ReservationReq{
-    string  subnet  = 1;
-    string duid = 2;
-    string hostname = 3;
-    string ipAddr = 4;
-    string nextServer = 5;
-    repeated Option options = 6;
-    string bootFileName = 7;
-    //repeated string clientClasses = 8;
+message DeleteClientClass4Request {
+    string name = 1;
 }
 
-message UpdateSubnetv6ReservationReq{
-    string  subnet  = 1;
-    string duid = 2;
-    string hostname = 3;
-    string ipAddr = 4;
-    string nextServer = 5;
-    repeated Option options = 6;
-    string bootFileName = 7;
-    string serverHostname = 8;
+message UpdateClientClass4Request {
+    string name = 1;
+    string regexp = 2;
 }
 
-message DeleteSubnetv6ReservationReq{
-    string  subnet  = 1;
-    string duid = 2;
-    string ipAddr = 3;
-    string serverHostname = 4;
+message UpdateGlobalConfigRequest {
+    uint32 valid_lifetime = 1;
+    uint32 max_valid_lifetime = 2;
+    uint32 min_valid_lifetime = 3;
+    repeated string domain_servers = 4;
 }
 
-message GetLeasesReq{
-        string subnetid = 1;
+message GetSubnet4LeasesCountRequest{
+    uint32 id = 1;
 }
 
-message Lease{
-string ipAddress = 1;
-bytes hwAddress = 2;
-int32 validLifetime = 3;
-int64 expire = 4;
+message GetPool4LeasesCountRequest{
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
 }
 
-message GetLeasesResp{
-        repeated Lease leases = 1;
+message GetReservation4LeasesCountRequest {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+}
+
+message GetLeasesCountResponse {
+    bool succeed = 1;
+    uint64 leases_count = 2;
+}
+
+message GetSubnet6LeasesCountRequest{
+    uint32 id = 1;
+}
+
+message GetPool6LeasesCountRequest{
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+}
+
+message GetReservation6LeasesCountRequest {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+}
+
+message GetSubnet4LeasesRequest{
+    uint32 id = 1;
+}
+
+message GetSubnet6LeasesRequest{
+    uint32 id = 1;
+}
+
+message DHCPLease {
+    string address = 1;
+    uint32 subnet_id = 2;
+    string hw_address = 3;
+    uint32 hw_type = 4;
+    uint32 hw_address_source = 5;
+    string duid = 6;
+    uint32 valid_lifetime = 7;
+    int64 expire = 8;
+    uint32 prefix_len = 9;
+    enum LeaseType {
+        TYPE_NA = 0;
+        TYPE_TA = 1;
+        TYPE_PD = 2;
+        TYPE_V4 = 3;
+    }
+    LeaseType lease_type = 10;
+    uint32 state = 11;
+    string hostname = 12;
+    string client_id = 13;
+}
+
+message GetLeasesResponse {
+    bool succeed = 1;
+    repeated DHCPLease leases = 2;
 }
