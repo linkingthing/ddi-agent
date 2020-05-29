@@ -36,8 +36,8 @@ var (
 type SubnetStats map[string]SubnetAddressStats
 
 type SubnetAddressStats struct {
-	assignedAddrsCount uint64
-	totalAddrsCount    uint64
+	assignedAddrsCount float64
+	totalAddrsCount    float64
 }
 
 type DHCPCollector struct {
@@ -45,7 +45,7 @@ type DHCPCollector struct {
 	nodeIP       string
 	url          string
 	httpClient   *http.Client
-	lastAckCount uint64
+	lastAckCount float64
 	lastGetTime  time.Time
 	lps          uint64
 }
@@ -80,13 +80,13 @@ func (dhcp *DHCPCollector) Run() {
 				continue
 			}
 
-			var lps uint64
+			var lps float64
 			for statsName, stats := range statistics {
 				if statsName == DHCP4StatsAck {
 					if v, ok := getStatsValue(stats); ok {
 						now := time.Now()
 						if dhcp.lastAckCount != 0 {
-							lps = (v - dhcp.lastAckCount) / uint64(now.Sub(dhcp.lastGetTime).Seconds())
+							lps = (v - dhcp.lastAckCount) / now.Sub(dhcp.lastGetTime).Seconds()
 						}
 						dhcp.lastAckCount = v
 						dhcp.lastGetTime = now
@@ -94,7 +94,7 @@ func (dhcp *DHCPCollector) Run() {
 				}
 			}
 
-			atomic.StoreUint64(&dhcp.lps, lps)
+			atomic.StoreUint64(&dhcp.lps, uint64(lps))
 		}
 	}
 }
@@ -158,27 +158,25 @@ func (dhcp *DHCPCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 
-	var leasesCount uint64
+	var leasesCount float64
 	for subnetID, addrStats := range subnetStats {
 		if addrStats.totalAddrsCount != 0 {
 			leasesCount += addrStats.assignedAddrsCount
 			ch <- prometheus.MustNewConstMetric(DHCPUsages, prometheus.GaugeValue,
-				float64(addrStats.assignedAddrsCount)/float64(addrStats.totalAddrsCount), dhcp.nodeIP, subnetID)
+				addrStats.assignedAddrsCount/addrStats.totalAddrsCount, dhcp.nodeIP, subnetID)
 		}
 	}
 
-	ch <- prometheus.MustNewConstMetric(DHCPLeasesTotal, prometheus.GaugeValue,
-		float64(leasesCount), dhcp.nodeIP)
-
+	ch <- prometheus.MustNewConstMetric(DHCPLeasesTotal, prometheus.GaugeValue, leasesCount, dhcp.nodeIP)
 }
 
 func (dhcp *DHCPCollector) collectPacketStats(ch chan<- prometheus.Metric, packetType string, stats interface{}) {
 	if v, ok := getStatsValue(stats); ok {
-		ch <- prometheus.MustNewConstMetric(DHCPPacketsStats, prometheus.GaugeValue, float64(v), dhcp.nodeIP, packetType)
+		ch <- prometheus.MustNewConstMetric(DHCPPacketsStats, prometheus.GaugeValue, v, dhcp.nodeIP, packetType)
 	}
 }
 
-func getStatsValue(statsInterface interface{}) (uint64, bool) {
+func getStatsValue(statsInterface interface{}) (float64, bool) {
 	statsInterfaces, ok := statsInterface.([]interface{})
 	if ok == false {
 		return 0, false
@@ -191,7 +189,7 @@ func getStatsValue(statsInterface interface{}) (uint64, bool) {
 		}
 
 		for _, s := range ss {
-			if v, ok := s.(uint64); ok {
+			if v, ok := s.(float64); ok {
 				return v, true
 			}
 		}
@@ -203,7 +201,7 @@ func getStatsValue(statsInterface interface{}) (uint64, bool) {
 func (dhcp *DHCPCollector) getStats() (map[string]interface{}, error) {
 	resp, err := dhcpsrv.SendHttpRequestToDHCP(dhcp.httpClient, dhcp.url, &dhcpsrv.DHCPCmdRequest{
 		Command:  GetStatisticAll,
-		Services: []string{dhcpsrv.DHCP4Name, dhcpsrv.DHCP6Name},
+		Services: []string{dhcpsrv.DHCP4Name},
 	})
 	if err != nil {
 		return nil, err
