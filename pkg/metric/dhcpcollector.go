@@ -51,7 +51,7 @@ type DHCPCollector struct {
 }
 
 func newDHCPCollector(conf *config.AgentConfig, cli *http.Client) (*DHCPCollector, error) {
-	if conf.DHCP.Enabled {
+	if conf.DHCP.Enabled == false {
 		return &DHCPCollector{enabled: conf.DHCP.Enabled}, nil
 	}
 
@@ -172,14 +172,24 @@ func (dhcp *DHCPCollector) Collect(ch chan<- prometheus.Metric) {
 
 }
 
-func (dhcp *DHCPCollector) collectPacketStats(ch chan<- prometheus.Metric, packetType string, stats [][]interface{}) {
+func (dhcp *DHCPCollector) collectPacketStats(ch chan<- prometheus.Metric, packetType string, stats interface{}) {
 	if v, ok := getStatsValue(stats); ok {
 		ch <- prometheus.MustNewConstMetric(DHCPPacketsStats, prometheus.GaugeValue, float64(v), dhcp.nodeIP, packetType)
 	}
 }
 
-func getStatsValue(stats [][]interface{}) (uint64, bool) {
-	for _, ss := range stats {
+func getStatsValue(statsInterface interface{}) (uint64, bool) {
+	statsInterfaces, ok := statsInterface.([]interface{})
+	if ok == false {
+		return 0, false
+	}
+
+	for _, stats := range statsInterfaces {
+		ss, ok := stats.([]interface{})
+		if ok == false {
+			return 0, false
+		}
+
 		for _, s := range ss {
 			if v, ok := s.(uint64); ok {
 				return v, true
@@ -190,13 +200,14 @@ func getStatsValue(stats [][]interface{}) (uint64, bool) {
 	return 0, false
 }
 
-func (dhcp *DHCPCollector) getStats() (map[string][][]interface{}, error) {
+func (dhcp *DHCPCollector) getStats() (map[string]interface{}, error) {
 	resp, err := dhcpsrv.SendHttpRequestToDHCP(dhcp.httpClient, dhcp.url, &dhcpsrv.DHCPCmdRequest{
-		Command: GetStatisticAll,
+		Command:  GetStatisticAll,
+		Services: []string{dhcpsrv.DHCP4Name, dhcpsrv.DHCP6Name},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return resp[0].Arguments.(map[string][][]interface{}), nil
+	return resp[0].Arguments.(map[string]interface{}), nil
 }

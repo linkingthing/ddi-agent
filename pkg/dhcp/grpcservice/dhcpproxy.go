@@ -12,8 +12,8 @@ const MethodPost = "POST"
 
 type DHCPCmdRequest struct {
 	Command   string      `json:"command"`
-	Services  []string    `json:"service"`
-	Arguments interface{} `json:"arguments"`
+	Services  []string    `json:"service,omitempty"`
+	Arguments interface{} `json:"arguments,omitempty"`
 }
 
 type DHCPCmdResponse struct {

@@ -41,7 +41,7 @@ type DNSCollector struct {
 }
 
 func newDNSCollector(conf *config.AgentConfig, cli *http.Client) (*DNSCollector, error) {
-	if conf.DNS.Enabled {
+	if conf.DNS.Enabled == false {
 		return &DNSCollector{enabled: conf.DNS.Enabled}, nil
 	}
 
