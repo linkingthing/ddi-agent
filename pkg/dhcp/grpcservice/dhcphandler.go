@@ -796,7 +796,7 @@ func (h *DHCPHandler) GetSubnet4Leases(req *pb.GetSubnet4LeasesRequest) ([]*pb.D
 
 		pbleases = append(pbleases, &pb.DHCPLease{
 			Address:       ipv4FromUint32(lease4.Address).String(),
-			HwAddress:     string(lease4.Hwaddr),
+			HwAddress:     net.HardwareAddr(lease4.Hwaddr).String(),
 			SubnetId:      lease4.SubnetId,
 			ValidLifetime: lease4.ValidLifetime,
 			Expire:        lease4.Expire.Unix(),
@@ -887,7 +887,7 @@ func (h *DHCPHandler) getSubnet6Leases(subnetID uint32) ([]*pb.DHCPLease, error)
 		pbleases = append(pbleases, &pb.DHCPLease{
 			Address:       lease6.Address,
 			SubnetId:      lease6.SubnetId,
-			HwAddress:     string(lease6.Hwaddr),
+			HwAddress:     net.HardwareAddr(lease6.Hwaddr).String(),
 			ValidLifetime: lease6.ValidLifetime,
 			Expire:        lease6.Expire.Unix(),
 			Hostname:      lease6.Hostname,
