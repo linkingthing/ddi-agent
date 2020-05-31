@@ -268,7 +268,7 @@ func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
 	if exists {
 		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found subnet4 %s", req.GetId())
+		return fmt.Errorf("no found subnet4 %d", req.GetId())
 	}
 }
 
@@ -287,7 +287,7 @@ func (h *DHCPHandler) DeleteSubnet4(req *pb.DeleteSubnet4Request) error {
 	if exists {
 		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found subnet4 %s", req.GetId())
+		return fmt.Errorf("no found subnet4 %d", req.GetId())
 	}
 }
 
@@ -329,7 +329,7 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 	if exists {
 		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found subnet6 %s", req.GetId())
+		return fmt.Errorf("no found subnet6 %d", req.GetId())
 	}
 }
 
@@ -348,7 +348,7 @@ func (h *DHCPHandler) DeleteSubnet6(req *pb.DeleteSubnet6Request) error {
 	if exists {
 		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found subnet6 %s", req.GetId())
+		return fmt.Errorf("no found subnet6 %d", req.GetId())
 	}
 }
 
@@ -395,7 +395,7 @@ func (h *DHCPHandler) UpdatePool4(req *pb.UpdatePool4Request) error {
 	if exists {
 		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found pool4 %s-%s in subnet4 %s", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
 }
 
@@ -421,7 +421,7 @@ func (h *DHCPHandler) DeletePool4(req *pb.DeletePool4Request) error {
 	if exists {
 		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found pool4 %s-%s in subnet4 %s", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
 }
 
@@ -464,7 +464,7 @@ func (h *DHCPHandler) UpdatePool6(req *pb.UpdatePool6Request) error {
 	if exists {
 		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found pool6 %s-%s in subnet6 %s", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
 }
 
@@ -490,7 +490,7 @@ func (h *DHCPHandler) DeletePool6(req *pb.DeletePool6Request) error {
 	if exists {
 		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found pool6 %s-%s in subnet6 %s", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
 }
 
@@ -534,7 +534,7 @@ func (h *DHCPHandler) UpdatePDPool(req *pb.UpdatePDPoolRequest) error {
 	if exists {
 		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found pd-pool %s in subnet %s", req.GetPrefix(), req.GetSubnetId())
+		return fmt.Errorf("no found pd-pool %s in subnet %d", req.GetPrefix(), req.GetSubnetId())
 	}
 }
 
@@ -559,7 +559,7 @@ func (h *DHCPHandler) DeletePDPool(req *pb.DeletePDPoolRequest) error {
 	if exists {
 		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found pd-pool %s in subnet %s", req.GetPrefix(), req.GetSubnetId())
+		return fmt.Errorf("no found pd-pool %s in subnet %d", req.GetPrefix(), req.GetSubnetId())
 	}
 }
 
@@ -600,7 +600,7 @@ func (h *DHCPHandler) UpdateReservation4(req *pb.UpdateReservation4Request) erro
 	if exists {
 		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found reservation4 %s in subnet4 %s", req.GetHwAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found reservation4 %s in subnet4 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
 }
 
@@ -625,7 +625,7 @@ func (h *DHCPHandler) DeleteReservation4(req *pb.DeleteReservation4Request) erro
 	if exists {
 		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found reservation4 %s in subnet4 %s", req.GetHwAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found reservation4 %s in subnet4 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
 }
 
@@ -666,7 +666,7 @@ func (h *DHCPHandler) UpdateReservation6(req *pb.UpdateReservation6Request) erro
 	if exists {
 		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found reservation6 %s in subnet6 %s", req.GetHwAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found reservation6 %s in subnet6 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
 }
 
@@ -691,7 +691,7 @@ func (h *DHCPHandler) DeleteReservation6(req *pb.DeleteReservation6Request) erro
 	if exists {
 		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found reservation6 %s in subnet6 %s", req.GetHwAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found reservation6 %s in subnet6 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
 }
 
@@ -904,7 +904,7 @@ func (h *DHCPHandler) GetSubnet6LeasesCount(req *pb.GetSubnet6LeasesCountRequest
 func (h *DHCPHandler) GetPool6LeasesCount(req *pb.GetPool6LeasesCountRequest) (uint64, error) {
 	pblease6s, err := h.getSubnet6Leases(req.GetSubnetId())
 	if err != nil {
-		return 0, fmt.Errorf("get subnet6 %s leases from db failed: %s", req.GetSubnetId(), err.Error())
+		return 0, fmt.Errorf("get subnet6 %d leases from db failed: %s", req.GetSubnetId(), err.Error())
 	}
 
 	var count uint64
