@@ -91,7 +91,7 @@ func (h *DHCPHandler) loadDHCPConfig(configDir string) error {
 	var dhcp4Conf DHCP4Config
 	dhcp4ConfPath := path.Join(configDir, DHCP4ConfigFileName)
 	if _, err := os.Stat(dhcp4ConfPath); os.IsNotExist(err) {
-		dhcp4Conf = genDefaultDHCP4Config()
+		dhcp4Conf = genDefaultDHCP4Config(configDir)
 		if err := genDefaultDHCPConfigFile(dhcp4ConfPath, &dhcp4Conf); err != nil {
 			return err
 		}
@@ -104,7 +104,7 @@ func (h *DHCPHandler) loadDHCPConfig(configDir string) error {
 	var dhcp6Conf DHCP6Config
 	dhcp6ConfPath := path.Join(configDir, DHCP6ConfigFileName)
 	if _, err := os.Stat(dhcp6ConfPath); os.IsNotExist(err) {
-		dhcp6Conf = genDefaultDHCP6Config()
+		dhcp6Conf = genDefaultDHCP6Config(configDir)
 		if err := genDefaultDHCPConfigFile(dhcp6ConfPath, &dhcp6Conf); err != nil {
 			return err
 		}

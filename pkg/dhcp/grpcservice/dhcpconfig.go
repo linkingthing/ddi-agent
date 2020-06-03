@@ -1,21 +1,27 @@
 package grpcservice
 
-const (
-	DHCP4SocketName = "/tmp/kea-dhcp4-ctrl.sock"
-	DHCP6SocketName = "/tmp/kea-dhcp6-ctrl.sock"
-	DHCP4LogName    = "kea-dhcp4"
-	DHCP6LogName    = "kea-dhcp6"
+import (
+	"path"
 )
 
-func genDefaultDHCP4Config() DHCP4Config {
+const (
+	DHCP4SocketName  = "/tmp/kea-dhcp4-ctrl.sock"
+	DHCP6SocketName  = "/tmp/kea-dhcp6-ctrl.sock"
+	DHCP4LogName     = "kea-dhcp4"
+	DHCP4LogFileName = "kea-dhcp4.log"
+	DHCP6LogName     = "kea-dhcp6"
+	DHCP6LogFileName = "kea-dhcp6.log"
+)
+
+func genDefaultDHCP4Config(logDir string) DHCP4Config {
 	return DHCP4Config{
 		DHCP4: DHCP4{
-			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName),
+			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir, DHCP4LogFileName),
 		},
 	}
 }
 
-func genDefaultGeneralConfig(socketName, logName string) GenenalConfig {
+func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string) GenenalConfig {
 	return GenenalConfig{
 		InterfacesConfig: InterfacesConfig{
 			Interfaces: []string{"*"},
@@ -40,6 +46,11 @@ func genDefaultGeneralConfig(socketName, logName string) GenenalConfig {
 				Name:       logName,
 				DebugLevel: 0,
 				Severity:   "INFO",
+				OutputOptions: []OutputOption{
+					OutputOption{
+						Output: path.Join(logDir, logFileName),
+					},
+				},
 			},
 		},
 	}
@@ -139,10 +150,10 @@ type RelayAgent struct {
 	IPAddresses []string `json:"ip-addresses"`
 }
 
-func genDefaultDHCP6Config() DHCP6Config {
+func genDefaultDHCP6Config(logDir string) DHCP6Config {
 	return DHCP6Config{
 		DHCP6: DHCP6{
-			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName),
+			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir, DHCP6LogFileName),
 		},
 	}
 }
