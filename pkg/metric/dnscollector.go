@@ -82,9 +82,11 @@ func (dns *DNSCollector) Run() {
 								}
 								dns.lastQueryCount = c.Counter
 								dns.lastGetTime = statistics.Server.CurrentTime
+								break
 							}
 						}
 					}
+					break
 				}
 			}
 

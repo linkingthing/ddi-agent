@@ -90,6 +90,7 @@ func (dhcp *DHCPCollector) Run() {
 						}
 						dhcp.lastAckCount = v
 						dhcp.lastGetTime = now
+						break
 					}
 				}
 			}
