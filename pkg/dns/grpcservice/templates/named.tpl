@@ -11,6 +11,9 @@ options {
 	fetches-per-zone {{.Concu.FetchesPerZone}};{{end}}{{if .SortList}}
 	sortlist{ {{range $k, $s := .SortList}}{{$s}};{{end}} };{{end}}
 };
+statistics-channels {
+     inet 127.0.0.1 port 8081 allow { 127.0.0.1; };
+};
 {{range $k, $view := .Views}}
 key key{{$view.Name}} {
     algorithm hmac-md5;
@@ -61,5 +64,5 @@ controls {
         allow { 127.0.0.1; } keys { "rndc-key"; };
 };
 {{range $k, $acl := .ACLNames}}
-include "/root/bindtest/{{$acl}}.conf";{{end}}
+include "{{.ConfigPath}}/{{$acl}}.conf";{{end}}
 

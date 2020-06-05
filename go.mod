@@ -8,7 +8,6 @@ require (
 	github.com/jackc/pgx/v4 v4.6.0
 	github.com/lib/pq v1.3.0
 	github.com/linkingthing/ddi v0.0.0-20200507022207-2c111493656f
-	github.com/linkingthing/ddi-metric v0.0.0-20200514035438-eb63d1ba6fe6
 	github.com/prometheus/client_golang v1.6.0
 	github.com/segmentio/kafka-go v0.3.6
 	github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518 // indirect

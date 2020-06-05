@@ -11,7 +11,6 @@ import (
 
 	"github.com/linkingthing/ddi-agent/config"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
-	"github.com/linkingthing/ddi-metric/register"
 )
 
 const (
@@ -58,9 +57,6 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 	if conf.DNS.Enabled == false {
 		return
 	}
-
-	register.RegisterNode(conf.Server.Hostname, conf.Prometheus.IP, conf.Prometheus.Port,
-		conf.Server.IP, conf.Controller.IP, register.DNSRole, conf.Kafka.Addr)
 
 	cli := pb.NewAgentManagerClient(conn)
 	kafkaReader := kg.NewReader(kg.ReaderConfig{
