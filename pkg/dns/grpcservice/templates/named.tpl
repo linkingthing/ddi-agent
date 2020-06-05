@@ -64,5 +64,5 @@ controls {
         allow { 127.0.0.1; } keys { "rndc-key"; };
 };
 {{range $k, $acl := .ACLNames}}
-include "{{.ConfigPath}}/{{$acl}}.conf";{{end}}
+include "{{$.ConfigPath}}/{{$acl}}.conf";{{end}}
 
