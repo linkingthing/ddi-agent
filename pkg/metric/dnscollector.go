@@ -70,7 +70,7 @@ func (dns *DNSCollector) Run() {
 				continue
 			}
 
-			var qps uint64
+			var qps float64
 			for _, cs := range statistics.Server.Counters {
 				if cs.Type == ServerCounterTypeOpCode {
 					for _, c := range cs.Counters {
@@ -78,17 +78,19 @@ func (dns *DNSCollector) Run() {
 							if seconds := statistics.Server.CurrentTime.Sub(dns.lastGetTime).Seconds(); seconds != 0 &&
 								c.Counter >= dns.lastQueryCount {
 								if dns.lastQueryCount != 0 {
-									qps = (c.Counter - dns.lastQueryCount) / uint64(seconds)
+									qps = float64(c.Counter-dns.lastQueryCount) / seconds
 								}
 								dns.lastQueryCount = c.Counter
 								dns.lastGetTime = statistics.Server.CurrentTime
+								break
 							}
 						}
 					}
+					break
 				}
 			}
 
-			atomic.StoreUint64(&dns.qps, qps)
+			atomic.StoreUint64(&dns.qps, uint64(qps))
 		}
 	}
 }
