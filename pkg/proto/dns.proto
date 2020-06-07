@@ -177,6 +177,7 @@ string TTL = 4;
 string DataType = 5;
 string Value = 6;
 string RedirectType = 7;
+bool isRedirectTypeChanged = 8;
 }
 
 message DeleteRedirectionReq{
