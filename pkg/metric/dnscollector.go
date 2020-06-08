@@ -115,12 +115,13 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	ch <- prometheus.MustNewConstMetric(DNSQPS, prometheus.CounterValue, float64(atomic.LoadUint64(&dns.qps)), dns.nodeIP)
-	dns.collectCacheHits(ch, statistics.Views)
+	totalCacheHits := dns.collectCacheHits(ch, statistics.Views)
 	totalQueries, ok := dns.getQueryTotal(statistics.Server.Counters)
 	if ok == false || totalQueries == 0 {
 		return
 	}
 
+	ch <- prometheus.MustNewConstMetric(DNSCacheHitsRatio, prometheus.CounterValue, totalCacheHits/totalQueries, dns.nodeIP)
 	ch <- prometheus.MustNewConstMetric(DNSQueriesTotal, prometheus.CounterValue, totalQueries, dns.nodeIP)
 	for _, cs := range statistics.Server.Counters {
 		switch cs.Type {
@@ -132,7 +133,8 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []View) {
+func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []View) float64 {
+	var totalCacheHits uint64
 	for _, v := range views {
 		for _, cs := range v.Counters {
 			if cs.Type == ViewCounterTypeCacheStats {
@@ -140,6 +142,7 @@ func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []V
 					if c.Name == CacheStatsQueryHits {
 						ch <- prometheus.MustNewConstMetric(DNSCacheHits, prometheus.CounterValue, float64(c.Counter),
 							dns.nodeIP, v.Name)
+						totalCacheHits += c.Counter
 						break
 					}
 				}
@@ -147,6 +150,8 @@ func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []V
 			}
 		}
 	}
+
+	return float64(totalCacheHits)
 }
 
 func (dns *DNSCollector) getQueryTotal(counters []Counters) (float64, bool) {
