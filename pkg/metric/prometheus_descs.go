@@ -7,6 +7,7 @@ import (
 const (
 	MetricLabelNode     = "node"
 	MetricLabelType     = "type"
+	MetricLabelVersion  = "version"
 	MetricLabelView     = "view"
 	MetricLabelRcode    = "rcode"
 	MetricLabelSubnetId = "subnet_id"
@@ -31,7 +32,7 @@ var (
 	DNSResolvedRatios  = prometheus.NewDesc(MetricNameDNSResolvedRatios, "dns resolve ratio per node,rcode", []string{MetricLabelNode, MetricLabelRcode}, nil)
 
 	DHCPLPS          = prometheus.NewDesc(MetricNameDHCPLPS, "dhcp lps per node", []string{MetricLabelNode}, nil)
-	DHCPPacketsStats = prometheus.NewDesc(MetricNameDHCPPacketsStats, "dhcp packets stats per node,type", []string{MetricLabelNode, MetricLabelType}, nil)
+	DHCPPacketsStats = prometheus.NewDesc(MetricNameDHCPPacketsStats, "dhcp packets stats per node,type", []string{MetricLabelNode, MetricLabelVersion, MetricLabelType}, nil)
 	DHCPLeasesTotal  = prometheus.NewDesc(MetricNameDHCPLeasesTotal, "dhcp leases statistic per node", []string{MetricLabelNode}, nil)
 	DHCPUsages       = prometheus.NewDesc(MetricNameDHCPUsages, "dhcp usages statistic per node,subnet", []string{MetricLabelNode, MetricLabelSubnetId}, nil)
 )
