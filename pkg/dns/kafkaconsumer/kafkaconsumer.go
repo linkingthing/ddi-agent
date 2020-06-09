@@ -62,6 +62,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 	kafkaReader := kg.NewReader(kg.ReaderConfig{
 		Brokers: []string{conf.Kafka.Addr},
 		Topic:   DNSTopic,
+		GroupID: conf.DNS.GroupID,
 	})
 
 	for {

@@ -32,6 +32,7 @@ type DNSConf struct {
 	ConfDir   string `yaml:"conf_dir"`
 	DBDir     string `yaml:"db_dir"`
 	StatsAddr string `yaml:"stats_addr"`
+	GroupID   string `yaml:"group_id"`
 }
 
 type DHCPConf struct {
@@ -39,6 +40,7 @@ type DHCPConf struct {
 	CmdAddr   string     `yaml:"cmd_addr"`
 	ConfigDir string     `yaml:"config_dir"`
 	DB        DHCPDBConf `yaml:"db"`
+	GroupID   string     `yaml:"group_id"`
 }
 
 type DHCPDBConf struct {
