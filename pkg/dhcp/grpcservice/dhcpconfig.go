@@ -38,9 +38,6 @@ func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string) Ge
 			Port:     5432,
 			Host:     "localhost",
 		},
-		ValidLifetime:    14400,
-		MaxValidLifetime: 14400,
-		MinValidLifetime: 10800,
 		Loggers: []Logger{
 			{
 				Name:       logName,

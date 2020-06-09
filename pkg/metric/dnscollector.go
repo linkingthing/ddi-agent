@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -19,15 +20,29 @@ const (
 	HttpScheme                = "http://"
 	StatsServerPath           = "/xml/v3/server"
 	ServerCounterTypeOpCode   = "opcode"
-	ServerCounterTypeRCode    = "rcode"
+	ServerCounterTypeNSStat   = "nsstat"
 	ServerCounterTypeQType    = "qtype"
 	ViewCounterTypeCacheStats = "cachestats"
 	CacheStatsQueryHits       = "QueryHits"
 	OpcodeQUERY               = "QUERY"
-	RcodeNOERROR              = "NOERROR"
+	QrySuccess                = "QrySuccess"
+	QryReferral               = "QryReferral"
+	QryNxrrset                = "QryNxrrset"
+	QrySERVFAIL               = "QrySERVFAIL"
+	QryFORMERR                = "QryFORMERR"
+	QryNXDOMAIN               = "QryNXDOMAIN"
+	QryDuplicate              = "QryDuplicate"
+	QryDropped                = "QryDropped"
+	QryFailure                = "QryFailure"
+	RcodeSuccess              = "Success"
+	RcodeReferral             = "Referral"
+	RcodeNxrrset              = "Nxrrset"
 	RcodeSERVFAIL             = "SERVFAIL"
+	RcodeFORMERR              = "FORMERR"
 	RcodeNXDOMAIN             = "NXDOMAIN"
-	RcodeREFUSED              = "REFUSED"
+	RcodeDuplicate            = "Duplicate"
+	RcodeDropped              = "Dropped"
+	RcodeFailure              = "Failure"
 )
 
 type DNSCollector struct {
@@ -115,24 +130,26 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	ch <- prometheus.MustNewConstMetric(DNSQPS, prometheus.CounterValue, float64(atomic.LoadUint64(&dns.qps)), dns.nodeIP)
-	dns.collectCacheHits(ch, statistics.Views)
+	totalCacheHits := dns.collectCacheHits(ch, statistics.Views)
 	totalQueries, ok := dns.getQueryTotal(statistics.Server.Counters)
 	if ok == false || totalQueries == 0 {
 		return
 	}
 
+	ch <- prometheus.MustNewConstMetric(DNSCacheHitsRatio, prometheus.CounterValue, totalCacheHits/totalQueries, dns.nodeIP)
 	ch <- prometheus.MustNewConstMetric(DNSQueriesTotal, prometheus.CounterValue, totalQueries, dns.nodeIP)
 	for _, cs := range statistics.Server.Counters {
 		switch cs.Type {
-		case ServerCounterTypeRCode:
-			dns.collectRCodeRatio(ch, totalQueries, cs.Counters)
+		case ServerCounterTypeNSStat:
+			dns.collectNSStat(ch, totalQueries, cs.Counters)
 		case ServerCounterTypeQType:
 			dns.collectQTypeRatio(ch, totalQueries, cs.Counters)
 		}
 	}
 }
 
-func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []View) {
+func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []View) float64 {
+	var totalCacheHits uint64
 	for _, v := range views {
 		for _, cs := range v.Counters {
 			if cs.Type == ViewCounterTypeCacheStats {
@@ -140,6 +157,7 @@ func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []V
 					if c.Name == CacheStatsQueryHits {
 						ch <- prometheus.MustNewConstMetric(DNSCacheHits, prometheus.CounterValue, float64(c.Counter),
 							dns.nodeIP, v.Name)
+						totalCacheHits += c.Counter
 						break
 					}
 				}
@@ -147,6 +165,8 @@ func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []V
 			}
 		}
 	}
+
+	return float64(totalCacheHits)
 }
 
 func (dns *DNSCollector) getQueryTotal(counters []Counters) (float64, bool) {
@@ -163,12 +183,12 @@ func (dns *DNSCollector) getQueryTotal(counters []Counters) (float64, bool) {
 	return 0, false
 }
 
-func (dns *DNSCollector) collectRCodeRatio(ch chan<- prometheus.Metric, totalQueries float64, counters []Counter) {
+func (dns *DNSCollector) collectNSStat(ch chan<- prometheus.Metric, totalQueries float64, counters []Counter) {
 	for _, c := range counters {
 		switch c.Name {
-		case RcodeNOERROR, RcodeSERVFAIL, RcodeNXDOMAIN, RcodeREFUSED:
+		case QrySuccess, QryReferral, QryNxrrset, QrySERVFAIL, QryFORMERR, QryNXDOMAIN, QryDuplicate, QryDropped, QryFailure:
 			ch <- prometheus.MustNewConstMetric(DNSResolvedRatios, prometheus.CounterValue,
-				float64(c.Counter)/totalQueries, dns.nodeIP, c.Name)
+				float64(c.Counter)/totalQueries, dns.nodeIP, strings.TrimPrefix(c.Name, "Qry"))
 		}
 	}
 }

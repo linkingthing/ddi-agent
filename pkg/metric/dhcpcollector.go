@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -15,7 +16,9 @@ import (
 )
 
 const (
-	GetStatisticAll         = "statistic-get-all"
+	GetStatisticAll = "statistic-get-all"
+
+	DHCPVersion4            = "4"
 	DHCP4StatsDiscover      = "pkt4-discover-received"
 	DHCP4StatsOffer         = "pkt4-offer-sent"
 	DHCP4StatsRequest       = "pkt4-request-received"
@@ -24,13 +27,21 @@ const (
 	DHCP4PacketTypeOffer    = "offer"
 	DHCP4PacketTypeRequest  = "request"
 	DHCP4PacketTypeAck      = "ack"
-	TimeLayout              = "2006-01-02 15:04:05"
+
+	DHCPVersion6             = "6"
+	DHCP6StatsSolicit        = "pkt6-solicit-received"
+	DHCP6StatsAdvertise      = "pkt6-advertise-sent"
+	DHCP6StatsRequest        = "pkt6-request-received"
+	DHCP6StatsReply          = "pkt6-reply-sent"
+	DHCP6PacketTypeSolicit   = "solicit"
+	DHCP6PacketTypeAdvertise = "advertise"
+	DHCP6PacketTypeRequest   = "request"
+	DHCP6PacketTypeReply     = "reply"
 )
 
 var (
-	SubnetRegexp                  = regexp.MustCompile(`^subnet\[(\d+)\]\.(\S+)`)
-	SubnetTotalAddressesRegexp    = regexp.MustCompile(`^subnet\[(\d+)\]\.total-addresses`)
-	SubnetAssignedAddressesRegexp = regexp.MustCompile(`^subnet\[(\d+)\]\.assigned-addresses`)
+	SubnetTotalAddressesRegexp    = regexp.MustCompile(`^subnet\[(\d+)\]\.total-`)
+	SubnetAssignedAddressesRegexp = regexp.MustCompile(`^subnet\[(\d+)\]\.assigned-`)
 )
 
 type SubnetStats map[string]SubnetAddressStats
@@ -41,13 +52,13 @@ type SubnetAddressStats struct {
 }
 
 type DHCPCollector struct {
-	enabled      bool
-	nodeIP       string
-	url          string
-	httpClient   *http.Client
-	lastAckCount float64
-	lastGetTime  time.Time
-	lps          uint64
+	enabled                bool
+	nodeIP                 string
+	url                    string
+	httpClient             *http.Client
+	lastAssignedAddrsCount float64
+	lastGetTime            time.Time
+	lps                    uint64
 }
 
 func newDHCPCollector(conf *config.AgentConfig, cli *http.Client) (*DHCPCollector, error) {
@@ -75,29 +86,56 @@ func (dhcp *DHCPCollector) Run() {
 	for {
 		select {
 		case <-ticker.C:
-			statistics, err := dhcp.getStats()
+			assignedAddrsCount, err := dhcp.getAssignedAddrsCount()
 			if err != nil {
+				log.Warnf("get lps failed: %s", err.Error())
 				continue
 			}
 
-			var lps float64
-			for statsName, stats := range statistics {
-				if statsName == DHCP4StatsAck {
-					if v, ok := getStatsValue(stats); ok {
-						now := time.Now()
-						if dhcp.lastAckCount != 0 {
-							lps = (v - dhcp.lastAckCount) / now.Sub(dhcp.lastGetTime).Seconds()
-						}
-						dhcp.lastAckCount = v
-						dhcp.lastGetTime = now
-						break
-					}
-				}
+			now := time.Now()
+			if dhcp.lastAssignedAddrsCount != 0 {
+				lps := (assignedAddrsCount - dhcp.lastAssignedAddrsCount) / now.Sub(dhcp.lastGetTime).Seconds()
+				atomic.StoreUint64(&dhcp.lps, uint64(lps))
 			}
 
-			atomic.StoreUint64(&dhcp.lps, uint64(lps))
+			dhcp.lastAssignedAddrsCount = assignedAddrsCount
+			dhcp.lastGetTime = now
 		}
 	}
+}
+
+func (dhcp *DHCPCollector) getAssignedAddrsCount() (float64, error) {
+	resp4s, err := dhcp.getStats(dhcpsrv.DHCP4Name)
+	if err != nil {
+		return 0, fmt.Errorf("get node %s dhcp4 stats failed: %s", dhcp.nodeIP, err.Error())
+	}
+
+	resp6s, err := dhcp.getStats(dhcpsrv.DHCP6Name)
+	if err != nil {
+		return 0, fmt.Errorf("get node %s dhcp6 stats failed: %s", dhcp.nodeIP, err.Error())
+	}
+
+	return getAssignedAddrsCountByVersion(resp4s, DHCPVersion4) + getAssignedAddrsCountByVersion(resp6s, DHCPVersion6), nil
+}
+
+func getAssignedAddrsCountByVersion(resps []dhcpsrv.DHCPCmdResponse, version string) float64 {
+	subnetStats := make(SubnetStats)
+	for _, resp := range resps {
+		if statistics, ok := resp.Arguments.(map[string]interface{}); ok {
+			for statsName, stats := range statistics {
+				setDHCPSubnetAddressStats(statsName, stats, subnetStats, version)
+			}
+		}
+	}
+
+	var assignedAddrsCount float64
+	for _, addrStats := range subnetStats {
+		if addrStats.totalAddrsCount != 0 {
+			assignedAddrsCount += addrStats.assignedAddrsCount
+		}
+	}
+
+	return assignedAddrsCount
 }
 
 func (dhcp *DHCPCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -113,52 +151,87 @@ func (dhcp *DHCPCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	statistics, err := dhcp.getStats()
-	if err != nil {
-		log.Warnf("get dhcp statistics with node %s failed: %s", dhcp.nodeIP, err.Error())
-		return
+	ch <- prometheus.MustNewConstMetric(DHCPLPS, prometheus.GaugeValue, float64(atomic.LoadUint64(&dhcp.lps)), dhcp.nodeIP)
+	var leasesCount float64
+	if count, err := dhcp.Collect4(ch); err != nil {
+		log.Warnf("collect node %s dhcp4 statistic failed: %s", dhcp.nodeIP, err.Error())
+	} else {
+		leasesCount += count
 	}
 
-	ch <- prometheus.MustNewConstMetric(DHCPLPS, prometheus.GaugeValue, float64(atomic.LoadUint64(&dhcp.lps)), dhcp.nodeIP)
+	if count, err := dhcp.Collect6(ch); err != nil {
+		log.Warnf("collect node %s dhcp6 statistic failed: %s", dhcp.nodeIP, err.Error())
+	} else {
+		leasesCount += count
+	}
+
+	ch <- prometheus.MustNewConstMetric(DHCPLeasesTotal, prometheus.GaugeValue, leasesCount, dhcp.nodeIP)
+}
+
+func (dhcp *DHCPCollector) Collect4(ch chan<- prometheus.Metric) (float64, error) {
+	resps, err := dhcp.getStats(dhcpsrv.DHCP4Name)
+	if err != nil {
+		return 0, err
+	}
 
 	subnetStats := make(SubnetStats)
-	for statsName, stats := range statistics {
-		switch statsName {
-		case DHCP4StatsDiscover:
-			dhcp.collectPacketStats(ch, DHCP4PacketTypeDiscover, stats)
-		case DHCP4StatsOffer:
-			dhcp.collectPacketStats(ch, DHCP4PacketTypeOffer, stats)
-		case DHCP4StatsRequest:
-			dhcp.collectPacketStats(ch, DHCP4PacketTypeRequest, stats)
-		case DHCP4StatsAck:
-			dhcp.collectPacketStats(ch, DHCP4PacketTypeAck, stats)
-		}
-
-		if totalAddrsSlice := SubnetTotalAddressesRegexp.FindAllStringSubmatch(statsName, -1); len(totalAddrsSlice) == 1 &&
-			len(totalAddrsSlice[0]) == 2 {
-			if v, ok := getStatsValue(stats); ok {
-				if addrStats, ok := subnetStats[totalAddrsSlice[0][1]]; ok == false {
-					subnetStats[totalAddrsSlice[0][1]] = SubnetAddressStats{totalAddrsCount: v}
-				} else {
-					addrStats.totalAddrsCount = v
-					subnetStats[totalAddrsSlice[0][1]] = addrStats
+	for _, resp := range resps {
+		if statistics, ok := resp.Arguments.(map[string]interface{}); ok {
+			for statsName, stats := range statistics {
+				switch statsName {
+				case DHCP4StatsDiscover:
+					dhcp.collectPacketStats(ch, DHCPVersion4, DHCP4PacketTypeDiscover, stats)
+					continue
+				case DHCP4StatsOffer:
+					dhcp.collectPacketStats(ch, DHCPVersion4, DHCP4PacketTypeOffer, stats)
+					continue
+				case DHCP4StatsRequest:
+					dhcp.collectPacketStats(ch, DHCPVersion4, DHCP4PacketTypeRequest, stats)
+					continue
+				case DHCP4StatsAck:
+					dhcp.collectPacketStats(ch, DHCPVersion4, DHCP4PacketTypeAck, stats)
+					continue
 				}
-			}
-		}
 
-		if assignedAddrsSlice := SubnetAssignedAddressesRegexp.FindAllStringSubmatch(statsName, -1); len(assignedAddrsSlice) == 1 &&
-			len(assignedAddrsSlice[0]) == 2 {
-			if v, ok := getStatsValue(stats); ok {
-				if addrStats, ok := subnetStats[assignedAddrsSlice[0][1]]; ok == false {
-					subnetStats[assignedAddrsSlice[0][1]] = SubnetAddressStats{assignedAddrsCount: v}
-				} else {
-					addrStats.assignedAddrsCount = v
-					subnetStats[assignedAddrsSlice[0][1]] = addrStats
-				}
+				setDHCPSubnetAddressStats(statsName, stats, subnetStats, DHCPVersion4)
 			}
 		}
 	}
 
+	return dhcp.collectDHCPUsagesAndGetLeasesCount(ch, subnetStats), nil
+}
+
+func setDHCPSubnetAddressStats(statsName string, stats interface{}, subnetStats SubnetStats, version string) {
+	if subnetID, totalAddrsCount, ok := getSubnetIdAndStatsValue(statsName, stats, SubnetTotalAddressesRegexp); ok {
+		addrStats := subnetStats[subnetID]
+		if version == DHCPVersion4 {
+			addrStats.totalAddrsCount = totalAddrsCount
+		} else {
+			addrStats.totalAddrsCount += totalAddrsCount
+		}
+		subnetStats[subnetID] = addrStats
+	} else if subnetID, assignedAddrsCount, ok := getSubnetIdAndStatsValue(statsName, stats, SubnetAssignedAddressesRegexp); ok {
+		addrStats := subnetStats[subnetID]
+		if version == DHCPVersion4 {
+			addrStats.assignedAddrsCount = assignedAddrsCount
+		} else {
+			addrStats.assignedAddrsCount += assignedAddrsCount
+		}
+		subnetStats[subnetID] = addrStats
+	}
+}
+
+func getSubnetIdAndStatsValue(statsName string, stats interface{}, subnetRegexp *regexp.Regexp) (string, float64, bool) {
+	if slices := subnetRegexp.FindAllStringSubmatch(statsName, -1); len(slices) == 1 && len(slices[0]) == 2 {
+		if v, ok := getStatsValue(stats); ok {
+			return slices[0][1], v, true
+		}
+	}
+
+	return "", 0, false
+}
+
+func (dhcp *DHCPCollector) collectDHCPUsagesAndGetLeasesCount(ch chan<- prometheus.Metric, subnetStats SubnetStats) float64 {
 	var leasesCount float64
 	for subnetID, addrStats := range subnetStats {
 		if addrStats.totalAddrsCount != 0 {
@@ -168,12 +241,45 @@ func (dhcp *DHCPCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 
-	ch <- prometheus.MustNewConstMetric(DHCPLeasesTotal, prometheus.GaugeValue, leasesCount, dhcp.nodeIP)
+	return leasesCount
 }
 
-func (dhcp *DHCPCollector) collectPacketStats(ch chan<- prometheus.Metric, packetType string, stats interface{}) {
+func (dhcp *DHCPCollector) Collect6(ch chan<- prometheus.Metric) (float64, error) {
+	resps, err := dhcp.getStats(dhcpsrv.DHCP6Name)
+	if err != nil {
+		return 0, err
+	}
+
+	subnetStats := make(SubnetStats)
+	for _, resp := range resps {
+		if statistics, ok := resp.Arguments.(map[string]interface{}); ok {
+			for statsName, stats := range statistics {
+				switch statsName {
+				case DHCP6StatsSolicit:
+					dhcp.collectPacketStats(ch, DHCPVersion6, DHCP6PacketTypeSolicit, stats)
+					continue
+				case DHCP6StatsAdvertise:
+					dhcp.collectPacketStats(ch, DHCPVersion6, DHCP6PacketTypeAdvertise, stats)
+					continue
+				case DHCP6StatsRequest:
+					dhcp.collectPacketStats(ch, DHCPVersion6, DHCP6PacketTypeRequest, stats)
+					continue
+				case DHCP6StatsReply:
+					dhcp.collectPacketStats(ch, DHCPVersion6, DHCP6PacketTypeReply, stats)
+					continue
+				}
+
+				setDHCPSubnetAddressStats(statsName, stats, subnetStats, DHCPVersion6)
+			}
+		}
+	}
+
+	return dhcp.collectDHCPUsagesAndGetLeasesCount(ch, subnetStats), nil
+}
+
+func (dhcp *DHCPCollector) collectPacketStats(ch chan<- prometheus.Metric, dhcpVersion, packetType string, stats interface{}) {
 	if v, ok := getStatsValue(stats); ok {
-		ch <- prometheus.MustNewConstMetric(DHCPPacketsStats, prometheus.GaugeValue, v, dhcp.nodeIP, packetType)
+		ch <- prometheus.MustNewConstMetric(DHCPPacketsStats, prometheus.GaugeValue, v, dhcp.nodeIP, dhcpVersion, packetType)
 	}
 }
 
@@ -199,14 +305,14 @@ func getStatsValue(statsInterface interface{}) (float64, bool) {
 	return 0, false
 }
 
-func (dhcp *DHCPCollector) getStats() (map[string]interface{}, error) {
-	resp, err := dhcpsrv.SendHttpRequestToDHCP(dhcp.httpClient, dhcp.url, &dhcpsrv.DHCPCmdRequest{
+func (dhcp *DHCPCollector) getStats(service string) ([]dhcpsrv.DHCPCmdResponse, error) {
+	resps, err := dhcpsrv.SendHttpRequestToDHCP(dhcp.httpClient, dhcp.url, &dhcpsrv.DHCPCmdRequest{
 		Command:  GetStatisticAll,
-		Services: []string{dhcpsrv.DHCP4Name},
+		Services: []string{service},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return resp[0].Arguments.(map[string]interface{}), nil
+	return resps, nil
 }

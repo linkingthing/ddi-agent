@@ -7,6 +7,7 @@ import (
 const (
 	MetricLabelNode     = "node"
 	MetricLabelType     = "type"
+	MetricLabelVersion  = "version"
 	MetricLabelView     = "view"
 	MetricLabelRcode    = "rcode"
 	MetricLabelSubnetId = "subnet_id"
@@ -15,6 +16,7 @@ const (
 	MetricNameDNSQueriesTotal    = "lx_dns_queries_total"
 	MetricNameDNSQueryTypeRatios = "lx_dns_query_type_ratios"
 	MetricNameDNSCacheHits       = "lx_dns_cache_hits"
+	MetricNameDNSCacheHitsRatio  = "lx_dns_cache_hits_ratio"
 	MetricNameDNSResolvedRatios  = "lx_dns_resolved_ratios"
 
 	MetricNameDHCPLPS          = "lx_dhcp_lps"
@@ -28,13 +30,14 @@ var (
 	DNSQueriesTotal    = prometheus.NewDesc(MetricNameDNSQueriesTotal, "dns queries per node", []string{MetricLabelNode}, nil)
 	DNSQueryTypeRatios = prometheus.NewDesc(MetricNameDNSQueryTypeRatios, "dns qtypes ratio per node,type", []string{MetricLabelNode, MetricLabelType}, nil)
 	DNSCacheHits       = prometheus.NewDesc(MetricNameDNSCacheHits, "dns cache hits per node,view", []string{MetricLabelNode, MetricLabelView}, nil)
+	DNSCacheHitsRatio  = prometheus.NewDesc(MetricNameDNSCacheHitsRatio, "dns cache hits ratio per node", []string{MetricLabelNode}, nil)
 	DNSResolvedRatios  = prometheus.NewDesc(MetricNameDNSResolvedRatios, "dns resolve ratio per node,rcode", []string{MetricLabelNode, MetricLabelRcode}, nil)
 
 	DHCPLPS          = prometheus.NewDesc(MetricNameDHCPLPS, "dhcp lps per node", []string{MetricLabelNode}, nil)
-	DHCPPacketsStats = prometheus.NewDesc(MetricNameDHCPPacketsStats, "dhcp packets stats per node,type", []string{MetricLabelNode, MetricLabelType}, nil)
+	DHCPPacketsStats = prometheus.NewDesc(MetricNameDHCPPacketsStats, "dhcp packets stats per node,type", []string{MetricLabelNode, MetricLabelVersion, MetricLabelType}, nil)
 	DHCPLeasesTotal  = prometheus.NewDesc(MetricNameDHCPLeasesTotal, "dhcp leases statistic per node", []string{MetricLabelNode}, nil)
 	DHCPUsages       = prometheus.NewDesc(MetricNameDHCPUsages, "dhcp usages statistic per node,subnet", []string{MetricLabelNode, MetricLabelSubnetId}, nil)
 )
 
-var DNSPrometheusDescs = []*prometheus.Desc{DNSQPS, DNSQueriesTotal, DNSQueryTypeRatios, DNSCacheHits, DNSResolvedRatios}
+var DNSPrometheusDescs = []*prometheus.Desc{DNSQPS, DNSQueriesTotal, DNSQueryTypeRatios, DNSCacheHits, DNSCacheHitsRatio, DNSResolvedRatios}
 var DHCPPrometheusDescs = []*prometheus.Desc{DHCPLPS, DHCPPacketsStats, DHCPLeasesTotal, DHCPUsages}
