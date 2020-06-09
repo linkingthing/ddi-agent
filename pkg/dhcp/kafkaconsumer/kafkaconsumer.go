@@ -248,15 +248,6 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 					log.Warnf("delete clientclass4 with req %s failed: %s", req.String(), err.Error())
 				}
 			}
-		case UpdateGlobalConfig:
-			var req pb.UpdateGlobalConfigRequest
-			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Warnf("unmarshal update dhcp global config request failed: %s", err.Error())
-			} else {
-				if _, err := cli.UpdateGlobalConfig(context.Background(), &req); err != nil {
-					log.Warnf("update dhcp global config with req %s failed: %s", req.String(), err.Error())
-				}
-			}
 		}
 	}
 }
