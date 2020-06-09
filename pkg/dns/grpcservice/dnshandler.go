@@ -67,6 +67,8 @@ const (
 	nzfSuffix          = ".nzf"
 	localZoneType      = "localzone"
 	nxDomain           = "nxdomain"
+	cnameType          = "CNAME"
+	ptrType            = "PTR"
 )
 
 type DNSHandler struct {
@@ -637,6 +639,7 @@ func (handler *DNSHandler) DeleteForwardZone(req pb.DeleteForwardZoneReq) error 
 }
 
 func (handler *DNSHandler) CreateRR(req pb.CreateRRReq) error {
+	formatCnameValue(&req.RData, req.Type)
 	rrsMap := map[string][]byte{"name": []byte(req.Name), "type": []byte(req.Type), "value": []byte(req.RData), "ttl": []byte(req.TTL)}
 	names, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID))
 	if err != nil {
@@ -667,6 +670,7 @@ func (handler *DNSHandler) CreateRR(req pb.CreateRRReq) error {
 func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 	var rrsMap map[string][]byte
 	var err error
+	formatCnameValue(&req.RData, req.Type)
 	if rrsMap, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID)); err != nil {
 		return err
 	}
@@ -768,6 +772,26 @@ func (handler *DNSHandler) DeleteRR(req pb.DeleteRRReq) error {
 	}
 
 	return nil
+}
+
+func formatCnameValue(rr *string, datatype string) {
+	if datatype != cnameType {
+		return
+	}
+	if ret := strings.HasSuffix(*rr, "."); !ret {
+		*rr += "."
+	}
+	return
+}
+
+func formatDomain(name *string, datatype string, redirectType string) {
+	if datatype == ptrType || redirectType == localZoneType {
+		return
+	}
+	if ret := strings.HasSuffix(*name, "."); !ret {
+		*name += "."
+	}
+	return
 }
 
 func (h *DNSHandler) Close() {
@@ -1632,6 +1656,8 @@ func (handler *DNSHandler) DeleteForward(req pb.DeleteForwardReq) error {
 	return nil
 }
 func (handler *DNSHandler) CreateRedirection(req pb.CreateRedirectionReq) error {
+	formatCnameValue(&req.Value, req.DataType)
+	formatDomain(&req.Name, req.DataType, req.RedirectType)
 	rrMap := map[string][]byte{}
 	rrMap["name"] = []byte(req.Name)
 	rrMap["type"] = []byte(req.DataType)
@@ -1667,6 +1693,8 @@ func (handler *DNSHandler) CreateRedirection(req pb.CreateRedirectionReq) error 
 	return nil
 }
 func (handler *DNSHandler) UpdateRedirection(req pb.UpdateRedirectionReq) error {
+	formatCnameValue(&req.Value, req.DataType)
+	formatDomain(&req.Name, req.DataType, req.RedirectType)
 	//update the data in the database
 	rrMap := map[string][]byte{}
 	rrMap["name"] = []byte(req.Name)
