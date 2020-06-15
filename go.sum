@@ -24,8 +24,11 @@ github.com/aws/aws-lambda-go v1.13.3/go.mod h1:4UKl9IzQMoD+QF79YdCuzCwp8VbmG4VAQ
 github.com/aws/aws-sdk-go v1.27.0/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go-v2 v0.18.0/go.mod h1:JWVYvqSMppoMJC0x5wdwiImzgXTI9FuZwxzkQq9wy+g=
 github.com/beevik/ntp v0.2.0/go.mod h1:hIHWr+l3+/clUnF44zdK+CWW7fO8dR5cIylAQ76NRpg=
+github.com/ben-han-cn/cement v0.0.0-20200409091516-42fd802bdaaa h1:9H0NEuufS00BkFcp7/hdopNegBUXZ6p4v6VzK2xasoU=
 github.com/ben-han-cn/cement v0.0.0-20200409091516-42fd802bdaaa/go.mod h1:iHQfw6h8t6ogHNkqpwC5O9RZDPl2tAsxoxaXieDMfvs=
 github.com/ben-han-cn/g53 v0.0.0-20200412091110-86b554517afd/go.mod h1:gQ1UXFHHTFZDWhu37+Ae4jKy5bbm1CoO+MJFmQL7uUw=
+github.com/ben-han-cn/g53 v0.0.0-20200420143808-c93175fb0ada h1:A9hF18mDbnEUd2z3Hhq8ybBjgSLc8WLEM3irZrBpwM0=
+github.com/ben-han-cn/g53 v0.0.0-20200420143808-c93175fb0ada/go.mod h1:gQ1UXFHHTFZDWhu37+Ae4jKy5bbm1CoO+MJFmQL7uUw=
 github.com/ben-han-cn/kvzoo v0.0.0-20191109225302-5dc1198904af h1:cUy8koga+MaMMsVbMGk4QKxbBVdlT9JH6mGS/RJXRVo=
 github.com/ben-han-cn/kvzoo v0.0.0-20191109225302-5dc1198904af/go.mod h1:mmPfTOvGP6Zai51Qu3JdeCeAQL802HxFVUbcZORF8U4=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=

@@ -12,7 +12,7 @@ options {
 	sortlist{ {{range $k, $s := .SortList}}{{$s}};{{end}} };{{end}}
 };
 statistics-channels {
-     inet 127.0.0.1 port 8081 allow { 127.0.0.1; };
+     inet 127.0.0.1 port 8082 allow { 127.0.0.1; };
 };
 {{range $k, $view := .Views}}
 key key{{$view.Name}} {
@@ -23,6 +23,7 @@ key key{{$view.Name}} {
 
 logging{
 	channel query_log{
+	buffered true;
 	file "query.log" versions 5 size 20m;
 	print-time yes;
 	print-category yes;
@@ -62,5 +63,5 @@ controls {
         allow { 127.0.0.1; } keys { "rndc-key"; };
 };
 {{range $k, $acl := .ACLNames}}
-include "{{$.ConfigPath}}/{{$acl}}.conf";{{end}}
+include "{{$.ConfigPath}}/{{$acl}}.acl";{{end}}
 
