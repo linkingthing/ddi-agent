@@ -77,6 +77,7 @@ func newDNSCollector(conf *config.AgentConfig, cli *http.Client) (*DNSCollector,
 
 func (dns *DNSCollector) Run() {
 	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:

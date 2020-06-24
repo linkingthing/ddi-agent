@@ -1604,6 +1604,7 @@ func (handler *DNSHandler) rndcDumpJNLFile() error {
 }
 
 func (handler *DNSHandler) keepDNSAlive() {
+	defer handler.ticker.Stop()
 	for {
 		select {
 		case <-handler.ticker.C:

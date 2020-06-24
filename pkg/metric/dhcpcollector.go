@@ -83,6 +83,7 @@ func newDHCPCollector(conf *config.AgentConfig, cli *http.Client) (*DHCPCollecto
 
 func (dhcp *DHCPCollector) Run() {
 	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
