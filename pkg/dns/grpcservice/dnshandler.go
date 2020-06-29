@@ -47,6 +47,7 @@ const (
 	recurConcurEndPath = "/recurConcur"
 	sortListPath       = "/sortList/"
 	sortListEndPath    = "/sortList"
+	logPath            = "/log"
 	namedTpl           = "named.tpl"
 	namedNoRPZTpl      = "named_norpz.tpl"
 	zoneTpl            = "zone.tpl"
@@ -69,6 +70,7 @@ const (
 	nxDomain           = "nxdomain"
 	cnameType          = "CNAME"
 	ptrType            = "PTR"
+	logStatus          = "isopen"
 )
 
 type DNSHandler struct {
@@ -189,6 +191,7 @@ type namedData struct {
 	Views       []View
 	DNS64s      []dns64
 	IPBlackHole *ipBlackHole
+	IsLogOpen   bool
 	SortList    []string
 	Concu       *recursiveConcurrent
 }
@@ -864,6 +867,20 @@ func (handler *DNSHandler) namedConfData() (*namedData, error) {
 			}
 			data.Concu.FetchesPerZone = &num
 		}
+	}
+	//get log data
+	logKVs, err := boltdb.GetDB().GetTableKVs(logPath)
+	if err != nil {
+		return nil, err
+	}
+	if len(logKVs) > 0 {
+		if logKVs[logStatus][0] == 1 {
+			data.IsLogOpen = true
+		} else {
+			data.IsLogOpen = false
+		}
+	} else {
+		data.IsLogOpen = true
 	}
 	//get the sortlist
 	var sortkvs map[string][]byte
@@ -1979,6 +1996,39 @@ func (handler *DNSHandler) DeleteSortList(req pb.DeleteSortListReq) error {
 	if err := handler.rndcReconfig(); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (handler *DNSHandler) UpdateLog(req pb.UpdateLogReq) error {
+	//update the data in the database;
+	logKVs, err := boltdb.GetDB().GetTableKVs(logPath)
+	if err != nil {
+		return err
+	}
+	kvs := map[string][]byte{}
+	if req.IsOpen {
+		kvs[logStatus] = []byte{byte(1)}
+	} else {
+		kvs[logStatus] = []byte{byte(0)}
+	}
+	if len(logKVs) == 0 {
+		if err := boltdb.GetDB().AddKVs(logPath, kvs); err != nil {
+			return err
+		}
+	} else {
+		if err := boltdb.GetDB().UpdateKVs(logPath, kvs); err != nil {
+			return err
+		}
+	}
+	//rewrite the named.conf file.
+	if err := handler.rewriteNamedFile(false); err != nil {
+		return err
+	}
+	//update bind.
+	if err := handler.rndcReconfig(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

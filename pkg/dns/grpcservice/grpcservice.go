@@ -289,7 +289,14 @@ func (service *DNSService) DeleteSortList(context context.Context, req *pb.Delet
 		return &pb.DDIResponse{Succeed: true}, nil
 	}
 }
-
+func (service *DNSService) UpdateLog(context context.Context, req *pb.UpdateLogReq) (*pb.DDIResponse, error) {
+	err := service.handler.UpdateLog(*req)
+	if err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	} else {
+		return &pb.DDIResponse{Succeed: true}, nil
+	}
+}
 func (service *DNSService) Close() {
 	service.handler.Close()
 }

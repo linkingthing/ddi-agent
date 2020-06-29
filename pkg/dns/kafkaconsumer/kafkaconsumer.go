@@ -47,6 +47,7 @@ const (
 	CreateSortList            = "CreateSortList"
 	UpdateSortList            = "UpdateSortList"
 	DeleteSortList            = "DeleteSortList"
+	UpdateLog                 = "UpdateLog"
 )
 
 var (
@@ -303,6 +304,13 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			}
 			if _, err := cli.DeleteSortList(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec DeleteSortList failed: %s", err.Error())
+			}
+		case UpdateLog:
+			var target pb.UpdateLogReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.UpdateLog(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec UpdateLog failed: %s", err.Error())
 			}
 		}
 	}

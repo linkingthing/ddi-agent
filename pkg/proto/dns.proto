@@ -36,6 +36,7 @@ rpc UpdateRecursiveConcurrent(UpdateRecurConcuReq) returns (DDIResponse){}
 rpc CreateSortList(CreateSortListReq) returns (DDIResponse){}
 rpc UpdateSortList(UpdateSortListReq) returns (DDIResponse){}
 rpc DeleteSortList(DeleteSortListReq) returns (DDIResponse){}
+rpc UpdateLog(UpdateLogReq) returns (DDIResponse){}
 }
 
 message DNSStartReq{
@@ -238,3 +239,6 @@ message DeleteSortListReq{
 repeated string ACLs = 1;
 }
 
+message UpdateLogReq{
+bool isOpen = 1;
+}
