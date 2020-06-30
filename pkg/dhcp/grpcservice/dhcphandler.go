@@ -159,6 +159,7 @@ func (h *DHCPHandler) monitor() {
 		if checkProcessExists(DHCP4Name) == false ||
 			checkProcessExists(DHCP6Name) == false ||
 			checkProcessExists(DHCPAgentName) == false {
+			h.stopDHCP()
 			if err := h.startDHCP(); err != nil {
 				log.Warnf("start dhcp failed: %s", err.Error())
 			}
@@ -175,7 +176,9 @@ func checkProcessExists(processName string) bool {
 
 func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
 	h.lock.Lock()
-	h.conf.dhcp4Conf.DHCP4.Subnet4s = append(h.conf.dhcp4Conf.DHCP4.Subnet4s, Subnet4{
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	dhcp4Conf.DHCP4.Subnet4s = append(dhcp4Conf.DHCP4.Subnet4s, Subnet4{
 		ID:               req.GetId(),
 		Subent:           req.GetIpnet(),
 		ClientClass:      req.GetClientClass(),
@@ -185,9 +188,8 @@ func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
 		OptionDatas:      genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), req.GetRouters()),
 		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
 	})
-	h.lock.Unlock()
 
-	return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+	return h.reconfig4(&dhcp4Conf)
 }
 
 func genDHCPOptionDatas(optionNameDNS string, domainServers []string, routers []string) []OptionData {
@@ -217,28 +219,40 @@ func genRelayAgent(relayAgentAddrs []string) RelayAgent {
 	return RelayAgent{IPAddresses: relayAgentAddrs}
 }
 
-func (h *DHCPHandler) reconfig(services []string, configPath string, conf interface{}) error {
-	if err := h.setDHCPConfigToMemory(services, conf); err != nil {
+func (h *DHCPHandler) reconfig4(dhcp4Conf *DHCP4Config) error {
+	if err := h.reconfig(DHCP4Name, dhcp4Conf.Path, dhcp4Conf); err != nil {
+		if err := h.reconfig(DHCP4Name, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf); err != nil {
+			log.Errorf("rollback dhcp4 to old config failed: %s", err.Error())
+		}
 		return err
 	}
 
-	return h.writeDHCPConfigToFile(services, configPath)
+	h.conf.dhcp4Conf = dhcp4Conf
+	return nil
 }
 
-func (h *DHCPHandler) setDHCPConfigToMemory(services []string, conf interface{}) error {
+func (h *DHCPHandler) reconfig(service string, configPath string, conf interface{}) error {
+	if err := h.setDHCPConfigToMemory(service, conf); err != nil {
+		return err
+	}
+
+	return h.writeDHCPConfigToFile(service, configPath)
+}
+
+func (h *DHCPHandler) setDHCPConfigToMemory(service string, conf interface{}) error {
 	_, err := SendHttpRequestToDHCP(h.httpClient, h.cmdUrl, &DHCPCmdRequest{
 		Command:   DHCPCommandConfigSet,
-		Services:  services,
+		Services:  []string{service},
 		Arguments: conf,
 	})
 
 	return err
 }
 
-func (h *DHCPHandler) writeDHCPConfigToFile(services []string, configPath string) error {
+func (h *DHCPHandler) writeDHCPConfigToFile(service string, configPath string) error {
 	_, err := SendHttpRequestToDHCP(h.httpClient, h.cmdUrl, &DHCPCmdRequest{
 		Command:  DHCPCommandConfigWrite,
-		Services: services,
+		Services: []string{service},
 		Arguments: map[string]interface{}{
 			"filename": configPath,
 		},
@@ -250,23 +264,23 @@ func (h *DHCPHandler) writeDHCPConfigToFile(services []string, configPath string
 func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp4Conf.DHCP4.Subnet4s {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetId() {
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].ClientClass = req.GetClientClass()
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].ValidLifetime = req.GetValidLifetime()
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].MaxValidLifetime = req.GetMaxValidLifetime()
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].MinValidLifetime = req.GetMinValidLifetime()
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].OptionDatas = genDHCPOptionDatas(
-				Option4DNSServers, req.GetDomainServers(), req.GetRouters())
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
+			dhcp4Conf.DHCP4.Subnet4s[i].ClientClass = req.GetClientClass()
+			dhcp4Conf.DHCP4.Subnet4s[i].ValidLifetime = req.GetValidLifetime()
+			dhcp4Conf.DHCP4.Subnet4s[i].MaxValidLifetime = req.GetMaxValidLifetime()
+			dhcp4Conf.DHCP4.Subnet4s[i].MinValidLifetime = req.GetMinValidLifetime()
+			dhcp4Conf.DHCP4.Subnet4s[i].OptionDatas = genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), req.GetRouters())
+			dhcp4Conf.DHCP4.Subnet4s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
 			exists = true
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+		return h.reconfig4(&dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found subnet4 %d", req.GetId())
 	}
@@ -275,17 +289,18 @@ func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
 func (h *DHCPHandler) DeleteSubnet4(req *pb.DeleteSubnet4Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp4Conf.DHCP4.Subnet4s {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetId() {
-			h.conf.dhcp4Conf.DHCP4.Subnet4s = append(h.conf.dhcp4Conf.DHCP4.Subnet4s[:i], h.conf.dhcp4Conf.DHCP4.Subnet4s[i+1:]...)
+			dhcp4Conf.DHCP4.Subnet4s = append(dhcp4Conf.DHCP4.Subnet4s[:i], dhcp4Conf.DHCP4.Subnet4s[i+1:]...)
 			exists = true
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+		return h.reconfig4(&dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found subnet4 %d", req.GetId())
 	}
@@ -293,7 +308,9 @@ func (h *DHCPHandler) DeleteSubnet4(req *pb.DeleteSubnet4Request) error {
 
 func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 	h.lock.Lock()
-	h.conf.dhcp6Conf.DHCP6.Subnet6s = append(h.conf.dhcp6Conf.DHCP6.Subnet6s, Subnet6{
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	dhcp6Conf.DHCP6.Subnet6s = append(dhcp6Conf.DHCP6.Subnet6s, Subnet6{
 		ID:               req.GetId(),
 		Subent:           req.GetIpnet(),
 		ClientClass:      req.GetClientClass(),
@@ -304,30 +321,41 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
 	})
 
-	h.lock.Unlock()
+	return h.reconfig6(&dhcp6Conf)
+}
 
-	return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+func (h *DHCPHandler) reconfig6(dhcp6Conf *DHCP6Config) error {
+	if err := h.reconfig(DHCP6Name, dhcp6Conf.Path, dhcp6Conf); err != nil {
+		if err := h.reconfig(DHCP6Name, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf); err != nil {
+			log.Errorf("rollback dhcp6 to old config failed: %s", err.Error())
+		}
+		return err
+	}
+
+	h.conf.dhcp6Conf = dhcp6Conf
+	return nil
 }
 
 func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetId() {
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].ClientClass = req.GetClientClass()
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].ValidLifetime = req.GetValidLifetime()
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].MaxValidLifetime = req.GetMaxValidLifetime()
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].MinValidLifetime = req.GetMinValidLifetime()
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
+			dhcp6Conf.DHCP6.Subnet6s[i].ClientClass = req.GetClientClass()
+			dhcp6Conf.DHCP6.Subnet6s[i].ValidLifetime = req.GetValidLifetime()
+			dhcp6Conf.DHCP6.Subnet6s[i].MaxValidLifetime = req.GetMaxValidLifetime()
+			dhcp6Conf.DHCP6.Subnet6s[i].MinValidLifetime = req.GetMinValidLifetime()
+			dhcp6Conf.DHCP6.Subnet6s[i].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
+			dhcp6Conf.DHCP6.Subnet6s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
 			exists = true
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+		return h.reconfig6(&dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found subnet6 %d", req.GetId())
 	}
@@ -336,17 +364,18 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 func (h *DHCPHandler) DeleteSubnet6(req *pb.DeleteSubnet6Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetId() {
-			h.conf.dhcp6Conf.DHCP6.Subnet6s = append(h.conf.dhcp6Conf.DHCP6.Subnet6s[:i], h.conf.dhcp6Conf.DHCP6.Subnet6s[i+1:]...)
+			dhcp6Conf.DHCP6.Subnet6s = append(dhcp6Conf.DHCP6.Subnet6s[:i], dhcp6Conf.DHCP6.Subnet6s[i+1:]...)
 			exists = true
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+		return h.reconfig6(&dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found subnet6 %d", req.GetId())
 	}
@@ -354,9 +383,11 @@ func (h *DHCPHandler) DeleteSubnet6(req *pb.DeleteSubnet6Request) error {
 
 func (h *DHCPHandler) CreatePool4(req *pb.CreatePool4Request) error {
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp4Conf.DHCP4.Subnet4s {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Pools = append(h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Pools, Pool{
+			dhcp4Conf.DHCP4.Subnet4s[i].Pools = append(dhcp4Conf.DHCP4.Subnet4s[i].Pools, Pool{
 				Pool:        genPoolByBeginAndEnd(req.GetBeginAddress(), req.GetEndAddress()),
 				ClientClass: req.GetClientClass(),
 				OptionDatas: genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), req.GetRouters()),
@@ -364,8 +395,7 @@ func (h *DHCPHandler) CreatePool4(req *pb.CreatePool4Request) error {
 			break
 		}
 	}
-	h.lock.Unlock()
-	return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+	return h.reconfig4(&dhcp4Conf)
 }
 
 func genPoolByBeginAndEnd(begin, end string) string {
@@ -376,13 +406,14 @@ func (h *DHCPHandler) UpdatePool4(req *pb.UpdatePool4Request) error {
 	exists := false
 	updatePool := genPoolByBeginAndEnd(req.GetBeginAddress(), req.GetEndAddress())
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp4Conf.DHCP4.Subnet4s {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pool := range subnet.Pools {
 				if pool.Pool == updatePool {
-					h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Pools[j].ClientClass = req.GetClientClass()
-					h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Pools[j].OptionDatas = genDHCPOptionDatas(
-						Option4DNSServers, req.GetDomainServers(), req.GetRouters())
+					dhcp4Conf.DHCP4.Subnet4s[i].Pools[j].ClientClass = req.GetClientClass()
+					dhcp4Conf.DHCP4.Subnet4s[i].Pools[j].OptionDatas = genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), req.GetRouters())
 					exists = true
 					break
 				}
@@ -390,10 +421,9 @@ func (h *DHCPHandler) UpdatePool4(req *pb.UpdatePool4Request) error {
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+		return h.reconfig4(&dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
@@ -403,12 +433,13 @@ func (h *DHCPHandler) DeletePool4(req *pb.DeletePool4Request) error {
 	exists := false
 	deletePool := genPoolByBeginAndEnd(req.GetBeginAddress(), req.GetEndAddress())
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp4Conf.DHCP4.Subnet4s {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pool := range subnet.Pools {
 				if pool.Pool == deletePool {
-					h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Pools = append(h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Pools[:j],
-						h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Pools[j+1:]...)
+					dhcp4Conf.DHCP4.Subnet4s[i].Pools = append(dhcp4Conf.DHCP4.Subnet4s[i].Pools[:j], dhcp4Conf.DHCP4.Subnet4s[i].Pools[j+1:]...)
 					exists = true
 					break
 				}
@@ -416,10 +447,9 @@ func (h *DHCPHandler) DeletePool4(req *pb.DeletePool4Request) error {
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+		return h.reconfig4(&dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
@@ -427,9 +457,11 @@ func (h *DHCPHandler) DeletePool4(req *pb.DeletePool4Request) error {
 
 func (h *DHCPHandler) CreatePool6(req *pb.CreatePool6Request) error {
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Pools = append(h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Pools, Pool{
+			dhcp6Conf.DHCP6.Subnet6s[i].Pools = append(dhcp6Conf.DHCP6.Subnet6s[i].Pools, Pool{
 				Pool:        genPoolByBeginAndEnd(req.GetBeginAddress(), req.GetEndAddress()),
 				ClientClass: req.GetClientClass(),
 				OptionDatas: genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil),
@@ -437,21 +469,21 @@ func (h *DHCPHandler) CreatePool6(req *pb.CreatePool6Request) error {
 			break
 		}
 	}
-	h.lock.Unlock()
-	return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+	return h.reconfig6(&dhcp6Conf)
 }
 
 func (h *DHCPHandler) UpdatePool6(req *pb.UpdatePool6Request) error {
 	exists := false
 	updatePool := genPoolByBeginAndEnd(req.GetBeginAddress(), req.GetEndAddress())
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pool := range subnet.Pools {
 				if pool.Pool == updatePool {
-					h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Pools[j].ClientClass = req.GetClientClass()
-					h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Pools[j].OptionDatas = genDHCPOptionDatas(
-						Option6DNSServers, req.GetDnsServers(), nil)
+					dhcp6Conf.DHCP6.Subnet6s[i].Pools[j].ClientClass = req.GetClientClass()
+					dhcp6Conf.DHCP6.Subnet6s[i].Pools[j].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
 					exists = true
 					break
 				}
@@ -459,10 +491,9 @@ func (h *DHCPHandler) UpdatePool6(req *pb.UpdatePool6Request) error {
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+		return h.reconfig6(&dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
@@ -472,12 +503,13 @@ func (h *DHCPHandler) DeletePool6(req *pb.DeletePool6Request) error {
 	exists := false
 	deletePool := genPoolByBeginAndEnd(req.GetBeginAddress(), req.GetEndAddress())
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pool := range subnet.Pools {
 				if pool.Pool == deletePool {
-					h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Pools = append(h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Pools[:j],
-						h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Pools[j+1:]...)
+					dhcp6Conf.DHCP6.Subnet6s[i].Pools = append(dhcp6Conf.DHCP6.Subnet6s[i].Pools[:j], dhcp6Conf.DHCP6.Subnet6s[i].Pools[j+1:]...)
 					exists = true
 					break
 				}
@@ -485,10 +517,9 @@ func (h *DHCPHandler) DeletePool6(req *pb.DeletePool6Request) error {
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+		return h.reconfig6(&dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
@@ -496,9 +527,11 @@ func (h *DHCPHandler) DeletePool6(req *pb.DeletePool6Request) error {
 
 func (h *DHCPHandler) CreatePDPool(req *pb.CreatePDPoolRequest) error {
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].PDPools = append(h.conf.dhcp6Conf.DHCP6.Subnet6s[i].PDPools, PDPool{
+			dhcp6Conf.DHCP6.Subnet6s[i].PDPools = append(dhcp6Conf.DHCP6.Subnet6s[i].PDPools, PDPool{
 				Prefix:       req.GetPrefix(),
 				PrefixLen:    req.GetPrefixLen(),
 				DelegatedLen: req.GetDelegatedLen(),
@@ -508,20 +541,20 @@ func (h *DHCPHandler) CreatePDPool(req *pb.CreatePDPoolRequest) error {
 			break
 		}
 	}
-	h.lock.Unlock()
-	return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+	return h.reconfig6(&dhcp6Conf)
 }
 
 func (h *DHCPHandler) UpdatePDPool(req *pb.UpdatePDPoolRequest) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pdpool := range subnet.PDPools {
 				if pdpool.Prefix == req.GetPrefix() {
-					h.conf.dhcp6Conf.DHCP6.Subnet6s[i].PDPools[j].ClientClass = req.GetClientClass()
-					h.conf.dhcp6Conf.DHCP6.Subnet6s[i].PDPools[j].OptionDatas = genDHCPOptionDatas(
-						Option6DNSServers, req.GetDnsServers(), nil)
+					dhcp6Conf.DHCP6.Subnet6s[i].PDPools[j].ClientClass = req.GetClientClass()
+					dhcp6Conf.DHCP6.Subnet6s[i].PDPools[j].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
 					exists = true
 					break
 				}
@@ -529,10 +562,9 @@ func (h *DHCPHandler) UpdatePDPool(req *pb.UpdatePDPoolRequest) error {
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+		return h.reconfig6(&dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found pd-pool %s in subnet %d", req.GetPrefix(), req.GetSubnetId())
 	}
@@ -541,12 +573,13 @@ func (h *DHCPHandler) UpdatePDPool(req *pb.UpdatePDPoolRequest) error {
 func (h *DHCPHandler) DeletePDPool(req *pb.DeletePDPoolRequest) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pdpool := range subnet.PDPools {
 				if pdpool.Prefix == req.GetPrefix() {
-					h.conf.dhcp6Conf.DHCP6.Subnet6s[i].PDPools = append(h.conf.dhcp6Conf.DHCP6.Subnet6s[i].PDPools[:j],
-						h.conf.dhcp6Conf.DHCP6.Subnet6s[i].PDPools[j+1:]...)
+					dhcp6Conf.DHCP6.Subnet6s[i].PDPools = append(dhcp6Conf.DHCP6.Subnet6s[i].PDPools[:j], dhcp6Conf.DHCP6.Subnet6s[i].PDPools[j+1:]...)
 					exists = true
 					break
 				}
@@ -554,10 +587,9 @@ func (h *DHCPHandler) DeletePDPool(req *pb.DeletePDPoolRequest) error {
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+		return h.reconfig6(&dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found pd-pool %s in subnet %d", req.GetPrefix(), req.GetSubnetId())
 	}
@@ -565,9 +597,11 @@ func (h *DHCPHandler) DeletePDPool(req *pb.DeletePDPoolRequest) error {
 
 func (h *DHCPHandler) CreateReservation4(req *pb.CreateReservation4Request) error {
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp4Conf.DHCP4.Subnet4s {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
-			h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Reservations = append(h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Reservations, Reservation4{
+			dhcp4Conf.DHCP4.Subnet4s[i].Reservations = append(dhcp4Conf.DHCP4.Subnet4s[i].Reservations, Reservation4{
 				HWAddress:   req.GetHwAddress(),
 				IPAddress:   req.GetIpAddress(),
 				OptionDatas: genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), req.GetRouters()),
@@ -575,18 +609,19 @@ func (h *DHCPHandler) CreateReservation4(req *pb.CreateReservation4Request) erro
 			break
 		}
 	}
-	h.lock.Unlock()
-	return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+	return h.reconfig4(&dhcp4Conf)
 }
 
 func (h *DHCPHandler) UpdateReservation4(req *pb.UpdateReservation4Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp4Conf.DHCP4.Subnet4s {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, reservation := range subnet.Reservations {
 				if reservation.HWAddress == req.GetHwAddress() {
-					h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Reservations[j].OptionDatas = genDHCPOptionDatas(
+					dhcp4Conf.DHCP4.Subnet4s[i].Reservations[j].OptionDatas = genDHCPOptionDatas(
 						Option4DNSServers, req.GetDomainServers(), req.GetRouters())
 					exists = true
 					break
@@ -595,10 +630,9 @@ func (h *DHCPHandler) UpdateReservation4(req *pb.UpdateReservation4Request) erro
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+		return h.reconfig4(&dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found reservation4 %s in subnet4 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
@@ -607,12 +641,14 @@ func (h *DHCPHandler) UpdateReservation4(req *pb.UpdateReservation4Request) erro
 func (h *DHCPHandler) DeleteReservation4(req *pb.DeleteReservation4Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp4Conf.DHCP4.Subnet4s {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, reservation := range subnet.Reservations {
 				if reservation.HWAddress == req.GetHwAddress() {
-					h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Reservations = append(h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Reservations[:j],
-						h.conf.dhcp4Conf.DHCP4.Subnet4s[i].Reservations[j+1:]...)
+					dhcp4Conf.DHCP4.Subnet4s[i].Reservations = append(dhcp4Conf.DHCP4.Subnet4s[i].Reservations[:j],
+						dhcp4Conf.DHCP4.Subnet4s[i].Reservations[j+1:]...)
 					exists = true
 					break
 				}
@@ -620,10 +656,9 @@ func (h *DHCPHandler) DeleteReservation4(req *pb.DeleteReservation4Request) erro
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+		return h.reconfig4(&dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found reservation4 %s in subnet4 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
@@ -631,9 +666,11 @@ func (h *DHCPHandler) DeleteReservation4(req *pb.DeleteReservation4Request) erro
 
 func (h *DHCPHandler) CreateReservation6(req *pb.CreateReservation6Request) error {
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
-			h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Reservations = append(h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Reservations, Reservation6{
+			dhcp6Conf.DHCP6.Subnet6s[i].Reservations = append(dhcp6Conf.DHCP6.Subnet6s[i].Reservations, Reservation6{
 				HWAddress:   req.GetHwAddress(),
 				IPAddresses: req.GetIpAddresses(),
 				OptionDatas: genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil),
@@ -641,19 +678,19 @@ func (h *DHCPHandler) CreateReservation6(req *pb.CreateReservation6Request) erro
 			break
 		}
 	}
-	h.lock.Unlock()
-	return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+	return h.reconfig6(&dhcp6Conf)
 }
 
 func (h *DHCPHandler) UpdateReservation6(req *pb.UpdateReservation6Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, reservation := range subnet.Reservations {
 				if reservation.HWAddress == req.GetHwAddress() {
-					h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Reservations[j].OptionDatas = genDHCPOptionDatas(
-						Option6DNSServers, req.GetDnsServers(), nil)
+					dhcp6Conf.DHCP6.Subnet6s[i].Reservations[j].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
 					exists = true
 					break
 				}
@@ -661,10 +698,9 @@ func (h *DHCPHandler) UpdateReservation6(req *pb.UpdateReservation6Request) erro
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+		return h.reconfig6(&dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found reservation6 %s in subnet6 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
@@ -673,12 +709,14 @@ func (h *DHCPHandler) UpdateReservation6(req *pb.UpdateReservation6Request) erro
 func (h *DHCPHandler) DeleteReservation6(req *pb.DeleteReservation6Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, subnet := range h.conf.dhcp6Conf.DHCP6.Subnet6s {
+	defer h.lock.Unlock()
+	dhcp6Conf := *h.conf.dhcp6Conf
+	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, reservation := range subnet.Reservations {
 				if reservation.HWAddress == req.GetHwAddress() {
-					h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Reservations = append(h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Reservations[:j],
-						h.conf.dhcp6Conf.DHCP6.Subnet6s[i].Reservations[j+1:]...)
+					dhcp6Conf.DHCP6.Subnet6s[i].Reservations = append(dhcp6Conf.DHCP6.Subnet6s[i].Reservations[:j],
+						dhcp6Conf.DHCP6.Subnet6s[i].Reservations[j+1:]...)
 					exists = true
 					break
 				}
@@ -686,10 +724,9 @@ func (h *DHCPHandler) DeleteReservation6(req *pb.DeleteReservation6Request) erro
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+		return h.reconfig6(&dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found reservation6 %s in subnet6 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
@@ -697,29 +734,31 @@ func (h *DHCPHandler) DeleteReservation6(req *pb.DeleteReservation6Request) erro
 
 func (h *DHCPHandler) CreateClientClass4(req *pb.CreateClientClass4Request) error {
 	h.lock.Lock()
-	h.conf.dhcp4Conf.DHCP4.ClientClasses = append(h.conf.dhcp4Conf.DHCP4.ClientClasses, ClientClass{
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	dhcp4Conf.DHCP4.ClientClasses = append(dhcp4Conf.DHCP4.ClientClasses, ClientClass{
 		Name: req.GetName(),
 		Test: req.GetRegexp(),
 	})
-	h.lock.Unlock()
 
-	return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+	return h.reconfig4(&dhcp4Conf)
 }
 
 func (h *DHCPHandler) UpdateClientClass4(req *pb.UpdateClientClass4Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, clientclass := range h.conf.dhcp4Conf.DHCP4.ClientClasses {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, clientclass := range dhcp4Conf.DHCP4.ClientClasses {
 		if clientclass.Name == req.GetName() {
-			h.conf.dhcp4Conf.DHCP4.ClientClasses[i].Test = req.GetRegexp()
+			dhcp4Conf.DHCP4.ClientClasses[i].Test = req.GetRegexp()
 			exists = true
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+		return h.reconfig4(&dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found clientclass4 %s", req.GetName())
 	}
@@ -728,18 +767,18 @@ func (h *DHCPHandler) UpdateClientClass4(req *pb.UpdateClientClass4Request) erro
 func (h *DHCPHandler) DeleteClientClass4(req *pb.DeleteClientClass4Request) error {
 	exists := false
 	h.lock.Lock()
-	for i, clientclass := range h.conf.dhcp4Conf.DHCP4.ClientClasses {
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	for i, clientclass := range dhcp4Conf.DHCP4.ClientClasses {
 		if clientclass.Name == req.GetName() {
-			h.conf.dhcp4Conf.DHCP4.ClientClasses = append(h.conf.dhcp4Conf.DHCP4.ClientClasses[:i],
-				h.conf.dhcp4Conf.DHCP4.ClientClasses[i+1:]...)
+			dhcp4Conf.DHCP4.ClientClasses = append(dhcp4Conf.DHCP4.ClientClasses[:i], dhcp4Conf.DHCP4.ClientClasses[i+1:]...)
 			exists = true
 			break
 		}
 	}
-	h.lock.Unlock()
 
 	if exists {
-		return h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf)
+		return h.reconfig4(&dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found clientclass4 %s", req.GetName())
 	}
@@ -747,21 +786,23 @@ func (h *DHCPHandler) DeleteClientClass4(req *pb.DeleteClientClass4Request) erro
 
 func (h *DHCPHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigRequest) error {
 	h.lock.Lock()
-	h.conf.dhcp4Conf.DHCP4.ValidLifetime = req.GetValidLifetime()
-	h.conf.dhcp4Conf.DHCP4.MinValidLifetime = req.GetMinValidLifetime()
-	h.conf.dhcp4Conf.DHCP4.MaxValidLifetime = req.GetMaxValidLifetime()
-	h.conf.dhcp4Conf.DHCP4.OptionDatas = genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), nil)
-	h.conf.dhcp6Conf.DHCP6.ValidLifetime = req.GetValidLifetime()
-	h.conf.dhcp6Conf.DHCP6.MinValidLifetime = req.GetMinValidLifetime()
-	h.conf.dhcp6Conf.DHCP6.MaxValidLifetime = req.GetMaxValidLifetime()
-	h.conf.dhcp6Conf.DHCP6.OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDomainServers(), nil)
-	h.lock.Unlock()
+	defer h.lock.Unlock()
+	dhcp4Conf := *h.conf.dhcp4Conf
+	dhcp4Conf.DHCP4.ValidLifetime = req.GetValidLifetime()
+	dhcp4Conf.DHCP4.MinValidLifetime = req.GetMinValidLifetime()
+	dhcp4Conf.DHCP4.MaxValidLifetime = req.GetMaxValidLifetime()
+	dhcp4Conf.DHCP4.OptionDatas = genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), nil)
+	dhcp6Conf := *h.conf.dhcp6Conf
+	dhcp6Conf.DHCP6.ValidLifetime = req.GetValidLifetime()
+	dhcp6Conf.DHCP6.MinValidLifetime = req.GetMinValidLifetime()
+	dhcp6Conf.DHCP6.MaxValidLifetime = req.GetMaxValidLifetime()
+	dhcp6Conf.DHCP6.OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDomainServers(), nil)
 
-	if err := h.reconfig([]string{DHCP4Name}, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf); err != nil {
+	if err := h.reconfig4(&dhcp4Conf); err != nil {
 		return err
 	}
 
-	return h.reconfig([]string{DHCP6Name}, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
+	return h.reconfig6(&dhcp6Conf)
 }
 
 type Lease4 struct {
