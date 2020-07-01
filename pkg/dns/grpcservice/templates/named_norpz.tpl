@@ -21,7 +21,7 @@ key key{{$view.Name}} {
 };
 {{end}}
 
-logging{
+{{if .IsLogOpen}}logging{
 	channel query_log{
 	buffered true;
 	file "query.log" versions 5 size 20m;
@@ -32,7 +32,7 @@ logging{
 	category queries{
 	query_log;
 	};
-};
+};{{end}}
 
 {{range $k, $view := .Views}}
 view "{{$view.Name}}" {
