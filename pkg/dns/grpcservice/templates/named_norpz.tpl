@@ -62,6 +62,10 @@ controls {
         inet 127.0.0.1 port 953
         allow { 127.0.0.1; } keys { "rndc-key"; };
 };
+
+include "{{$.ConfigPath}}/cmcc.conf";
+include "{{$.ConfigPath}}/ctcc.conf";
+include "{{$.ConfigPath}}/cucc.conf";
 {{range $k, $acl := .ACLNames}}
 include "{{$.ConfigPath}}/{{$acl}}.acl";{{end}}
 
