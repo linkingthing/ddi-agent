@@ -433,7 +433,7 @@ func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
 
 func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 	if err := handler.updatePriority(int(req.Priority), req.ViewID); err != nil {
-		fmt.Errorf("update priority err:%s", err.Error())
+		return fmt.Errorf("update priority err:%s", err.Error())
 	}
 	//delete the old acls for view
 	if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, aCLsEndPath)); err != nil {
