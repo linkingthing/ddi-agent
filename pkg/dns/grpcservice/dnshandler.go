@@ -71,6 +71,7 @@ const (
 	cnameType          = "CNAME"
 	ptrType            = "PTR"
 	logStatus          = "isopen"
+	orderFirst         = "1"
 )
 
 type DNSHandler struct {
@@ -169,13 +170,13 @@ func newDNSHandler(dnsConfPath string, agentPath string) (*DNSHandler, error) {
 	}
 
 	var acls []string
-	acls, err = boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, defaultView, aCLsEndPath))
+	acls, err = boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, defaultView, aCLsEndPath, orderFirst))
 	if err != nil {
 		return nil, err
 	}
 
 	if len(acls) == 0 {
-		if _, err := boltdb.GetDB().CreateOrGetTable(filepath.Join(viewsPath, defaultView, aCLsEndPath, anyACL)); err != nil {
+		if _, err := boltdb.GetDB().CreateOrGetTable(filepath.Join(viewsPath, defaultView, aCLsEndPath, orderFirst, anyACL)); err != nil {
 			return nil, err
 		}
 	}
@@ -415,8 +416,8 @@ func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
 		}
 	}
 	//insert aCLIDs into viewid table
-	for _, id := range req.ACLs {
-		if _, err := boltdb.GetDB().CreateOrGetTable(filepath.Join(viewsEndPath, req.ViewID, aCLsPath, id)); err != nil {
+	for i, id := range req.ACLs {
+		if _, err := boltdb.GetDB().CreateOrGetTable(filepath.Join(viewsEndPath, req.ViewID, aCLsPath, fmt.Sprintf("%d", i+1), id)); err != nil {
 			return err
 		}
 	}
@@ -440,20 +441,25 @@ func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 	}
 
 	//add new aclids for aCL
-	for _, id := range req.NewACLs {
-		if _, err := boltdb.GetDB().CreateOrGetTable(filepath.Join(viewsEndPath, req.ViewID, aCLsPath, id)); err != nil {
-			return err
+	for i, id := range req.NewACLs {
+		if _, err := boltdb.GetDB().CreateOrGetTable(filepath.Join(viewsEndPath, req.ViewID, aCLsPath, fmt.Sprintf("%d", i+1), id)); err != nil {
+			return fmt.Errorf("when update view, after delete acls,insert acls err:%s", err.Error())
 		}
 	}
-
 	//update the dns64
 	if req.DNS64 != "" {
 		if err := handler.UpdateDNS64(pb.UpdateDNS64Req{ID: req.ViewID, ViewID: req.ViewID, Prefix: req.DNS64, ClientACL: anyACL, AAddress: anyACL}); err != nil {
 			return err
 		}
 	} else {
-		if err := handler.DeleteDNS64(pb.DeleteDNS64Req{ID: req.ViewID, ViewID: req.ViewID}); err != nil {
+		tables, err := boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, req.ViewID, dns64sPath))
+		if err != nil {
 			return err
+		}
+		if len(tables) > 0 {
+			if err := handler.DeleteDNS64(pb.DeleteDNS64Req{ID: req.ViewID, ViewID: req.ViewID}); err != nil {
+				return fmt.Errorf("when update view, delete dns64 err:%s", err.Error())
+			}
 		}
 	}
 	if err := handler.rewriteNamedFile(false); err != nil {
@@ -929,20 +935,15 @@ func (handler *DNSHandler) namedConfData() (*namedData, error) {
 			return nil, err
 		}
 		var aCLs []ACL
-		for _, aCLid := range tables {
-			aCLNames, err := boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, aCLid))
-			if err != nil {
-			}
-			aCLName := aCLNames["name"]
-			ipsMap, err := boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, aCLid, iPsEndPath))
+		for i := 0; i < len(tables); i++ {
+			aCLids, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, string(viewid), aCLsEndPath, fmt.Sprintf("%d", i+1)))
 			if err != nil {
 				return nil, err
 			}
-			var ips []string
-			for _, ip := range ipsMap {
-				ips = append(ips, string(ip))
+			if len(aCLids) == 0 {
+				return nil, fmt.Errorf("view %s' the %d's acl not exists", string(viewid), i+1)
 			}
-			aCL := ACL{Name: string(aCLName)}
+			aCL := ACL{Name: string(aCLids[0])}
 			aCLs = append(aCLs, aCL)
 		}
 		view := View{Name: string(viewName), ACLs: aCLs}
