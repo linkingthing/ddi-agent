@@ -433,11 +433,11 @@ func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
 
 func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 	if err := handler.updatePriority(int(req.Priority), req.ViewID); err != nil {
-		return err
+		fmt.Errorf("update priority err:%s", err.Error())
 	}
 	//delete the old acls for view
 	if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, aCLsEndPath)); err != nil {
-		return err
+		return fmt.Errorf("delete acls err:%s", err.Error())
 	}
 
 	//add new aclids for aCL
@@ -448,13 +448,23 @@ func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 	}
 	//update the dns64
 	if req.DNS64 != "" {
-		if err := handler.UpdateDNS64(pb.UpdateDNS64Req{ID: req.ViewID, ViewID: req.ViewID, Prefix: req.DNS64, ClientACL: anyACL, AAddress: anyACL}); err != nil {
-			return err
+		tables, err := boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, req.ViewID, dns64sPath))
+		if err != nil {
+			return fmt.Errorf("get dns64 tables fail:%s", err.Error())
+		}
+		if len(tables) > 0 {
+			if err := handler.UpdateDNS64(pb.UpdateDNS64Req{ID: req.ViewID, ViewID: req.ViewID, Prefix: req.DNS64, ClientACL: anyACL, AAddress: anyACL}); err != nil {
+				return fmt.Errorf("update dns64 fail:%s", err.Error())
+			}
+		} else {
+			if err := handler.CreateDNS64(pb.CreateDNS64Req{ID: req.ViewID, ViewID: req.ViewID, Prefix: req.DNS64, ClientACL: anyACL, AAddress: anyACL}); err != nil {
+				return fmt.Errorf("create dns64 fail:%s", err.Error())
+			}
 		}
 	} else {
 		tables, err := boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, req.ViewID, dns64sPath))
 		if err != nil {
-			return err
+			return fmt.Errorf("get dns64 tables fail:%s", err.Error())
 		}
 		if len(tables) > 0 {
 			if err := handler.DeleteDNS64(pb.DeleteDNS64Req{ID: req.ViewID, ViewID: req.ViewID}); err != nil {
@@ -463,14 +473,14 @@ func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 		}
 	}
 	if err := handler.rewriteNamedFile(false); err != nil {
-		return err
+		return fmt.Errorf("rewrite named.conf fail:%s", err.Error())
 	}
 	if err := handler.rewriteACLsFile(); err != nil {
-		return err
+		return fmt.Errorf("rewrite *.acl files fail:%s", err.Error())
 	}
 	//update bind
 	if err := handler.rndcReconfig(); err != nil {
-		return err
+		return fmt.Errorf("rndc reconfig fail:%s", err.Error())
 	}
 
 	return nil
