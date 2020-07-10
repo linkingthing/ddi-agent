@@ -451,6 +451,10 @@ func (handler *DNSHandler) UpdateView(req pb.UpdateViewReq) error {
 		if err := handler.UpdateDNS64(pb.UpdateDNS64Req{ID: req.ViewID, ViewID: req.ViewID, Prefix: req.DNS64, ClientACL: anyACL, AAddress: anyACL}); err != nil {
 			return err
 		}
+	} else {
+		if err := handler.DeleteDNS64(pb.DeleteDNS64Req{ID: req.ViewID, ViewID: req.ViewID}); err != nil {
+			return err
+		}
 	}
 	if err := handler.rewriteNamedFile(false); err != nil {
 		return err
@@ -1823,13 +1827,22 @@ func (handler *DNSHandler) CreateDNS64(req pb.CreateDNS64Req) error {
 }
 func (handler *DNSHandler) UpdateDNS64(req pb.UpdateDNS64Req) error {
 	//input the data into the data base.
-	kvs := map[string][]byte{}
-	kvs["prefix"] = []byte(req.Prefix)
-	kvs["clientacl"] = []byte(req.ClientACL)
-	kvs["aaddress"] = []byte(req.AAddress)
-	if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsEndPath, req.ViewID, dns64sPath, req.ID), kvs); err != nil {
+	oldkvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, dns64sPath, req.ID))
+	if err != nil {
 		return err
 	}
+	if len(oldkvs) == 0 {
+		kvs := map[string][]byte{"prefix": []byte(req.Prefix), "clientacl": []byte(req.ClientACL), "aaddress": []byte(req.AAddress)}
+		if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID, dns64sPath, req.ID), kvs); err != nil {
+			return err
+		}
+	} else {
+		kvs := map[string][]byte{"prefix": []byte(req.Prefix), "clientacl": []byte(req.ClientACL), "aaddress": []byte(req.AAddress)}
+		if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsEndPath, req.ViewID, dns64sPath, req.ID), kvs); err != nil {
+			return err
+		}
+	}
+
 	//rewrite the named.conf file.
 	if err := handler.rewriteNamedFile(false); err != nil {
 		return err
