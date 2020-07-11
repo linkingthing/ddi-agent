@@ -164,6 +164,7 @@ func newDNSHandler(dnsConfPath string, agentPath string) (*DNSHandler, error) {
 
 		viewkvs["name"] = []byte(defaultView)
 		viewkvs["key"] = []byte(randomdata.RandString(12))
+		viewkvs["next"] = []byte("")
 		if err := boltdb.GetDB().AddKVs(filepath.Join(viewsPath, defaultView), viewkvs); err != nil {
 			return nil, err
 		}
@@ -404,8 +405,7 @@ func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
 		return err
 	}
 	//create table viewid and put name into the db.
-	namekvs := map[string][]byte{"name": []byte(req.ViewName)}
-	namekvs["key"] = []byte(randomdata.RandString(12))
+	namekvs := map[string][]byte{"name": []byte(req.ViewName), "key": []byte(randomdata.RandString(12))}
 	if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID), namekvs); err != nil {
 		return err
 	}
@@ -1464,49 +1464,49 @@ func (handler *DNSHandler) addPriority(pri int, viewid string, isCreateView bool
 	//if the viewid has already in the database then return nil
 	viewskvs, err := boltdb.GetDB().GetTableKVs(viewsEndPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("get %s tablekvs err:%s", viewsEndPath, err.Error())
 	}
 	if pri == 1 {
 		if err := boltdb.GetDB().UpdateKVs(viewsEndPath, map[string][]byte{"next": []byte(viewid)}); err != nil {
-			return err
+			return fmt.Errorf("update %s tablekvs err:%s", viewsEndPath, err.Error())
 		}
 		//add new node.
 		if isCreateView {
 			if err := boltdb.GetDB().AddKVs(filepath.Join(viewsPath, viewid), map[string][]byte{"next": viewskvs["next"]}); err != nil {
-				return err
+				return fmt.Errorf("add %s kvs err:%s", filepath.Join(viewsPath, viewid), err.Error())
 			}
 		} else {
 			if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, viewid), map[string][]byte{"next": viewskvs["next"]}); err != nil {
-				return err
+				return fmt.Errorf("update %s tablekvs err:%s", filepath.Join(viewsPath, viewid), err.Error())
 			}
 		}
 	} else {
 		previd := string(viewskvs["next"])
 		if viewskvs, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, previd)); err != nil {
-			return err
+			return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, previd), err.Error())
 		}
 		nextid := string(viewskvs["next"])
 
 		var count int
 		for count = 1; count < pri-1 && nextid != ""; count++ {
 			if viewskvs, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, nextid)); err != nil {
-				return err
+				return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, nextid), err.Error())
 			}
 			previd = nextid
 			nextid = string(viewskvs["next"])
 		}
 		//update the previous one
 		if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, previd), map[string][]byte{"next": []byte(viewid)}); err != nil {
-			return err
+			return fmt.Errorf("update %s tablekvs err:%s", filepath.Join(viewsPath, previd), err.Error())
 		}
 		//add new node.
 		if isCreateView {
 			if err := boltdb.GetDB().AddKVs(filepath.Join(viewsPath, viewid), map[string][]byte{"next": []byte(nextid)}); err != nil {
-				return err
+				return fmt.Errorf("add %s tablekvs err:%s", filepath.Join(viewsPath, viewid), err.Error())
 			}
 		} else {
 			if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, viewid), map[string][]byte{"next": []byte(nextid)}); err != nil {
-				return err
+				return fmt.Errorf("update %s tablekvs err:%s", filepath.Join(viewsPath, viewid), err.Error())
 			}
 		}
 	}
@@ -1515,10 +1515,10 @@ func (handler *DNSHandler) addPriority(pri int, viewid string, isCreateView bool
 
 func (handler *DNSHandler) updatePriority(pri int, viewid string) error {
 	if err := handler.deletePriority(viewid); err != nil {
-		return err
+		return fmt.Errorf("delete priority err:%s", err.Error())
 	}
 	if err := handler.addPriority(pri, viewid, false); err != nil {
-		return err
+		return fmt.Errorf("add priority err:%s", err.Error())
 	}
 	return nil
 }
@@ -1527,36 +1527,36 @@ func (handler *DNSHandler) deletePriority(viewID string) error {
 	// find the previd and nextid of the viewid.
 	ids, err := boltdb.GetDB().GetTableKVs(viewsEndPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("get %s tablekvs err:%s", viewsEndPath, err.Error())
 	}
 	if string(ids["next"]) == viewID {
 		ids, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewID))
 		if err != nil {
-			return err
+			return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, viewID), err.Error())
 		}
 		if err = boltdb.GetDB().UpdateKVs(viewsEndPath, map[string][]byte{"next": ids["next"]}); err != nil {
-			return err
+			return fmt.Errorf("update %s tablekvs err:%s", viewsEndPath, err.Error())
 		}
 	} else {
 		previd := string(ids["next"])
 		if ids, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, previd)); err != nil {
-			return err
+			return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, previd), err.Error())
 		}
 		nextid := string(ids["next"])
 
 		for nextid != "" && nextid != viewID {
 			if ids, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, nextid)); err != nil {
-				return err
+				return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, nextid), err.Error())
 			}
 			previd = nextid
 			nextid = string(ids["next"])
 		}
 		if nextid == viewID {
 			if ids, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, nextid)); err != nil {
-				return err
+				return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, nextid), err.Error())
 			}
 			if err = boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, previd), map[string][]byte{"next": ids["next"]}); err != nil {
-				return err
+				return fmt.Errorf("update %s tablekvs err:%s", filepath.Join(viewsPath, previd), err.Error())
 			}
 		}
 	}
