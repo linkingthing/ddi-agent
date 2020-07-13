@@ -1629,8 +1629,7 @@ func (handler *DNSHandler) rndcDumpJNLFile() error {
 	var para4 string = "sync"
 	var para5 string = "-clean"
 	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), para1, para2, para3, para4, para5); err != nil {
-		panic(err)
-		return err
+		return fmt.Errorf("exec rndc sync -clean err:%s", err.Error())
 	}
 	return nil
 }
@@ -2006,7 +2005,7 @@ func (handler *DNSHandler) DeleteSortList(req pb.DeleteSortListReq) error {
 	var err error
 	acls, err = boltdb.GetDB().GetTables(sortListEndPath)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("delete sortlist err:%s", err.Error())
 	}
 	for _, v := range acls {
 		boltdb.GetDB().DeleteTable(filepath.Join(sortListPath, v))
