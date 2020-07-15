@@ -1745,6 +1745,15 @@ func (handler *DNSHandler) UpdateRedirection(req pb.UpdateRedirectionReq) error 
 			if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID, redirectPath, req.ID), rrMap); err != nil {
 				return err
 			}
+			tables, err := boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, req.ViewID, redirectPath))
+			if err != nil {
+				return err
+			}
+			if len(tables) == 1 {
+				if err := handler.rewriteNamedFile(false); err != nil {
+					return err
+				}
+			}
 		} else {
 			//update the data into the database.
 			if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsEndPath, req.ViewID, redirectPath, req.ID), rrMap); err != nil {
