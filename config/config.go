@@ -48,6 +48,7 @@ type DHCPDBConf struct {
 	User     string `json:"user"`
 	Password string `json:"password"`
 	Port     uint32 `json:"port"`
+	Host     string `json:"host"`
 }
 
 type GrpcConf struct {
