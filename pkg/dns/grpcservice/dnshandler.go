@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -23,69 +24,82 @@ import (
 )
 
 const (
-	mainConfName       = "named.conf"
-	dBName             = "bind.db"
-	viewsPath          = "/views/"
-	viewsEndPath       = "/views"
-	zonesPath          = "/zones/"
-	zonesEndPath       = "/zones"
-	aCLsPath           = "/acls/"
-	aCLsEndPath        = "/acls"
-	rRsEndPath         = "/rrs"
-	rRsPath            = "/rrs/"
-	iPsEndPath         = "/ips"
-	forwardsPath       = "/forwards/"
-	forwardsEndPath    = "/forwards"
-	redirectPath       = "/redirect/"
-	redirectEndPath    = "/redirect"
-	rpzPath            = "/rpz/"
-	rpzEndPath         = "/rpz"
-	dns64sPath         = "/dns64s/"
-	dns64sEndPath      = "/dns64s"
-	ipBlackHolePath    = "/ipBlackHole/"
-	ipBlackHoleEndPath = "/ipBlackHole"
-	recurConcurEndPath = "/recurConcur"
-	sortListPath       = "/sortList/"
-	sortListEndPath    = "/sortList"
-	logPath            = "/log"
-	namedTpl           = "named.tpl"
-	namedNoRPZTpl      = "named_norpz.tpl"
-	zoneTpl            = "zone.tpl"
-	aCLTpl             = "acl.tpl"
-	nzfTpl             = "nzf.tpl"
-	redirectTpl        = "redirect.tpl"
-	rpzTpl             = "rpz.tpl"
-	rndcPort           = "953"
-	checkPeriod        = 5
-	dnsServer          = "localhost:53"
-	masterType         = "master"
-	forwardType        = "forward"
-	anyACL             = "any"
-	noneACL            = "none"
-	defaultView        = "default"
-	aclSuffix          = ".acl"
-	zoneSuffix         = ".zone"
-	nzfSuffix          = ".nzf"
-	localZoneType      = "localzone"
-	nxDomain           = "nxdomain"
-	cnameType          = "CNAME"
-	ptrType            = "PTR"
-	logStatus          = "isopen"
-	orderFirst         = "1"
+	mainConfName         = "named.conf"
+	dBName               = "bind.db"
+	viewsPath            = "/views/"
+	viewsEndPath         = "/views"
+	zonesPath            = "/zones/"
+	zonesEndPath         = "/zones"
+	aCLsPath             = "/acls/"
+	aCLsEndPath          = "/acls"
+	rRsEndPath           = "/rrs"
+	rRsPath              = "/rrs/"
+	iPsEndPath           = "/ips"
+	forwardsPath         = "/forwards/"
+	forwardsEndPath      = "/forwards"
+	redirectPath         = "/redirect/"
+	redirectEndPath      = "/redirect"
+	rpzPath              = "/rpz/"
+	rpzEndPath           = "/rpz"
+	dns64sPath           = "/dns64s/"
+	dns64sEndPath        = "/dns64s"
+	ipBlackHolePath      = "/ipBlackHole/"
+	ipBlackHoleEndPath   = "/ipBlackHole"
+	recurConcurEndPath   = "/recurConcur"
+	sortListPath         = "/sortList/"
+	sortListEndPath      = "/sortList"
+	logPath              = "/log"
+	urlRedirectsPath     = "/urlRedirects"
+	namedTpl             = "named.tpl"
+	namedNoRPZTpl        = "named_norpz.tpl"
+	zoneTpl              = "zone.tpl"
+	aCLTpl               = "acl.tpl"
+	nzfTpl               = "nzf.tpl"
+	redirectTpl          = "redirect.tpl"
+	rpzTpl               = "rpz.tpl"
+	nginxDefaultTpl      = "nginxdefault.tpl"
+	rndcPort             = "953"
+	checkPeriod          = 5
+	dnsServer            = "localhost:53"
+	masterType           = "master"
+	forwardType          = "forward"
+	anyACL               = "any"
+	noneACL              = "none"
+	defaultView          = "default"
+	aclSuffix            = ".acl"
+	zoneSuffix           = ".zone"
+	nzfSuffix            = ".nzf"
+	localZoneType        = "localzone"
+	nxDomain             = "nxdomain"
+	cnameType            = "CNAME"
+	ptrType              = "PTR"
+	logStatus            = "isopen"
+	orderFirst           = "1"
+	domain               = "domain"
+	url                  = "url"
+	nginxDefaultConfFile = "default.conf"
 )
 
 type DNSHandler struct {
-	tpl         *template.Template
-	db          *boltdb.BoltDB
-	dnsConfPath string
-	dBPath      string
-	tplPath     string
-	ticker      *time.Ticker
-	quit        chan int
+	tpl                 *template.Template
+	db                  *boltdb.BoltDB
+	dnsConfPath         string
+	dBPath              string
+	tplPath             string
+	ticker              *time.Ticker
+	quit                chan int
+	nginxDefaultConfDir string
+	localip             string
 }
 
-func newDNSHandler(dnsConfPath string, agentPath string) (*DNSHandler, error) {
-	instance := &DNSHandler{dnsConfPath: filepath.Join(dnsConfPath), dBPath: filepath.Join(agentPath), tplPath: filepath.Join(dnsConfPath, "templates")}
+func newDNSHandler(dnsConfPath string, agentPath string, nginxDefaultConfDir string, localip string) (*DNSHandler, error) {
+	instance := &DNSHandler{
+		dnsConfPath:         filepath.Join(dnsConfPath),
+		dBPath:              filepath.Join(agentPath),
+		tplPath:             filepath.Join(dnsConfPath, "templates"),
+		nginxDefaultConfDir: nginxDefaultConfDir,
+		localip:             localip,
+	}
 	var err error
 	instance.tpl, err = template.ParseFiles(filepath.Join(instance.tplPath, namedTpl))
 	if err != nil {
@@ -118,6 +132,11 @@ func newDNSHandler(dnsConfPath string, agentPath string) (*DNSHandler, error) {
 	}
 
 	instance.tpl, err = instance.tpl.ParseFiles(filepath.Join(instance.tplPath, rpzTpl))
+	if err != nil {
+		return nil, err
+	}
+
+	instance.tpl, err = instance.tpl.ParseFiles(filepath.Join(instance.tplPath, nginxDefaultTpl))
 	if err != nil {
 		return nil, err
 	}
@@ -196,6 +215,14 @@ type namedData struct {
 	IsLogOpen   bool
 	SortList    []string
 	Concu       *recursiveConcurrent
+}
+
+type nginxDefaultConf struct {
+	URLRedirects []urlRedirect
+}
+type urlRedirect struct {
+	Domain string
+	URL    string
 }
 
 type forward struct {
@@ -313,6 +340,9 @@ func (handler *DNSHandler) Start(req pb.DNSStartReq) error {
 		return err
 	}
 
+	if err := handler.rewriteNginxFile(); err != nil {
+		return fmt.Errorf("rewrite nginx config file error:%s", err.Error())
+	}
 	var param string = "-c" + filepath.Join(handler.dnsConfPath, mainConfName)
 	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "named"), param); err != nil {
 		return err
@@ -2106,6 +2136,136 @@ func updateRR(key string, secret string, rr string, zone string, isAdd bool) err
 	_, _, err = conn.ReadFromUDP(answerBuffer)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+func (handler *DNSHandler) CreateUrlRedirect(req pb.CreateUrlRedirectReq) error {
+	//input the data into view's urlRedirects's path store.
+	if err := boltdb.GetDB().AddKVs(filepath.Join(viewsPath, req.ViewID, urlRedirectsPath, req.ID),
+		map[string][]byte{domain: []byte(req.Domain), url: []byte(req.URL)}); err != nil {
+		return fmt.Errorf("add kvs for path %s error:%s", filepath.Join(viewsPath, req.ViewID, urlRedirectsPath, req.ID), err.Error())
+	}
+	//add the localzone redirection.
+	if err := handler.CreateRedirection(pb.CreateRedirectionReq{
+		ID:           req.ID,
+		ViewID:       req.ViewID,
+		Name:         req.Domain,
+		TTL:          "3600",
+		DataType:     "A",
+		Value:        handler.localip,
+		RedirectType: localZoneType,
+	}); err != nil {
+		return fmt.Errorf("create redirection local zone for %s error:%s", req.Domain, err.Error())
+	}
+	//rewrite the nginx default config.
+	if err := handler.rewriteNginxFile(); err != nil {
+		return fmt.Errorf("rewrite nginx default config for %s and %s error:%s", req.Domain, req.URL, err.Error())
+	}
+	if err := handler.nginxReload(); err != nil {
+		return fmt.Errorf("nginx reload error:%s", err.Error())
+	}
+	return nil
+}
+func (handler *DNSHandler) UpdateUrlRedirect(req pb.UpdateUrlRedirectReq) error {
+	//update view's urlRedirects's data in the db.
+	if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, req.ViewID, urlRedirectsPath, req.ID),
+		map[string][]byte{domain: []byte(req.Domain), url: []byte(req.URL)}); err != nil {
+		return fmt.Errorf("update kvs for path %s error: %s", filepath.Join(viewsPath, req.ViewID, urlRedirectsPath, req.ID), err.Error())
+	}
+	//update the localzone redirection.
+	if err := handler.UpdateRedirection(pb.UpdateRedirectionReq{
+		ID:                    req.ID,
+		ViewID:                req.ViewID,
+		Name:                  req.Domain,
+		TTL:                   "3600",
+		DataType:              "A",
+		Value:                 handler.localip,
+		RedirectType:          localZoneType,
+		IsRedirectTypeChanged: false,
+	}); err != nil {
+		return fmt.Errorf("create redirection local zone for %s error: %s", req.Domain, err.Error())
+	}
+	//rewrite the nginx default config.
+	if err := handler.rewriteNginxFile(); err != nil {
+		return fmt.Errorf("rewrite nginx default config for %s and %s error:%s", req.Domain, req.URL, err.Error())
+	}
+	if err := handler.nginxReload(); err != nil {
+		return fmt.Errorf("nginx reload error:%s", err.Error())
+	}
+	return nil
+}
+func (handler *DNSHandler) DeleteUrlRedirect(req pb.DeleteUrlRedirectReq) error {
+	//delete view's urlRedirects's data in the db.
+	if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsPath, req.ViewID, urlRedirectsPath, req.ID)); err != nil {
+		return fmt.Errorf("delete tables for path %s error: %s", filepath.Join(viewsPath, req.ViewID, urlRedirectsPath, req.ID), err.Error())
+	}
+	//Delete the localzone redirection.
+	if err := handler.DeleteRedirection(pb.DeleteRedirectionReq{
+		ID:           req.ID,
+		ViewID:       req.ViewID,
+		RedirectType: localZoneType,
+	}); err != nil {
+		return fmt.Errorf("delete redirection local zone for %s error: %s", req.ID, err.Error())
+	}
+	//rewrite the nginx default config.
+	if err := handler.rewriteNginxFile(); err != nil {
+		return fmt.Errorf("rewrite nginx default config for %s error:%s", req.ID, err.Error())
+	}
+	if err := handler.nginxReload(); err != nil {
+		return fmt.Errorf("nginx reload error:%s", err.Error())
+	}
+	return nil
+}
+
+func (handler *DNSHandler) rewriteNginxFile() error {
+	data, err := handler.GetNginxData()
+	if err != nil {
+		return fmt.Errorf("get nginx conf data error %s", err.Error())
+	}
+	buf := new(bytes.Buffer)
+	if err = handler.tpl.ExecuteTemplate(buf, nginxDefaultTpl, data); err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(filepath.Join(handler.nginxDefaultConfDir, nginxDefaultConfFile), buf.Bytes(), 0644); err != nil {
+		return fmt.Errorf("write file %s err", filepath.Join(handler.nginxDefaultConfDir, nginxDefaultConfFile), err.Error())
+	}
+	return nil
+}
+
+func (handler *DNSHandler) GetNginxData() (*nginxDefaultConf, error) {
+	data := nginxDefaultConf{}
+	kvs, err := boltdb.GetDB().GetTableKVs(viewsEndPath)
+	if err != nil {
+		return nil, err
+	}
+	viewid := string(kvs["next"])
+	for viewid != "" {
+		tables, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, urlRedirectsPath))
+		if err != nil {
+			return nil, err
+		}
+		for _, t := range tables {
+			urlRedirectkvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, string(viewid), urlRedirectsPath, t))
+			if err != nil {
+				return nil, fmt.Errorf("get path %s kvs error", filepath.Join(viewsPath, string(viewid), urlRedirectsPath, t))
+			}
+			data.URLRedirects = append(data.URLRedirects, urlRedirect{Domain: string(urlRedirectkvs[domain]), URL: string(urlRedirectkvs[url])})
+		}
+
+		kvs, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid))
+		if err != nil {
+			return nil, err
+		}
+		viewid = string(kvs["next"])
+	}
+	return &data, nil
+}
+
+func (handler *DNSHandler) nginxReload() error {
+	command := "docker exec -i ddi-nginx nginx -s reload"
+	cmd := exec.Command("/bin/bash", "-c", command)
+	if _, err := cmd.Output(); err != nil {
+		return fmt.Errorf("exec docker nginx reload error: %s", err.Error())
 	}
 	return nil
 }
