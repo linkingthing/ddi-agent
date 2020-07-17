@@ -43,6 +43,8 @@ const (
 	RcodeDuplicate            = "Duplicate"
 	RcodeDropped              = "Dropped"
 	RcodeFailure              = "Failure"
+
+	Uint32Max = 4294967295
 )
 
 type DNSCollector struct {
@@ -76,7 +78,7 @@ func newDNSCollector(conf *config.AgentConfig, cli *http.Client) (*DNSCollector,
 }
 
 func (dns *DNSCollector) Run() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -91,15 +93,17 @@ func (dns *DNSCollector) Run() {
 				if cs.Type == ServerCounterTypeOpCode {
 					for _, c := range cs.Counters {
 						if c.Name == OpcodeQUERY {
-							if seconds := statistics.Server.CurrentTime.Sub(dns.lastGetTime).Seconds(); seconds != 0 &&
-								c.Counter >= dns.lastQueryCount {
-								if dns.lastQueryCount != 0 {
-									qps = float64(c.Counter-dns.lastQueryCount) / seconds
+							now := time.Now()
+							if seconds := now.Sub(dns.lastGetTime).Seconds(); seconds > 0 && dns.lastQueryCount != 0 {
+								if diff := c.Counter - dns.lastQueryCount; diff >= 0 {
+									qps = float64(diff) / seconds
+								} else {
+									qps = float64(diff+Uint32Max) / seconds
 								}
-								dns.lastQueryCount = c.Counter
-								dns.lastGetTime = statistics.Server.CurrentTime
-								break
 							}
+							dns.lastQueryCount = c.Counter
+							dns.lastGetTime = now
+							break
 						}
 					}
 					break
