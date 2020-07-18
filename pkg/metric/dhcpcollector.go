@@ -82,7 +82,7 @@ func newDHCPCollector(conf *config.AgentConfig, cli *http.Client) (*DHCPCollecto
 }
 
 func (dhcp *DHCPCollector) Run() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -94,9 +94,10 @@ func (dhcp *DHCPCollector) Run() {
 			}
 
 			now := time.Now()
-			if dhcp.lastAssignedAddrsCount != 0 {
-				lps := (assignedAddrsCount - dhcp.lastAssignedAddrsCount) / now.Sub(dhcp.lastGetTime).Seconds()
-				atomic.StoreUint64(&dhcp.lps, uint64(lps))
+			if seconds := now.Sub(dhcp.lastGetTime).Seconds(); seconds > 0 && dhcp.lastAssignedAddrsCount != 0 {
+				if diff := assignedAddrsCount - dhcp.lastAssignedAddrsCount; diff >= 0 {
+					atomic.StoreUint64(&dhcp.lps, uint64(diff/now.Sub(dhcp.lastGetTime).Seconds()))
+				}
 			}
 
 			dhcp.lastAssignedAddrsCount = assignedAddrsCount
