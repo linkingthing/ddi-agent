@@ -48,6 +48,9 @@ const (
 	UpdateSortList            = "UpdateSortList"
 	DeleteSortList            = "DeleteSortList"
 	UpdateLog                 = "UpdateLog"
+	CreateUrlRedirect         = "CreateUrlRedirect"
+	UpdateUrlRedirect         = "UpdateUrlRedirect"
+	DeleteUrlRedirect         = "DeleteUrlRedirect"
 )
 
 var (
@@ -310,6 +313,27 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			if err := proto.Unmarshal(message.Value, &target); err != nil {
 			}
 			if _, err := cli.UpdateLog(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec UpdateLog failed: %s", err.Error())
+			}
+		case CreateUrlRedirect:
+			var target pb.CreateUrlRedirectReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.CreateUrlRedirect(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec UpdateLog failed: %s", err.Error())
+			}
+		case UpdateUrlRedirect:
+			var target pb.UpdateUrlRedirectReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.UpdateUrlRedirect(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec UpdateLog failed: %s", err.Error())
+			}
+		case DeleteUrlRedirect:
+			var target pb.DeleteUrlRedirectReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.DeleteUrlRedirect(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec UpdateLog failed: %s", err.Error())
 			}
 		}

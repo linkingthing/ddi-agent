@@ -5,16 +5,17 @@ import (
 )
 
 type AgentConfig struct {
-	Path       string         `yaml:"-"`
-	Server     ServerConf     `yaml:"server"`
-	Controller ControllerConf `yaml:"controller"`
-	DNS        DNSConf        `yaml:"dns"`
-	DHCP       DHCPConf       `yaml:"dhcp"`
-	Grpc       GrpcConf       `yaml:"grpc"`
-	Kafka      KafkaConf      `yaml:"kafka"`
-	Prometheus PrometheusConf `yaml:"prometheus"`
-	Metric     MetricConf     `yaml:"metric"`
-	DB         BoltDBConf     `yaml:"db"`
+	Path            string         `yaml:"-"`
+	Server          ServerConf     `yaml:"server"`
+	Controller      ControllerConf `yaml:"controller"`
+	DNS             DNSConf        `yaml:"dns"`
+	DHCP            DHCPConf       `yaml:"dhcp"`
+	Grpc            GrpcConf       `yaml:"grpc"`
+	Kafka           KafkaConf      `yaml:"kafka"`
+	Prometheus      PrometheusConf `yaml:"prometheus"`
+	Metric          MetricConf     `yaml:"metric"`
+	DB              BoltDBConf     `yaml:"db"`
+	NginxDefaultDir string         `yaml:"nginx_default_dir"`
 }
 
 type ServerConf struct {

@@ -17,7 +17,7 @@ type DNSService struct {
 }
 
 func New(conf *config.AgentConfig) (*DNSService, error) {
-	handler, err := newDNSHandler(conf.DNS.ConfDir, conf.DNS.DBDir)
+	handler, err := newDNSHandler(conf.DNS.ConfDir, conf.DNS.DBDir, conf.NginxDefaultDir, conf.Server.IP)
 	if err != nil {
 		return nil, err
 	}
@@ -299,4 +299,28 @@ func (service *DNSService) UpdateLog(context context.Context, req *pb.UpdateLogR
 }
 func (service *DNSService) Close() {
 	service.handler.Close()
+}
+func (service *DNSService) CreateUrlRedirect(context context.Context, req *pb.CreateUrlRedirectReq) (*pb.DDIResponse, error) {
+	err := service.handler.CreateUrlRedirect(*req)
+	if err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	} else {
+		return &pb.DDIResponse{Succeed: true}, nil
+	}
+}
+func (service *DNSService) UpdateUrlRedirect(context context.Context, req *pb.UpdateUrlRedirectReq) (*pb.DDIResponse, error) {
+	err := service.handler.UpdateUrlRedirect(*req)
+	if err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	} else {
+		return &pb.DDIResponse{Succeed: true}, nil
+	}
+}
+func (service *DNSService) DeleteUrlRedirect(context context.Context, req *pb.DeleteUrlRedirectReq) (*pb.DDIResponse, error) {
+	err := service.handler.DeleteUrlRedirect(*req)
+	if err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	} else {
+		return &pb.DDIResponse{Succeed: true}, nil
+	}
 }

@@ -5,14 +5,14 @@ options {
 	allow-query {any;};
 	dnssec-enable no;
 	dnssec-validation no;
-	querylog yes;{{if .IPBlackHole}}
+	{{if .IsLogOpen}}querylog yes;{{else}}querylog no;{{end}}{{if .IPBlackHole}}
 	BlackHole{ {{range $k,$v := .IPBlackHole.ACLNames}}{{$v}}; {{end}}};{{end}}{{if .Concu}}
 	recursive-clients {{.Concu.RecursiveClients}};
 	fetches-per-zone {{.Concu.FetchesPerZone}};{{end}}{{if .SortList}}
 	sortlist{ {{range $k, $s := .SortList}}{{$s}};{{end}} };{{end}}
 };
 statistics-channels {
-     inet 127.0.0.1 port 8082 allow { 127.0.0.1; };
+     inet 127.0.0.1 port 58082 allow { 127.0.0.1; };
 };
 {{range $k, $view := .Views}}
 key key{{$view.Name}} {
@@ -24,7 +24,7 @@ key key{{$view.Name}} {
 {{if .IsLogOpen}}logging{
 	channel query_log{
 	buffered true;
-	file "query.log" versions 5 size 20m;
+	file "query.log" versions 5 size 200m;
 	print-time yes;
 	print-category yes;
         severity dynamic;
