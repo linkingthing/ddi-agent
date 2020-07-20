@@ -95,8 +95,8 @@ func (dhcp *DHCPCollector) Run() {
 
 			now := time.Now()
 			if seconds := now.Sub(dhcp.lastGetTime).Seconds(); seconds > 0 && dhcp.lastAssignedAddrsCount != 0 {
-				if diff := assignedAddrsCount - dhcp.lastAssignedAddrsCount; diff >= 0 {
-					atomic.StoreUint64(&dhcp.lps, uint64(diff/now.Sub(dhcp.lastGetTime).Seconds()))
+				if assignedAddrsCount >= dhcp.lastAssignedAddrsCount {
+					atomic.StoreUint64(&dhcp.lps, uint64((assignedAddrsCount-dhcp.lastAssignedAddrsCount)/now.Sub(dhcp.lastGetTime).Seconds()))
 				}
 			}
 
