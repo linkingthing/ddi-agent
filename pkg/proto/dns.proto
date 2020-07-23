@@ -40,6 +40,7 @@ rpc UpdateLog(UpdateLogReq) returns (DDIResponse){}
 rpc CreateUrlRedirect(CreateUrlRedirectReq) returns (DDIResponse){}
 rpc UpdateUrlRedirect(UpdateUrlRedirectReq) returns (DDIResponse){}
 rpc DeleteUrlRedirect(DeleteUrlRedirectReq) returns (DDIResponse){}
+rpc UpdateTTL(UpdateTTLReq) returns (DDIResponse){}
 }
 
 message DNSStartReq{
@@ -263,4 +264,8 @@ string viewID = 4;
 message DeleteUrlRedirectReq{
 string ID = 1;
 string viewID = 2;
+}
+
+message UpdateTTLReq{
+uint32 TTL = 1;
 }

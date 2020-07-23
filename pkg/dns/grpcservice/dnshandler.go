@@ -737,27 +737,24 @@ func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 	}
 	key := viewsmap["key"]
 	oldData := string(rrsMap["name"]) + "." + string(names["name"]) + " " + string(rrsMap["ttl"]) + " IN " + string(rrsMap["type"]) + " " + string(rrsMap["value"])
-	newData := req.Name + "." + string(names["name"]) + " " + req.TTL + " IN " + req.Type + " " + req.RData
 	if err := updateRR("key"+string(viewsmap["name"]), string(key), oldData, string(names["name"]), false); err != nil {
 		return err
 	}
-	if err := updateRR("key"+string(viewsmap["name"]), string(key), newData, string(names["name"]), true); err != nil {
+	if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID),
+		map[string][]byte{"name": []byte(req.Name), "type": []byte(req.Type), "value": []byte(req.RData), "ttl": []byte(req.TTL)}); err != nil {
 		return err
 	}
-	//add the old data by rrupdate cause the delete function of the rrupdate had deleted all the rrs.
+	//add all the rrset data by rrupdate cause the delete function of the rrupdate had deleted the rrset.
 	var tables []string
 	if tables, err = boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsEndPath)); err != nil {
 		return err
 	}
 	for _, t := range tables {
-		if t == req.RRID {
-			continue
-		}
 		var data map[string][]byte
 		if data, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, t)); err != nil {
 			return err
 		}
-		if req.Type != string(data["type"]) {
+		if req.Type != string(data["type"]) || req.Name != string(data["name"]) {
 			continue
 		}
 		var updateData string
@@ -766,13 +763,7 @@ func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 			return err
 		}
 	}
-	rrsMap["name"] = []byte(req.Name)
-	rrsMap["type"] = []byte(req.Type)
-	rrsMap["value"] = []byte(req.RData)
-	rrsMap["ttl"] = []byte(req.TTL)
-	if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID), rrsMap); err != nil {
-		return err
-	}
+
 	if err := handler.rndcDumpJNLFile(); err != nil {
 		return err
 	}
@@ -2276,5 +2267,62 @@ func (handler *DNSHandler) nginxReload() error {
 	if _, err := cmd.Output(); err != nil {
 		return fmt.Errorf("exec docker nginx reload error: %s", err.Error())
 	}
+	return nil
+}
+
+func (handler *DNSHandler) UpdateTTL(req pb.UpdateTTLReq) error {
+	viewids, err := boltdb.GetDB().GetTables(viewsEndPath)
+	if err != nil {
+		return fmt.Errorf("path %s GetTables error:%s", viewsEndPath, err.Error())
+	}
+	for _, viewid := range viewids {
+		zoneids, err := boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, viewid, zonesEndPath))
+		if err != nil {
+			return fmt.Errorf("path %s GetTables error:%s", filepath.Join(viewsEndPath, viewid, zonesEndPath), err.Error())
+		}
+		var view map[string][]byte
+		if view, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, viewid)); err != nil {
+			return fmt.Errorf("path %s GetTableKVs error:%s", filepath.Join(viewsEndPath, viewid), err.Error())
+		}
+		for _, zoneid := range zoneids {
+			rrids, err := boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, viewid, zonesEndPath, zoneid, rRsEndPath))
+			if err != nil {
+				return fmt.Errorf("path %s GetTables error:%s", filepath.Join(viewsEndPath, viewid, zonesEndPath, zoneid, rRsEndPath), err.Error())
+			}
+			var zone map[string][]byte
+			if zone, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, viewid, zonesPath, zoneid)); err != nil {
+				return fmt.Errorf("path %s GetTableKVs error:%s", filepath.Join(viewsEndPath, viewid, zonesPath, zoneid), err.Error())
+			}
+			type mydata struct {
+				Name   string
+				Mytype string
+			}
+			distinct := make(map[mydata]string)
+			for _, rrid := range rrids {
+				rrkvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, viewid, zonesEndPath, zoneid, rRsEndPath, rrid))
+				if err != nil {
+					return fmt.Errorf("path %s GetTableKVs error:%s", filepath.Join(viewsEndPath, viewid, zonesEndPath, zoneid, rRsEndPath, rrid), err.Error())
+				}
+				distinct[mydata{Name: string(rrkvs["name"]), Mytype: string(rrkvs["type"])}] = string(rrkvs["value"])
+			}
+			for k, v := range distinct {
+				oldData := k.Name + "." + string(zone["name"]) + " 3600 IN " + k.Mytype + " " + v
+				if err := updateRR("key"+string(view["name"]), string(view["key"]), oldData, string(zone["name"]), false); err != nil {
+					return fmt.Errorf("delete rrset %s error:%s", oldData, err.Error())
+				}
+			}
+			for _, rrid := range rrids {
+				rrkvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, viewid, zonesEndPath, zoneid, rRsEndPath, rrid))
+				if err != nil {
+					return fmt.Errorf("path %s GetTableKVs error:%s", filepath.Join(viewsEndPath, viewid, zonesEndPath, zoneid, rRsEndPath, rrid), err.Error())
+				}
+				newData := string(rrkvs["name"]) + "." + string(zone["name"]) + " " + strconv.Itoa(int(req.TTL)) + " IN " + string(rrkvs["type"]) + " " + string(rrkvs["value"])
+				if err := updateRR("key"+string(view["name"]), string(view["key"]), newData, string(zone["name"]), true); err != nil {
+					return fmt.Errorf("add new rrset %s error:%s", newData, err.Error())
+				}
+			}
+		}
+	}
+
 	return nil
 }

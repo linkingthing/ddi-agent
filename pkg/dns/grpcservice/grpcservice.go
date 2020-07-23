@@ -324,3 +324,12 @@ func (service *DNSService) DeleteUrlRedirect(context context.Context, req *pb.De
 		return &pb.DDIResponse{Succeed: true}, nil
 	}
 }
+
+func (service *DNSService) UpdateTTL(context context.Context, req *pb.UpdateTTLReq) (*pb.DDIResponse, error) {
+	err := service.handler.UpdateTTL(*req)
+	if err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	} else {
+		return &pb.DDIResponse{Succeed: true}, nil
+	}
+}
