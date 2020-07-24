@@ -696,26 +696,26 @@ func (handler *DNSHandler) CreateRR(req pb.CreateRRReq) error {
 	rrsMap := map[string][]byte{"name": []byte(req.Name), "type": []byte(req.Type), "value": []byte(req.RData), "ttl": []byte(req.TTL)}
 	names, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID))
 	if err != nil {
-		return err
+		return fmt.Errorf("path:%s get kvs error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID), err.Error())
 	}
 	if req.TTL == "0" || req.TTL == "" {
 		rrsMap["ttl"] = names["ttl"]
 	}
 	if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID), rrsMap); err != nil {
-		return err
+		return fmt.Errorf("path:%s add kvs error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID), err.Error())
 	}
 	var viewsmap map[string][]byte
 	if viewsmap, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID)); err != nil {
-		return err
+		return fmt.Errorf("path:%s GetTableKVs error:%s", filepath.Join(viewsEndPath, req.ViewID), err.Error())
 	}
 	key := viewsmap["key"]
 	var data string
 	data = req.Name + "." + string(names["name"]) + " " + string(rrsMap["ttl"]) + " IN " + req.Type + " " + req.RData
 	if err := updateRR("key"+string(viewsmap["name"]), string(key), data, string(names["name"]), true); err != nil {
-		return err
+		return fmt.Errorf("updateRR %s error:%s", data, err.Error())
 	}
 	if err := handler.rndcDumpJNLFile(); err != nil {
-		return err
+		return fmt.Errorf("rndcDumpJNLFile error:%s", err.Error())
 	}
 	return nil
 }
@@ -725,34 +725,34 @@ func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 	var err error
 	formatCnameValue(&req.RData, req.Type)
 	if rrsMap, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID)); err != nil {
-		return err
+		return fmt.Errorf("GetTableKVs path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID), err.Error())
 	}
 	var names map[string][]byte
 	if names, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID)); err != nil {
-		return err
+		return fmt.Errorf("GetTableKVs path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID), err.Error())
 	}
 	var viewsmap map[string][]byte
 	if viewsmap, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID)); err != nil {
-		return err
+		return fmt.Errorf("GetTableKVs path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID), err.Error())
 	}
 	key := viewsmap["key"]
 	oldData := string(rrsMap["name"]) + "." + string(names["name"]) + " " + string(rrsMap["ttl"]) + " IN " + string(rrsMap["type"]) + " " + string(rrsMap["value"])
 	if err := updateRR("key"+string(viewsmap["name"]), string(key), oldData, string(names["name"]), false); err != nil {
-		return err
+		return fmt.Errorf("updateRR delete rrset:%s error:%s", oldData, err.Error())
 	}
 	if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID),
 		map[string][]byte{"name": []byte(req.Name), "type": []byte(req.Type), "value": []byte(req.RData), "ttl": []byte(req.TTL)}); err != nil {
-		return err
+		return fmt.Errorf("UpdateKVs path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID), err.Error())
 	}
 	//add all the rrset data by rrupdate cause the delete function of the rrupdate had deleted the rrset.
 	var tables []string
 	if tables, err = boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsEndPath)); err != nil {
-		return err
+		return fmt.Errorf("GetTables path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsEndPath), err.Error())
 	}
 	for _, t := range tables {
 		var data map[string][]byte
 		if data, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, t)); err != nil {
-			return err
+			return fmt.Errorf("GetTableKVs path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, t), err.Error())
 		}
 		if req.Type != string(data["type"]) || req.Name != string(data["name"]) {
 			continue
@@ -760,12 +760,12 @@ func (handler *DNSHandler) UpdateRR(req pb.UpdateRRReq) error {
 		var updateData string
 		updateData = string(data["name"]) + "." + string(names["name"]) + " " + string(data["ttl"]) + " IN " + string(data["type"]) + " " + string(data["value"])
 		if err := updateRR("key"+string(viewsmap["name"]), string(key), updateData, string(names["name"]), true); err != nil {
-			return err
+			return fmt.Errorf("updateRR add rrset:%s error:%s", updateData, err.Error())
 		}
 	}
 
 	if err := handler.rndcDumpJNLFile(); err != nil {
-		return err
+		return fmt.Errorf("rndcDumpJNLFile error:%s", err.Error())
 	}
 	return nil
 }
@@ -774,33 +774,33 @@ func (handler *DNSHandler) DeleteRR(req pb.DeleteRRReq) error {
 	var rrsMap map[string][]byte
 	var err error
 	if rrsMap, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID)); err != nil {
-		return err
+		return fmt.Errorf("GetTableKVs path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID), err.Error())
 	}
 	var names map[string][]byte
 	if names, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID)); err != nil {
-		return err
+		return fmt.Errorf("GetTableKVs path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID), err.Error())
 	}
 	var viewsmap map[string][]byte
 	if viewsmap, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID)); err != nil {
-		return err
+		return fmt.Errorf("GetTableKVs path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID), err.Error())
 	}
 	key := viewsmap["key"]
 	rrData := string(rrsMap["name"]) + "." + string(names["name"]) + " " + string(rrsMap["ttl"]) + " IN " + string(rrsMap["type"]) + " " + string(rrsMap["value"])
 	if err := updateRR("key"+string(viewsmap["name"]), string(key), rrData, string(names["name"]), false); err != nil { //string(rrData[:])
-		return err
+		return fmt.Errorf("updateRR delete rrset:%s error:%s", rrData, err.Error())
 	}
 	if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID)); err != nil {
-		return err
+		return fmt.Errorf("DeleteTable path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, req.RRID), err.Error())
 	}
 	//add the old data by rrupdate cause the delete function of the rrupdate had deleted all the rrs.
 	var tables []string
 	if tables, err = boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsEndPath)); err != nil {
-		return err
+		return fmt.Errorf("GetTables path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsEndPath), err.Error())
 	}
 	for _, t := range tables {
 		var data map[string][]byte
 		if data, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, t)); err != nil {
-			return err
+			return fmt.Errorf("GetTableKVs path:%s error:%s", filepath.Join(viewsEndPath, req.ViewID, zonesPath, req.ZoneID, rRsPath, t), err.Error())
 		}
 		if string(rrsMap["type"]) != string(data["type"]) {
 			continue
@@ -808,11 +808,11 @@ func (handler *DNSHandler) DeleteRR(req pb.DeleteRRReq) error {
 		var updateData string
 		updateData = string(data["name"]) + "." + string(names["name"]) + " " + string(data["ttl"]) + " IN " + string(data["type"]) + " " + string(data["value"])
 		if err := updateRR("key"+string(viewsmap["name"]), string(key), updateData, string(names["name"]), true); err != nil {
-			return err
+			return fmt.Errorf("updateRR add rrset:%s error:%s", updateData, err.Error())
 		}
 	}
 	if err := handler.rndcDumpJNLFile(); err != nil {
-		return err
+		return fmt.Errorf("rndcDumpJNLFile error:%s", err.Error())
 	}
 
 	return nil
