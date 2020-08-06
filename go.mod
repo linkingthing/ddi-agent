@@ -3,7 +3,6 @@ module github.com/linkingthing/ddi-agent
 go 1.13
 
 require (
-	github.com/ben-han-cn/g53 v0.0.0-20200420143808-c93175fb0ada // indirect
 	github.com/ben-han-cn/kvzoo v0.0.0-20191109225302-5dc1198904af
 	github.com/golang/protobuf v1.4.2
 	github.com/jackc/pgx/v4 v4.6.0
