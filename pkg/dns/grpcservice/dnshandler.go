@@ -938,7 +938,7 @@ func (handler *DNSHandler) namedConfData() (*namedData, error) {
 			data.IsDnssecOpen = false
 		}
 	} else {
-		data.IsDnssecOpen = true
+		data.IsDnssecOpen = false
 	}
 	//get the sortlist
 	var sortkvs map[string][]byte
