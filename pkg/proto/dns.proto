@@ -41,6 +41,7 @@ rpc CreateUrlRedirect(CreateUrlRedirectReq) returns (DDIResponse){}
 rpc UpdateUrlRedirect(UpdateUrlRedirectReq) returns (DDIResponse){}
 rpc DeleteUrlRedirect(DeleteUrlRedirectReq) returns (DDIResponse){}
 rpc UpdateTTL(UpdateTTLReq) returns (DDIResponse){}
+rpc UpdateDnssec(UpdateDnssecReq) returns (DDIResponse){}
 }
 
 message DNSStartReq{
@@ -268,4 +269,8 @@ string viewID = 2;
 
 message UpdateTTLReq{
 uint32 TTL = 1;
+}
+
+message UpdateDnssecReq{
+	bool isOpen = 1;
 }

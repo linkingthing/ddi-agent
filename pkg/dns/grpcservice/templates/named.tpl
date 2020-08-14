@@ -3,7 +3,7 @@ options {
 	pid-file "named.pid";
 	allow-new-zones yes;
 	allow-query {any;};
-	dnssec-enable no;
+	{{if .IsDnssecOpen}}dnssec-enable yes;{{else}}dnssec-enable no;{{end}}
 	dnssec-validation no;
 	{{if .IsLogOpen}}querylog yes;{{else}}querylog no;{{end}}{{if .IPBlackHole}}
 	BlackHole{ {{range $k,$v := .IPBlackHole.ACLNames}}{{$v}}; {{end}}};{{end}}{{if .Concu}}

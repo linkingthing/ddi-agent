@@ -52,6 +52,7 @@ const (
 	UpdateUrlRedirect         = "UpdateUrlRedirect"
 	DeleteUrlRedirect         = "DeleteUrlRedirect"
 	UpdateTTL                 = "UpdateTTL"
+	UpdateDnssec              = "UpdateDnssec"
 )
 
 var (
@@ -343,6 +344,13 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			}
 			if _, err := cli.UpdateTTL(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec update ttl failed: %s", err.Error())
+			}
+		case UpdateDnssec:
+			var target pb.UpdateDnssecReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.UpdateDnssec(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec UpdateDnssec failed:%s", err.Error())
 			}
 		}
 	}

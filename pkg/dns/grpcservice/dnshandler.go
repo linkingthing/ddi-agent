@@ -50,6 +50,7 @@ const (
 	sortListEndPath      = "/sortList"
 	logPath              = "/log"
 	urlRedirectsPath     = "/urlRedirects"
+	dnssecPath           = "/dnssec"
 	namedTpl             = "named.tpl"
 	namedNoRPZTpl        = "named_norpz.tpl"
 	zoneTpl              = "zone.tpl"
@@ -78,6 +79,7 @@ const (
 	domain               = "domain"
 	url                  = "url"
 	nginxDefaultConfFile = "default.conf"
+	dnssecStatus         = "isopen"
 )
 
 type DNSHandler struct {
@@ -207,14 +209,15 @@ func newDNSHandler(dnsConfPath string, agentPath string, nginxDefaultConfDir str
 }
 
 type namedData struct {
-	ConfigPath  string
-	ACLNames    []string
-	Views       []View
-	DNS64s      []dns64
-	IPBlackHole *ipBlackHole
-	IsLogOpen   bool
-	SortList    []string
-	Concu       *recursiveConcurrent
+	ConfigPath   string
+	ACLNames     []string
+	Views        []View
+	DNS64s       []dns64
+	IPBlackHole  *ipBlackHole
+	IsLogOpen    bool
+	SortList     []string
+	Concu        *recursiveConcurrent
+	IsDnssecOpen bool
 }
 
 type nginxDefaultConf struct {
@@ -922,6 +925,20 @@ func (handler *DNSHandler) namedConfData() (*namedData, error) {
 		}
 	} else {
 		data.IsLogOpen = true
+	}
+	//get dnssec data
+	dnssecKVs, err := boltdb.GetDB().GetTableKVs(dnssecPath)
+	if err != nil {
+		return nil, err
+	}
+	if len(dnssecKVs) > 0 {
+		if dnssecKVs[dnssecStatus][0] == 1 {
+			data.IsDnssecOpen = true
+		} else {
+			data.IsDnssecOpen = false
+		}
+	} else {
+		data.IsDnssecOpen = true
 	}
 	//get the sortlist
 	var sortkvs map[string][]byte
@@ -2324,5 +2341,36 @@ func (handler *DNSHandler) UpdateTTL(req pb.UpdateTTLReq) error {
 		}
 	}
 
+	return nil
+}
+
+func (handler *DNSHandler) UpdateDnssec(req pb.UpdateDnssecReq) error {
+	dnssecKVs, err := boltdb.GetDB().GetTableKVs(dnssecPath)
+	if err != nil {
+		return err
+	}
+	kvs := map[string][]byte{}
+	if req.IsOpen {
+		kvs[dnssecStatus] = []byte{byte(1)}
+	} else {
+		kvs[dnssecStatus] = []byte{byte(0)}
+	}
+	if len(dnssecKVs) == 0 {
+		if err := boltdb.GetDB().AddKVs(dnssecPath, kvs); err != nil {
+			return err
+		}
+	} else {
+		if err := boltdb.GetDB().UpdateKVs(dnssecPath, kvs); err != nil {
+			return err
+		}
+	}
+	//rewrite the named.conf file.
+	if err := handler.rewriteNamedFile(false); err != nil {
+		return err
+	}
+	//update bind.
+	if err := handler.rndcReconfig(); err != nil {
+		return err
+	}
 	return nil
 }

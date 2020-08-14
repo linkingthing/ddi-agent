@@ -333,3 +333,11 @@ func (service *DNSService) UpdateTTL(context context.Context, req *pb.UpdateTTLR
 		return &pb.DDIResponse{Succeed: true}, nil
 	}
 }
+
+func (service *DNSService) UpdateDnssec(context context.Context, req *pb.UpdateDnssecReq) (*pb.DDIResponse, error) {
+	err := service.handler.UpdateDnssec(*req)
+	if err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+	return &pb.DDIResponse{Succeed: true}, err
+}
