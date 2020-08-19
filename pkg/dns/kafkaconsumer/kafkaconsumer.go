@@ -47,12 +47,10 @@ const (
 	CreateSortList            = "CreateSortList"
 	UpdateSortList            = "UpdateSortList"
 	DeleteSortList            = "DeleteSortList"
-	UpdateLog                 = "UpdateLog"
 	CreateUrlRedirect         = "CreateUrlRedirect"
 	UpdateUrlRedirect         = "UpdateUrlRedirect"
 	DeleteUrlRedirect         = "DeleteUrlRedirect"
-	UpdateTTL                 = "UpdateTTL"
-	UpdateDnssec              = "UpdateDnssec"
+	UpdateGlobalConfig        = "UpdateGlobalConfig"
 )
 
 var (
@@ -310,13 +308,6 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			if _, err := cli.DeleteSortList(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec DeleteSortList failed: %s", err.Error())
 			}
-		case UpdateLog:
-			var target pb.UpdateLogReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.UpdateLog(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec UpdateLog failed: %s", err.Error())
-			}
 		case CreateUrlRedirect:
 			var target pb.CreateUrlRedirectReq
 			if err := proto.Unmarshal(message.Value, &target); err != nil {
@@ -338,19 +329,12 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			if _, err := cli.DeleteUrlRedirect(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec DeleteUrlRedirect failed: %s", err.Error())
 			}
-		case UpdateTTL:
-			var target pb.UpdateTTLReq
+		case UpdateGlobalConfig:
+			var target pb.UpdateGlobalConfigReq
 			if err := proto.Unmarshal(message.Value, &target); err != nil {
 			}
-			if _, err := cli.UpdateTTL(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec update ttl failed: %s", err.Error())
-			}
-		case UpdateDnssec:
-			var target pb.UpdateDnssecReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.UpdateDnssec(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec UpdateDnssec failed:%s", err.Error())
+			if _, err := cli.UpdateGlobalConfig(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec UpdateGlobalConfig failed:%s", err.Error())
 			}
 		}
 	}

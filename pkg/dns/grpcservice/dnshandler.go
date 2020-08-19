@@ -2069,14 +2069,14 @@ func (handler *DNSHandler) DeleteSortList(req pb.DeleteSortListReq) error {
 	return nil
 }
 
-func (handler *DNSHandler) UpdateLog(req pb.UpdateLogReq) error {
+func (handler *DNSHandler) UpdateLog(isLogEnable bool) error {
 	//update the data in the database;
 	logKVs, err := boltdb.GetDB().GetTableKVs(logPath)
 	if err != nil {
 		return err
 	}
 	kvs := map[string][]byte{}
-	if req.IsOpen {
+	if isLogEnable {
 		kvs[logStatus] = []byte{byte(1)}
 	} else {
 		kvs[logStatus] = []byte{byte(0)}
@@ -2287,7 +2287,7 @@ func (handler *DNSHandler) nginxReload() error {
 	return nil
 }
 
-func (handler *DNSHandler) UpdateTTL(req pb.UpdateTTLReq) error {
+func (handler *DNSHandler) UpdateTTL(ttl uint32) error {
 	viewids, err := boltdb.GetDB().GetTables(viewsEndPath)
 	if err != nil {
 		return fmt.Errorf("path %s GetTables error:%s", viewsEndPath, err.Error())
@@ -2333,7 +2333,7 @@ func (handler *DNSHandler) UpdateTTL(req pb.UpdateTTLReq) error {
 				if err != nil {
 					return fmt.Errorf("path %s GetTableKVs error:%s", filepath.Join(viewsEndPath, viewid, zonesEndPath, zoneid, rRsEndPath, rrid), err.Error())
 				}
-				newData := string(rrkvs["name"]) + "." + string(zone["name"]) + " " + strconv.Itoa(int(req.TTL)) + " IN " + string(rrkvs["type"]) + " " + string(rrkvs["value"])
+				newData := string(rrkvs["name"]) + "." + string(zone["name"]) + " " + strconv.Itoa(int(ttl)) + " IN " + string(rrkvs["type"]) + " " + string(rrkvs["value"])
 				if err := updateRR("key"+string(view["name"]), string(view["key"]), newData, string(zone["name"]), true); err != nil {
 					return fmt.Errorf("add new rrset %s error:%s", newData, err.Error())
 				}
@@ -2344,13 +2344,13 @@ func (handler *DNSHandler) UpdateTTL(req pb.UpdateTTLReq) error {
 	return nil
 }
 
-func (handler *DNSHandler) UpdateDnssec(req pb.UpdateDnssecReq) error {
+func (handler *DNSHandler) UpdateDnssec(isDnssecEnable bool) error {
 	dnssecKVs, err := boltdb.GetDB().GetTableKVs(dnssecPath)
 	if err != nil {
 		return err
 	}
 	kvs := map[string][]byte{}
-	if req.IsOpen {
+	if isDnssecEnable {
 		kvs[dnssecStatus] = []byte{byte(1)}
 	} else {
 		kvs[dnssecStatus] = []byte{byte(0)}
@@ -2372,5 +2372,42 @@ func (handler *DNSHandler) UpdateDnssec(req pb.UpdateDnssecReq) error {
 	if err := handler.rndcReconfig(); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (handler *DNSHandler) UpdateGlobalConfig(req pb.UpdateGlobalConfigReq) error {
+	err := handler.UpdateLog(req.LogEnable)
+	if err != nil {
+		return err
+	}
+
+	err = handler.UpdateDnssec(req.DnssecEnable)
+	if err != nil {
+		return err
+	}
+
+	err = handler.UpdateTTL(req.Ttl)
+	if err != nil {
+		return err
+	}
+
+	for _, value := range req.Redirections {
+		redirectionReq := pb.UpdateRedirectionReq{
+			ID:                    value.Id,
+			ViewID:                value.ViewId,
+			Name:                  value.Name,
+			TTL:                   value.Ttl,
+			DataType:              value.DataType,
+			Value:                 value.Value,
+			RedirectType:          value.RedirectType,
+			IsRedirectTypeChanged: value.RedirectTypeChanged,
+		}
+
+		err = handler.UpdateRedirection(redirectionReq)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

@@ -289,14 +289,6 @@ func (service *DNSService) DeleteSortList(context context.Context, req *pb.Delet
 		return &pb.DDIResponse{Succeed: true}, nil
 	}
 }
-func (service *DNSService) UpdateLog(context context.Context, req *pb.UpdateLogReq) (*pb.DDIResponse, error) {
-	err := service.handler.UpdateLog(*req)
-	if err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	} else {
-		return &pb.DDIResponse{Succeed: true}, nil
-	}
-}
 func (service *DNSService) Close() {
 	service.handler.Close()
 }
@@ -325,17 +317,8 @@ func (service *DNSService) DeleteUrlRedirect(context context.Context, req *pb.De
 	}
 }
 
-func (service *DNSService) UpdateTTL(context context.Context, req *pb.UpdateTTLReq) (*pb.DDIResponse, error) {
-	err := service.handler.UpdateTTL(*req)
-	if err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	} else {
-		return &pb.DDIResponse{Succeed: true}, nil
-	}
-}
-
-func (service *DNSService) UpdateDnssec(context context.Context, req *pb.UpdateDnssecReq) (*pb.DDIResponse, error) {
-	err := service.handler.UpdateDnssec(*req)
+func (service *DNSService) UpdateGlobalConfig(context context.Context, req *pb.UpdateGlobalConfigReq) (*pb.DDIResponse, error) {
+	err := service.handler.UpdateGlobalConfig(*req)
 	if err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
