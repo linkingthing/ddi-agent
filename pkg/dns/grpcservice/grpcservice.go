@@ -289,14 +289,7 @@ func (service *DNSService) DeleteSortList(context context.Context, req *pb.Delet
 		return &pb.DDIResponse{Succeed: true}, nil
 	}
 }
-func (service *DNSService) UpdateLog(context context.Context, req *pb.UpdateLogReq) (*pb.DDIResponse, error) {
-	err := service.handler.UpdateLog(*req)
-	if err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	} else {
-		return &pb.DDIResponse{Succeed: true}, nil
-	}
-}
+
 func (service *DNSService) Close() {
 	service.handler.Close()
 }
@@ -334,10 +327,20 @@ func (service *DNSService) UpdateTTL(context context.Context, req *pb.UpdateTTLR
 	}
 }
 
+//TODO newdb innovation begin————
 func (service *DNSService) UpdateDnssec(context context.Context, req *pb.UpdateDnssecReq) (*pb.DDIResponse, error) {
 	err := service.handler.UpdateDnssec(*req)
 	if err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 	return &pb.DDIResponse{Succeed: true}, err
+}
+
+func (service *DNSService) UpdateLog(context context.Context, req *pb.UpdateLogReq) (*pb.DDIResponse, error) {
+	err := service.handler.UpdateLog(*req)
+	if err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	} else {
+		return &pb.DDIResponse{Succeed: true}, nil
+	}
 }

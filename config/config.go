@@ -14,7 +14,7 @@ type AgentConfig struct {
 	Kafka           KafkaConf      `yaml:"kafka"`
 	Prometheus      PrometheusConf `yaml:"prometheus"`
 	Metric          MetricConf     `yaml:"metric"`
-	DB              BoltDBConf     `yaml:"db"`
+	DB              DBConf         `yaml:"db"`
 	NginxDefaultDir string         `yaml:"nginx_default_dir"`
 }
 
@@ -72,6 +72,14 @@ type MetricConf struct {
 
 type BoltDBConf struct {
 	Dir string `yaml:"dir"`
+}
+
+type DBConf struct {
+	Name     string `yaml:"name"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Port     int    `yaml:"port"`
+	Host     string `json:"host"`
 }
 
 func LoadConfig(path string) (*AgentConfig, error) {

@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -48,9 +47,7 @@ const (
 	recurConcurEndPath   = "/recurConcur"
 	sortListPath         = "/sortList/"
 	sortListEndPath      = "/sortList"
-	logPath              = "/log"
 	urlRedirectsPath     = "/urlRedirects"
-	dnssecPath           = "/dnssec"
 	namedTpl             = "named.tpl"
 	namedNoRPZTpl        = "named_norpz.tpl"
 	zoneTpl              = "zone.tpl"
@@ -74,17 +71,14 @@ const (
 	nxDomain             = "nxdomain"
 	cnameType            = "CNAME"
 	ptrType              = "PTR"
-	logStatus            = "isopen"
 	orderFirst           = "1"
 	domain               = "domain"
 	url                  = "url"
 	nginxDefaultConfFile = "default.conf"
-	dnssecStatus         = "isopen"
 )
 
 type DNSHandler struct {
 	tpl                 *template.Template
-	db                  *boltdb.BoltDB
 	dnsConfPath         string
 	dBPath              string
 	tplPath             string
@@ -208,21 +202,10 @@ func newDNSHandler(dnsConfPath string, agentPath string, nginxDefaultConfDir str
 	return instance, nil
 }
 
-type namedData struct {
-	ConfigPath   string
-	ACLNames     []string
-	Views        []View
-	DNS64s       []dns64
-	IPBlackHole  *ipBlackHole
-	IsLogOpen    bool
-	SortList     []string
-	Concu        *recursiveConcurrent
-	IsDnssecOpen bool
-}
-
 type nginxDefaultConf struct {
 	URLRedirects []urlRedirect
 }
+
 type urlRedirect struct {
 	Domain string
 	URL    string
@@ -230,13 +213,6 @@ type urlRedirect struct {
 
 type forward struct {
 	IPs []string
-}
-
-type dns64 struct {
-	ID              string
-	Prefix          string
-	ClientACLName   string
-	AAddressACLName string
 }
 
 type ipBlackHole struct {
@@ -248,34 +224,9 @@ type recursiveConcurrent struct {
 	FetchesPerZone   *int
 }
 
-type View struct {
-	Name     string
-	ACLs     []ACL
-	Zones    []Zone
-	Redirect *redierct
-	RPZ      *rpz
-	DNS64s   []dns64
-	Key      string
-}
-
-type redierct struct {
-	RRs []RR
-}
-
 type nzfData struct {
 	ViewName string
 	Zones    []Zone
-}
-
-type rpz struct {
-	RRs []RR
-}
-
-type Zone struct {
-	Name        string
-	ZoneFile    string
-	ForwardType string
-	IPs         []string
 }
 
 type zoneData struct {
@@ -295,19 +246,6 @@ type forwarder struct {
 	IPs []string
 }
 
-type RR struct {
-	Name  string
-	Type  string
-	Value string
-	TTL   string
-}
-
-type ACL struct {
-	ID   string
-	Name string
-	IPs  []string
-}
-
 func (handler *DNSHandler) StartDNS(req pb.DNSStartReq) error {
 	if err := handler.Start(req); err != nil {
 		return err
@@ -316,6 +254,7 @@ func (handler *DNSHandler) StartDNS(req pb.DNSStartReq) error {
 	return nil
 
 }
+
 func (handler *DNSHandler) Start(req pb.DNSStartReq) error {
 	if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err == nil {
 		return nil
@@ -362,105 +301,6 @@ func (handler *DNSHandler) StopDNS() error {
 		return err
 	}
 	handler.quit <- 1
-	return nil
-}
-
-func (handler *DNSHandler) CreateACL(req pb.CreateACLReq) error {
-	err := boltdb.GetDB().AddKVs(filepath.Join(aCLsEndPath, req.ID), map[string][]byte{"name": []byte(req.Name)})
-	if err != nil {
-		return err
-	}
-	values := map[string][]byte{}
-	for _, ip := range req.IPs {
-		values[ip] = []byte("")
-	}
-	if err := boltdb.GetDB().AddKVs(filepath.Join(aCLsEndPath, req.ID, iPsEndPath), values); err != nil {
-		return err
-	}
-	aCLData := ACL{ID: req.ID, Name: req.Name, IPs: req.IPs}
-	buffer := new(bytes.Buffer)
-	if err = handler.tpl.ExecuteTemplate(buffer, aCLTpl, aCLData); err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(filepath.Join(handler.dnsConfPath, req.Name)+aclSuffix, buffer.Bytes(), 0644); err != nil {
-		return err
-	}
-	if err := handler.rewriteNamedFile(false); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (handler *DNSHandler) UpdateACL(req pb.UpdateACLReq) error {
-	reqDel := pb.DeleteACLReq{ID: req.ID}
-	if err := handler.DeleteACL(reqDel); err != nil {
-		return err
-	}
-	reqTmp := pb.CreateACLReq{Name: req.Name, ID: req.ID, IPs: req.NewIPs}
-	if err := handler.CreateACL(reqTmp); err != nil {
-		return err
-	}
-	//update bind
-	if err := handler.rndcReconfig(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (handler *DNSHandler) DeleteACL(req pb.DeleteACLReq) error {
-	kvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(aCLsEndPath, req.ID))
-	if err != nil {
-		return err
-	}
-	if len(kvs) == 0 {
-		return nil
-	}
-	name := kvs["name"]
-	if err := os.Remove(filepath.Join(handler.dnsConfPath, string(name)) + aclSuffix); err != nil {
-		return err
-	}
-
-	return boltdb.GetDB().DeleteTable(filepath.Join(aCLsEndPath, req.ID))
-}
-
-func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
-	ids, err := boltdb.GetDB().GetTables(viewsEndPath)
-	if err != nil {
-		return err
-	}
-	for _, id := range ids {
-		if id == req.ViewID {
-			return nil
-		}
-	}
-	if err := handler.addPriority(int(req.Priority), req.ViewID, true); err != nil {
-		return err
-	}
-	//create table viewid and put name into the db.
-	namekvs := map[string][]byte{"name": []byte(req.ViewName), "key": []byte(randomdata.RandString(12))}
-	if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID), namekvs); err != nil {
-		return err
-	}
-	//insert the dns64
-	if req.DNS64 != "" {
-		if err := handler.CreateDNS64(pb.CreateDNS64Req{ID: req.ViewID, ViewID: req.ViewID, Prefix: req.DNS64, ClientACL: anyACL, AAddress: anyACL}); err != nil {
-			return err
-		}
-	}
-	//insert aCLIDs into viewid table
-	for i, id := range req.ACLs {
-		if _, err := boltdb.GetDB().CreateOrGetTable(filepath.Join(viewsEndPath, req.ViewID, aCLsPath, fmt.Sprintf("%d", i+1), id)); err != nil {
-			return err
-		}
-	}
-	if err := handler.rewriteNamedFile(false); err != nil {
-		return err
-	}
-	//update bind
-	if err := handler.rndcReconfig(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -631,26 +471,6 @@ func (handler *DNSHandler) UpdateForwardZone(req pb.UpdateForwardZoneReq) error 
 	}
 	if err := handler.rndcReconfig(); err != nil {
 		return err
-	}
-	return nil
-}
-
-func (handler *DNSHandler) updateForward(forwards []string, zoneid string, viewid string) error {
-	//delete the ole forwardids
-	tables, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, zonesPath, zoneid, forwardsEndPath))
-	if err != nil {
-		return err
-	}
-	for _, id := range tables {
-		if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsPath, viewid, zonesPath, zoneid, forwardsPath, id)); err != nil {
-			return err
-		}
-	}
-	//add the forwardids
-	for _, id := range forwards {
-		if _, err := boltdb.GetDB().CreateOrGetTable(filepath.Join(viewsPath, viewid, zonesPath, zoneid, forwardsPath, id)); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -845,833 +665,6 @@ func (h *DNSHandler) Close() {
 	boltdb.GetDB().Close()
 }
 
-func (handler *DNSHandler) namedConfData() (*namedData, error) {
-	var err error
-	data := namedData{ConfigPath: handler.dnsConfPath}
-	//get all the acl names.
-	var aclTables []string
-	aclTables, err = boltdb.GetDB().GetTables(aCLsEndPath)
-	if err != nil {
-		return nil, err
-	}
-	for _, aclid := range aclTables {
-		var nameKVs map[string][]byte
-		nameKVs, err = boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, aclid))
-		if err != nil {
-			return nil, err
-		}
-		if aclid != anyACL && aclid != noneACL {
-			data.ACLNames = append(data.ACLNames, string(nameKVs["name"]))
-		}
-	}
-	//get the ip black hole data
-	var tables []string
-	tables, err = boltdb.GetDB().GetTables(ipBlackHoleEndPath)
-	if err != nil {
-		return nil, err
-	}
-	if len(tables) > 0 {
-		var tmp ipBlackHole
-		data.IPBlackHole = &tmp
-	}
-	for _, id := range tables {
-		var blackholeKVs map[string][]byte
-		blackholeKVs, err = boltdb.GetDB().GetTableKVs(filepath.Join(ipBlackHolePath, id))
-		if err != nil {
-			return nil, err
-		}
-		aclid := blackholeKVs["aclid"]
-		var aclNameKVs map[string][]byte
-		aclNameKVs, err = boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, string(aclid)))
-		if err != nil {
-			return nil, err
-		}
-		data.IPBlackHole.ACLNames = append(data.IPBlackHole.ACLNames, string(aclNameKVs["name"]))
-	}
-	//get recursive concurrency data
-	var concuKVs map[string][]byte
-	concuKVs, err = boltdb.GetDB().GetTableKVs(recurConcurEndPath)
-	if err != nil {
-		return nil, err
-	}
-	if len(concuKVs) > 0 {
-		var tmp recursiveConcurrent
-		data.Concu = &tmp
-		if string(concuKVs["recursiveclients"]) != "" {
-			var num int
-			if num, err = strconv.Atoi(string(concuKVs["recursiveclients"])); err != nil {
-				return nil, err
-			}
-			data.Concu.RecursiveClients = &num
-		}
-		if string(concuKVs["fetchesperzone"]) != "" {
-			var num int
-			if num, err = strconv.Atoi(string(concuKVs["fetchesperzone"])); err != nil {
-				return nil, err
-			}
-			data.Concu.FetchesPerZone = &num
-		}
-	}
-	//get log data
-	logKVs, err := boltdb.GetDB().GetTableKVs(logPath)
-	if err != nil {
-		return nil, err
-	}
-	if len(logKVs) > 0 {
-		if logKVs[logStatus][0] == 1 {
-			data.IsLogOpen = true
-		} else {
-			data.IsLogOpen = false
-		}
-	} else {
-		data.IsLogOpen = true
-	}
-	//get dnssec data
-	dnssecKVs, err := boltdb.GetDB().GetTableKVs(dnssecPath)
-	if err != nil {
-		return nil, err
-	}
-	if len(dnssecKVs) > 0 {
-		if dnssecKVs[dnssecStatus][0] == 1 {
-			data.IsDnssecOpen = true
-		} else {
-			data.IsDnssecOpen = false
-		}
-	} else {
-		data.IsDnssecOpen = false
-	}
-	//get the sortlist
-	var sortkvs map[string][]byte
-	sortkvs, err = boltdb.GetDB().GetTableKVs(sortListEndPath)
-	if err != nil {
-		return nil, err
-	}
-	aclid := string(sortkvs["next"])
-	for {
-		if aclid == "" {
-			break
-		}
-		//get acl name
-		var aclName map[string][]byte
-		aclName, err = boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, aclid))
-		if err != nil {
-			return nil, err
-		}
-		data.SortList = append(data.SortList, string(aclName["name"]))
-		var kvs map[string][]byte
-		kvs, err = boltdb.GetDB().GetTableKVs(filepath.Join(sortListPath, aclid))
-		if err != nil {
-			return nil, err
-		}
-		aclid = string(kvs["next"])
-	}
-	//get the data under the views
-	var kvs map[string][]byte
-	kvs, err = boltdb.GetDB().GetTableKVs(viewsEndPath)
-	if err != nil {
-		return nil, err
-	}
-	viewid := string(kvs["next"])
-	for viewid != "" {
-		nameKvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, string(viewid)))
-		if err != nil {
-			return nil, err
-		}
-		viewName := nameKvs["name"]
-		tables = tables[0:0]
-		if tables, err = boltdb.GetDB().GetTables(filepath.Join(viewsPath, string(viewid), aCLsEndPath)); err != nil {
-			return nil, err
-		}
-		var aCLs []ACL
-		for i := 0; i < len(tables); i++ {
-			aCLids, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, string(viewid), aCLsEndPath, fmt.Sprintf("%d", i+1)))
-			if err != nil {
-				return nil, err
-			}
-			if len(aCLids) == 0 {
-				return nil, fmt.Errorf("view %s' the %d's acl not exists", string(viewid), i+1)
-			}
-			aCL := ACL{Name: string(aCLids[0])}
-			aCLs = append(aCLs, aCL)
-		}
-		view := View{Name: string(viewName), ACLs: aCLs}
-		//get the redirect data
-		tables = tables[0:0]
-		if tables, err = boltdb.GetDB().GetTables(filepath.Join(viewsPath, string(viewid), redirectEndPath)); err != nil {
-			return nil, err
-		}
-		if len(tables) > 0 {
-			var tmp redierct
-			view.Redirect = &tmp
-		}
-		for _, rrid := range tables {
-			rrMap, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, string(viewid), redirectPath, rrid))
-			if err != nil {
-				return nil, err
-			}
-			var tmp RR
-			tmp.Name = string(rrMap["name"])
-			tmp.TTL = string(rrMap["ttl"])
-			tmp.Type = string(rrMap["type"])
-			tmp.Value = string(rrMap["value"])
-			view.Redirect.RRs = append(view.Redirect.RRs, tmp)
-		}
-		//get the RPZ data
-		tables = tables[0:0]
-		if tables, err = boltdb.GetDB().GetTables(filepath.Join(viewsPath, string(viewid), rpzEndPath)); err != nil {
-			return nil, err
-		}
-		if len(tables) > 0 {
-			var tmp rpz
-			view.RPZ = &tmp
-		}
-		for _, rrid := range tables {
-			rrMap, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, string(viewid), rpzPath, rrid))
-			if err != nil {
-				return nil, err
-			}
-			var tmp RR
-			tmp.Name = string(rrMap["name"])
-			tmp.TTL = string(rrMap["ttl"])
-			tmp.Type = string(rrMap["type"])
-			tmp.Value = string(rrMap["value"])
-			view.RPZ.RRs = append(view.RPZ.RRs, tmp)
-		}
-		//get the dns64s data
-		tables = tables[0:0]
-		if tables, err = boltdb.GetDB().GetTables(filepath.Join(viewsPath, string(viewid), dns64sEndPath)); err != nil {
-			return nil, err
-		}
-		for _, dns64id := range tables {
-			dns64Map, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, string(viewid), dns64sPath, dns64id))
-			if err != nil {
-				return nil, err
-			}
-			var tmp dns64
-			tmp.Prefix = string(dns64Map["prefix"])
-			aCLNames, err := boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, string(dns64Map["clientacl"])))
-			if err != nil {
-				return nil, err
-			}
-			tmp.ClientACLName = string(aCLNames["name"])
-			aCLNames, err = boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, string(dns64Map["aaddress"])))
-			if err != nil {
-				return nil, err
-			}
-			tmp.AAddressACLName = string(aCLNames["name"])
-			view.DNS64s = append(view.DNS64s, tmp)
-		}
-		//get the forward data under the zone
-		tables = tables[0:0]
-		if tables, err = boltdb.GetDB().GetTables(filepath.Join(viewsPath, string(viewid), zonesEndPath)); err != nil {
-			return nil, err
-		}
-		for _, zoneid := range tables {
-			zoneMap, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, string(viewid), zonesPath, zoneid))
-			if err != nil {
-				return nil, err
-			}
-			if string(zoneMap["zonetype"]) != forwardType {
-				continue
-			}
-			var tmp Zone
-			tmp.Name = string(zoneMap["name"])
-			tmp.ForwardType = string(zoneMap["forwardtype"])
-			forwardTables, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, string(viewid), zonesPath, zoneid, forwardsEndPath))
-			if err != nil {
-				return nil, err
-			}
-			for _, id := range forwardTables {
-				ips, err := boltdb.GetDB().GetTableKVs(filepath.Join(forwardsPath, id))
-				if err != nil {
-					return nil, err
-				}
-				for ip, _ := range ips {
-					tmp.IPs = append(tmp.IPs, ip)
-				}
-			}
-			view.Zones = append(view.Zones, tmp)
-		}
-		//get the base64 of the view's Key
-		keyMap, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, string(viewid)))
-		if err != nil {
-			return nil, err
-		}
-		encodeString := base64.StdEncoding.EncodeToString(keyMap["key"])
-		view.Key = encodeString
-
-		data.Views = append(data.Views, view)
-
-		kvs, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid))
-		if err != nil {
-			return nil, err
-		}
-		viewid = string(kvs["next"])
-	}
-	return &data, nil
-}
-
-func (handler *DNSHandler) aCLsData() ([]ACL, error) {
-	var err error
-	var aCLsData []ACL
-	var viewTables []string
-	viewTables, err = boltdb.GetDB().GetTables(viewsEndPath)
-	if err != nil {
-		return nil, err
-	}
-	for _, viewid := range viewTables {
-		var aCLs []ACL
-		aCLTables, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, aCLsEndPath))
-		if err != nil {
-			return nil, err
-		}
-		for _, aCLid := range aCLTables {
-			aCLNames, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid, aCLsPath, aCLid))
-			if err != nil {
-				return nil, err
-			}
-			aCLName := aCLNames["name"]
-			ipsMap, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid, aCLsPath, aCLid, iPsEndPath))
-			if err != nil {
-				return nil, err
-			}
-			var ips []string
-			for ip, _ := range ipsMap {
-				ips = append(ips, ip)
-			}
-			aCL := ACL{Name: string(aCLName), IPs: ips}
-			aCLs = append(aCLs, aCL)
-		}
-		aCLsData = append(aCLsData, aCLs[0:]...)
-	}
-	var aCLTables []string
-	aCLTables, err = boltdb.GetDB().GetTables(aCLsEndPath)
-	if err != nil {
-		return nil, err
-	}
-	for _, aCLId := range aCLTables {
-		names, err := boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, aCLId))
-		if err != nil {
-			return nil, err
-		}
-		aCLName := names["name"]
-		ipsMap, err := boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, aCLId, iPsEndPath))
-		if err != nil {
-			return nil, err
-		}
-		var ips []string
-		for ip, _ := range ipsMap {
-			ips = append(ips, ip)
-		}
-		oneACL := ACL{Name: string(aCLName), IPs: ips}
-		aCLsData = append(aCLsData, oneACL)
-	}
-	return aCLsData, nil
-}
-
-func (handler *DNSHandler) nzfsData() ([]nzfData, error) {
-	var data []nzfData
-	viewIDs, err := boltdb.GetDB().GetTables(viewsEndPath)
-	if err != nil {
-		return nil, err
-	}
-	for _, viewid := range viewIDs {
-		nameKvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid))
-		if err != nil {
-			return nil, err
-		}
-		viewName := nameKvs["name"]
-		zoneTables, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, zonesEndPath))
-		if err != nil {
-			return nil, err
-		}
-		var zones []Zone
-		for _, zoneId := range zoneTables {
-			Names, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid, zonesPath, zoneId))
-			if err != nil {
-				return nil, err
-			}
-			zoneName := Names["name"]
-			zoneFile := Names["zonefile"]
-			if string(zoneFile) == "" { //the type of the forward zone has no zone file.
-				continue
-			}
-			zone := Zone{Name: string(zoneName), ZoneFile: string(zoneFile)}
-			zones = append(zones, zone)
-		}
-		oneNzfData := nzfData{ViewName: string(viewName), Zones: zones}
-		data = append(data, oneNzfData)
-	}
-	return data, nil
-}
-
-func (handler *DNSHandler) redirectData() ([]redirectionData, error) {
-	var data []redirectionData
-	viewIDs, err := boltdb.GetDB().GetTables(viewsEndPath)
-	if err != nil {
-		return nil, err
-	}
-	for _, viewid := range viewIDs {
-		var one redirectionData
-		nameKvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid))
-		if err != nil {
-			return nil, err
-		}
-		viewName := nameKvs["name"]
-		one.ViewName = string(viewName)
-		rrsid, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, redirectEndPath))
-		if err != nil {
-			return nil, err
-		}
-		for _, rrID := range rrsid {
-			rrs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid, redirectPath, rrID))
-			if err != nil {
-				return nil, err
-			}
-			name := rrs["name"]
-			ttl := rrs["ttl"]
-			dataType := rrs["type"]
-			value := rrs["value"]
-			rr := RR{Name: string(name), Type: string(dataType), TTL: string(ttl), Value: string(value)}
-			one.RRs = append(one.RRs, rr)
-		}
-		if len(rrsid) > 0 {
-			data = append(data, one)
-		}
-	}
-	return data, nil
-}
-
-func (handler *DNSHandler) rpzData() ([]redirectionData, error) {
-	var data []redirectionData
-	viewIDs, err := boltdb.GetDB().GetTables(viewsEndPath)
-	if err != nil {
-		return nil, err
-	}
-	for _, viewid := range viewIDs {
-		var one redirectionData
-		nameKvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid))
-		if err != nil {
-			return nil, err
-		}
-		viewName := nameKvs["name"]
-		one.ViewName = string(viewName)
-		rrsid, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, rpzEndPath))
-		if err != nil {
-			return nil, err
-		}
-		for _, rrID := range rrsid {
-			rrs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid, rpzPath, rrID))
-			if err != nil {
-				return nil, err
-			}
-			name := rrs["name"]
-			ttl := rrs["ttl"]
-			dataType := rrs["type"]
-			value := rrs["value"]
-			rr := RR{Name: string(name), Type: string(dataType), TTL: string(ttl), Value: string(value)}
-			one.RRs = append(one.RRs, rr)
-		}
-		if len(rrsid) > 0 {
-			data = append(data, one)
-		}
-	}
-	return data, nil
-}
-
-func (handler *DNSHandler) zonesData() ([]zoneData, error) {
-	var zonesData []zoneData
-	viewIDs, err := boltdb.GetDB().GetTables(viewsEndPath)
-	if err != nil {
-		return nil, err
-	}
-	for _, viewid := range viewIDs {
-		nameKvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid))
-		if err != nil {
-			return nil, err
-		}
-		viewName := nameKvs["name"]
-		zoneTables, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, zonesEndPath))
-		if err != nil {
-			return nil, err
-		}
-		for _, zoneID := range zoneTables {
-			var rrs []RR
-			names, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid, zonesPath, zoneID))
-			if err != nil {
-				return nil, err
-			}
-			zoneName := names["name"]
-			zoneFile := names["zonefile"]
-			ttl := names["ttl"]
-			if string(zoneFile) == "" {
-				continue
-			}
-			rrTables, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, zonesPath, zoneID, rRsEndPath))
-			if err != nil {
-				return nil, err
-			}
-			for _, rrID := range rrTables {
-				datas, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid, zonesPath, zoneID, rRsPath, rrID))
-				if err != nil {
-					return nil, err
-				}
-				rr := RR{Name: string(datas["name"]), TTL: string(datas["ttl"]), Type: string(datas["type"]), Value: string(datas["value"])}
-				rrs = append(rrs, rr)
-			}
-			one := zoneData{ViewName: string(viewName), Name: string(zoneName), ZoneFile: string(zoneFile), RRs: rrs, TTL: string(ttl)}
-			zonesData = append(zonesData, one)
-		}
-	}
-	return zonesData, nil
-}
-
-func (handler *DNSHandler) rewriteNamedFile(isExistRPZ bool) error {
-	var namedConfData *namedData
-	var err error
-	if namedConfData, err = handler.namedConfData(); err != nil {
-		return err
-	}
-	if err != nil {
-		return err
-	}
-	buffer := new(bytes.Buffer)
-	if isExistRPZ {
-		if err = handler.tpl.ExecuteTemplate(buffer, namedNoRPZTpl, namedConfData); err != nil {
-			return err
-		}
-	} else {
-		if err = handler.tpl.ExecuteTemplate(buffer, namedTpl, namedConfData); err != nil {
-			return err
-		}
-	}
-	if err := ioutil.WriteFile(filepath.Join(handler.dnsConfPath, mainConfName), buffer.Bytes(), 0644); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (handler *DNSHandler) rewriteZonesFile() error {
-	zonesData, err := handler.zonesData()
-	if err != nil {
-		return err
-	}
-	if err := removeFiles(handler.dnsConfPath, "", zoneSuffix); err != nil {
-		return fmt.Errorf("remvoe files for %s*.zone fail", handler.dnsConfPath)
-	}
-	for _, zoneData := range zonesData {
-		buf := new(bytes.Buffer)
-		if err = handler.tpl.ExecuteTemplate(buf, zoneTpl, zoneData); err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(filepath.Join(handler.dnsConfPath, zoneData.ZoneFile), buf.Bytes(), 0644); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (handler *DNSHandler) rewriteACLsFile() error {
-	aCLs, err := handler.aCLsData()
-	if err != nil {
-		return err
-	}
-	if err := removeFiles(handler.dnsConfPath, "", aclSuffix); err != nil {
-		return fmt.Errorf("remvoe files for %s*.zone fail", handler.dnsConfPath)
-	}
-	for _, aCL := range aCLs {
-		buf := new(bytes.Buffer)
-		if err = handler.tpl.ExecuteTemplate(buf, aCLTpl, aCL); err != nil {
-			return err
-		}
-		if aCL.Name == "any" || aCL.Name == "none" {
-			continue
-		}
-		if err := ioutil.WriteFile(filepath.Join(handler.dnsConfPath, aCL.Name)+aclSuffix, buf.Bytes(), 0644); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (handler *DNSHandler) rewriteNzfsFile() error {
-	nzfsData, err := handler.nzfsData()
-	if err != nil {
-		return err
-	}
-	if err := removeFiles(handler.dnsConfPath, "", nzfSuffix); err != nil {
-		return fmt.Errorf("remvoe files for %s*.zone fail", handler.dnsConfPath)
-	}
-	for _, nzfData := range nzfsData {
-		buf := new(bytes.Buffer)
-		if err = handler.tpl.ExecuteTemplate(buf, nzfTpl, nzfData); err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(filepath.Join(handler.dnsConfPath, nzfData.ViewName)+nzfSuffix, buf.Bytes(), 0644); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (handler *DNSHandler) rewriteRedirectFile() error {
-	redirectionsData, err := handler.redirectData()
-	if err != nil {
-		return err
-	}
-	if err := removeFiles(filepath.Join(handler.dnsConfPath, "redirection"), "redirect_", ""); err != nil {
-		return fmt.Errorf("delete all the rpz file in %s err: %s", filepath.Join(handler.dnsConfPath, "redirection"), err.Error())
-	}
-	for _, redirectionData := range redirectionsData {
-		buf := new(bytes.Buffer)
-		if err = handler.tpl.ExecuteTemplate(buf, redirectTpl, redirectionData); err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(filepath.Join(handler.dnsConfPath, "redirection", "redirect_"+redirectionData.ViewName), buf.Bytes(), 0644); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func removeFiles(dir string, prefix string, suffix string) error {
-	d, err := os.Open(dir)
-	if err != nil {
-		return err
-	}
-	defer d.Close()
-	names, err := d.Readdirnames(-1)
-	if err != nil {
-		return err
-	}
-	for _, name := range names {
-		if prefix != "" && strings.HasPrefix(name, prefix) {
-			err = os.RemoveAll(filepath.Join(dir, name))
-			if err != nil {
-				return err
-			}
-		}
-		if suffix != "" && strings.HasSuffix(name, suffix) {
-			err = os.RemoveAll(filepath.Join(dir, name))
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (handler *DNSHandler) rewriteRPZFile(isStart bool) error {
-	redirectionsData, err := handler.rpzData()
-	if err != nil {
-		return err
-	}
-	if !isStart {
-		if err := removeFiles(filepath.Join(handler.dnsConfPath, "redirection"), "rpz_", ""); err != nil {
-			return fmt.Errorf("delete all the rpz file in %s err: %s", filepath.Join(handler.dnsConfPath, "redirection"), err.Error())
-		}
-		if err := handler.rewriteNamedFile(true); err != nil {
-			return err
-		}
-		if err := handler.rndcReconfig(); err != nil {
-			return err
-		}
-	}
-
-	for _, redirectionData := range redirectionsData {
-		buf := new(bytes.Buffer)
-		if err = handler.tpl.ExecuteTemplate(buf, rpzTpl, redirectionData); err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(filepath.Join(handler.dnsConfPath, "redirection", "rpz_"+redirectionData.ViewName), buf.Bytes(), 0644); err != nil {
-			return err
-		}
-	}
-	if !isStart {
-		if err := handler.rewriteNamedFile(false); err != nil {
-			return err
-		}
-		if err := handler.rndcReconfig(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (handler *DNSHandler) addPriority(pri int, viewid string, isCreateView bool) error {
-	//if the viewid has already in the database then return nil
-	viewskvs, err := boltdb.GetDB().GetTableKVs(viewsEndPath)
-	if err != nil {
-		return fmt.Errorf("get %s tablekvs err:%s", viewsEndPath, err.Error())
-	}
-	if pri == 1 {
-		if err := boltdb.GetDB().UpdateKVs(viewsEndPath, map[string][]byte{"next": []byte(viewid)}); err != nil {
-			return fmt.Errorf("update %s tablekvs err:%s", viewsEndPath, err.Error())
-		}
-		//add new node.
-		if isCreateView {
-			if err := boltdb.GetDB().AddKVs(filepath.Join(viewsPath, viewid), map[string][]byte{"next": viewskvs["next"]}); err != nil {
-				return fmt.Errorf("add %s kvs err:%s", filepath.Join(viewsPath, viewid), err.Error())
-			}
-		} else {
-			if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, viewid), map[string][]byte{"next": viewskvs["next"]}); err != nil {
-				return fmt.Errorf("update %s tablekvs err:%s", filepath.Join(viewsPath, viewid), err.Error())
-			}
-		}
-	} else {
-		previd := string(viewskvs["next"])
-		if viewskvs, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, previd)); err != nil {
-			return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, previd), err.Error())
-		}
-		nextid := string(viewskvs["next"])
-
-		var count int
-		for count = 1; count < pri-1 && nextid != ""; count++ {
-			if viewskvs, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, nextid)); err != nil {
-				return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, nextid), err.Error())
-			}
-			previd = nextid
-			nextid = string(viewskvs["next"])
-		}
-		//update the previous one
-		if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, previd), map[string][]byte{"next": []byte(viewid)}); err != nil {
-			return fmt.Errorf("update %s tablekvs err:%s", filepath.Join(viewsPath, previd), err.Error())
-		}
-		//add new node.
-		if isCreateView {
-			if err := boltdb.GetDB().AddKVs(filepath.Join(viewsPath, viewid), map[string][]byte{"next": []byte(nextid)}); err != nil {
-				return fmt.Errorf("add %s tablekvs err:%s", filepath.Join(viewsPath, viewid), err.Error())
-			}
-		} else {
-			if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, viewid), map[string][]byte{"next": []byte(nextid)}); err != nil {
-				return fmt.Errorf("update %s tablekvs err:%s", filepath.Join(viewsPath, viewid), err.Error())
-			}
-		}
-	}
-	return nil
-}
-
-func (handler *DNSHandler) updatePriority(pri int, viewid string) error {
-	if err := handler.deletePriority(viewid); err != nil {
-		return fmt.Errorf("delete priority err:%s", err.Error())
-	}
-	if err := handler.addPriority(pri, viewid, false); err != nil {
-		return fmt.Errorf("add priority err:%s", err.Error())
-	}
-	return nil
-}
-
-func (handler *DNSHandler) deletePriority(viewID string) error {
-	// find the previd and nextid of the viewid.
-	ids, err := boltdb.GetDB().GetTableKVs(viewsEndPath)
-	if err != nil {
-		return fmt.Errorf("get %s tablekvs err:%s", viewsEndPath, err.Error())
-	}
-	if string(ids["next"]) == viewID {
-		ids, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewID))
-		if err != nil {
-			return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, viewID), err.Error())
-		}
-		if err = boltdb.GetDB().UpdateKVs(viewsEndPath, map[string][]byte{"next": ids["next"]}); err != nil {
-			return fmt.Errorf("update %s tablekvs err:%s", viewsEndPath, err.Error())
-		}
-	} else {
-		previd := string(ids["next"])
-		if ids, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, previd)); err != nil {
-			return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, previd), err.Error())
-		}
-		nextid := string(ids["next"])
-
-		for nextid != "" && nextid != viewID {
-			if ids, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, nextid)); err != nil {
-				return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, nextid), err.Error())
-			}
-			previd = nextid
-			nextid = string(ids["next"])
-		}
-		if nextid == viewID {
-			if ids, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, nextid)); err != nil {
-				return fmt.Errorf("get %s tablekvs err:%s", filepath.Join(viewsPath, nextid), err.Error())
-			}
-			if err = boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, previd), map[string][]byte{"next": ids["next"]}); err != nil {
-				return fmt.Errorf("update %s tablekvs err:%s", filepath.Join(viewsPath, previd), err.Error())
-			}
-		}
-	}
-	return nil
-}
-
-func (handler *DNSHandler) aCLsFromTopPath(aCLids []string) ([]ACL, error) {
-	var aCLs []ACL
-	for _, aCLid := range aCLids {
-		names, err := boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, aCLid))
-		if err != nil {
-			return nil, err
-		}
-		name := names["name"]
-		var ipsmap map[string][]byte
-		ipsmap, err = boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, aCLid, iPsEndPath))
-		if err != nil {
-			return nil, err
-		}
-		var ips []string
-		for ip := range ipsmap {
-			ips = append(ips, ip)
-		}
-		aCL := ACL{Name: string(name), IPs: ips, ID: aCLid}
-		aCLs = append(aCLs, aCL)
-	}
-	return aCLs, nil
-}
-
-func (handler *DNSHandler) rndcReconfig() error {
-	//update bind
-	var para1 string = "-c" + filepath.Join(handler.dnsConfPath, "rndc.conf")
-	var para2 string = "-s" + "localhost"
-	var para3 string = "-p" + rndcPort
-	var para4 string = "reconfig"
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), para1, para2, para3, para4); err != nil {
-		return fmt.Errorf("rndc reconfig error, %w", err)
-	}
-	return nil
-}
-func (handler *DNSHandler) rndcAddZone(name string, zoneFile string, viewName string) error {
-	//update bind
-	var para1 string = "-c" + filepath.Join(handler.dnsConfPath, "rndc.conf")
-	var para2 string = "-s" + "localhost"
-	var para3 string = "-p" + rndcPort
-	var para4 string = "addzone " + name + " in " + viewName + " { type master; file \"" + zoneFile + "\";};"
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), para1, para2, para3, para4); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (handler *DNSHandler) rndcDelZone(name string, zoneFile string, viewName string) error {
-	//update bind
-	var para1 string = "-c" + filepath.Join(handler.dnsConfPath, "rndc.conf")
-	var para2 string = "-s" + "localhost"
-	var para3 string = "-p" + rndcPort
-	var para4 string = "delzone " + name + " in " + viewName
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), para1, para2, para3, para4); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (handler *DNSHandler) rndcDumpJNLFile() error {
-	//update bind
-	var para1 string = "-c" + filepath.Join(handler.dnsConfPath, "rndc.conf")
-	var para2 string = "-s" + "localhost"
-	var para3 string = "-p" + rndcPort
-	var para4 string = "sync"
-	var para5 string = "-clean"
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), para1, para2, para3, para4, para5); err != nil {
-		return fmt.Errorf("exec rndc sync -clean err:%s", err.Error())
-	}
-	return nil
-}
-
 func (handler *DNSHandler) keepDNSAlive() {
 	defer handler.ticker.Stop()
 	for {
@@ -1725,143 +718,6 @@ func (handler *DNSHandler) DeleteForward(req pb.DeleteForwardReq) error {
 	}
 	return nil
 }
-func (handler *DNSHandler) CreateRedirection(req pb.CreateRedirectionReq) error {
-	formatCnameValue(&req.Value, req.DataType)
-	formatDomain(&req.Name, req.DataType, req.RedirectType)
-	rrMap := map[string][]byte{}
-	rrMap["name"] = []byte(req.Name)
-	rrMap["type"] = []byte(req.DataType)
-	rrMap["value"] = []byte(req.Value)
-	rrMap["ttl"] = []byte(req.TTL)
-	if req.RedirectType == nxDomain {
-		//input the data into the database.
-		if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID, redirectPath, req.ID), rrMap); err != nil {
-			return err
-		}
-		//create the redirection/redirect_$viewname file,use the template.
-		if err := handler.rewriteRedirectFile(); err != nil {
-			return err
-		}
-		//reform the named.conf file
-		if err := handler.rewriteNamedFile(false); err != nil {
-			return err
-		}
-		//update bind
-		if err := handler.rndcReconfig(); err != nil {
-			return err
-		}
-	} else if req.RedirectType == localZoneType {
-		//input the data into the database.
-		if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID, rpzPath, req.ID), rrMap); err != nil {
-			return err
-		}
-		//create the redirection/rpz_$viewname file
-		if err := handler.rewriteRPZFile(false); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-func (handler *DNSHandler) UpdateRedirection(req pb.UpdateRedirectionReq) error {
-	formatCnameValue(&req.Value, req.DataType)
-	formatDomain(&req.Name, req.DataType, req.RedirectType)
-	//update the data in the database
-	rrMap := map[string][]byte{}
-	rrMap["name"] = []byte(req.Name)
-	rrMap["type"] = []byte(req.DataType)
-	rrMap["value"] = []byte(req.Value)
-	rrMap["ttl"] = []byte(req.TTL)
-	if req.RedirectType == nxDomain {
-		if req.IsRedirectTypeChanged {
-			if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, rpzPath, req.ID)); err != nil {
-				return err
-			}
-			if err := handler.rewriteRPZFile(false); err != nil {
-				return err
-			}
-			//input the data into the database.
-			if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID, redirectPath, req.ID), rrMap); err != nil {
-				return err
-			}
-			tables, err := boltdb.GetDB().GetTables(filepath.Join(viewsEndPath, req.ViewID, redirectPath))
-			if err != nil {
-				return err
-			}
-			if len(tables) == 1 {
-				if err := handler.rewriteNamedFile(false); err != nil {
-					return err
-				}
-			}
-		} else {
-			//update the data into the database.
-			if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsEndPath, req.ViewID, redirectPath, req.ID), rrMap); err != nil {
-				return err
-			}
-		}
-		//rewrite the redirection/redirect_$viewname file,use the template.
-		if err := handler.rewriteRedirectFile(); err != nil {
-			return err
-		}
-		//update bind
-		if err := handler.rndcReconfig(); err != nil {
-			return err
-		}
-	} else if req.RedirectType == localZoneType {
-		if req.IsRedirectTypeChanged {
-			if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, redirectPath, req.ID)); err != nil {
-				return err
-			}
-			if err := handler.rewriteRedirectFile(); err != nil {
-				return err
-			}
-			//input the data into the database.
-			if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID, rpzPath, req.ID), rrMap); err != nil {
-				return err
-			}
-		} else {
-			//update the data into the database.
-			if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsEndPath, req.ViewID, rpzPath, req.ID), rrMap); err != nil {
-				return err
-			}
-		}
-		//rewrite the redirection/rpz_$viewname file
-		if err := handler.rewriteRPZFile(false); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-func (handler *DNSHandler) DeleteRedirection(req pb.DeleteRedirectionReq) error {
-	//delete the data in the database
-	if req.RedirectType == nxDomain {
-		//input the data into the database.
-		if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, redirectPath, req.ID)); err != nil {
-			return err
-		}
-		//rewrite the redirection/redirect_$viewname file,use the template.
-		if err := handler.rewriteRedirectFile(); err != nil {
-			return err
-		}
-		//rewrite the named.conf file
-		if err := handler.rewriteNamedFile(false); err != nil {
-			return err
-		}
-		//update bind
-		if err := handler.rndcReconfig(); err != nil {
-			return err
-		}
-	} else if req.RedirectType == localZoneType {
-		//input the data into the database.
-		if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, rpzPath, req.ID)); err != nil {
-			return err
-		}
-		//rewrite the redirection/rpz_$viewname file
-		if err := handler.rewriteRPZFile(false); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 func (handler *DNSHandler) CreateDNS64(req pb.CreateDNS64Req) error {
 	//input the data into the data base.
@@ -1882,6 +738,7 @@ func (handler *DNSHandler) CreateDNS64(req pb.CreateDNS64Req) error {
 	}
 	return nil
 }
+
 func (handler *DNSHandler) UpdateDNS64(req pb.UpdateDNS64Req) error {
 	//input the data into the data base.
 	oldkvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsEndPath, req.ViewID, dns64sPath, req.ID))
@@ -1911,6 +768,7 @@ func (handler *DNSHandler) UpdateDNS64(req pb.UpdateDNS64Req) error {
 
 	return nil
 }
+
 func (handler *DNSHandler) DeleteDNS64(req pb.DeleteDNS64Req) error {
 	//delete the data in the data base.drop the leaf table.
 	if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, dns64sPath, req.ID)); err != nil {
@@ -1926,6 +784,7 @@ func (handler *DNSHandler) DeleteDNS64(req pb.DeleteDNS64Req) error {
 	}
 	return nil
 }
+
 func (handler *DNSHandler) CreateIPBlackHole(req pb.CreateIPBlackHoleReq) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
@@ -1943,6 +802,7 @@ func (handler *DNSHandler) CreateIPBlackHole(req pb.CreateIPBlackHoleReq) error 
 	}
 	return nil
 }
+
 func (handler *DNSHandler) UpdateIPBlackHole(req pb.UpdateIPBlackHoleReq) error {
 	//update the data into the data base.
 	kvs := map[string][]byte{}
@@ -1960,6 +820,7 @@ func (handler *DNSHandler) UpdateIPBlackHole(req pb.UpdateIPBlackHoleReq) error 
 	}
 	return nil
 }
+
 func (handler *DNSHandler) DeleteIPBlackHole(req pb.DeleteIPBlackHoleReq) error {
 	//delete the data into the data base.
 	boltdb.GetDB().DeleteTable(filepath.Join(ipBlackHolePath, req.ID))
@@ -1973,6 +834,7 @@ func (handler *DNSHandler) DeleteIPBlackHole(req pb.DeleteIPBlackHoleReq) error 
 	}
 	return nil
 }
+
 func (handler *DNSHandler) UpdateRecursiveConcurrent(req pb.UpdateRecurConcuReq) error {
 	//update the data in the database;
 	conKVs, err := boltdb.GetDB().GetTableKVs(recurConcurEndPath)
@@ -2002,6 +864,7 @@ func (handler *DNSHandler) UpdateRecursiveConcurrent(req pb.UpdateRecurConcuReq)
 
 	return nil
 }
+
 func (handler *DNSHandler) CreateSortList(req pb.CreateSortListReq) error {
 	//input the data into the data base.
 	kvs := map[string][]byte{}
@@ -2038,6 +901,7 @@ func (handler *DNSHandler) CreateSortList(req pb.CreateSortListReq) error {
 	}
 	return nil
 }
+
 func (handler *DNSHandler) UpdateSortList(req pb.UpdateSortListReq) error {
 	//update the data into the data base.
 	delReq := pb.DeleteSortListReq{ACLs: req.ACLs}
@@ -2046,6 +910,7 @@ func (handler *DNSHandler) UpdateSortList(req pb.UpdateSortListReq) error {
 	handler.CreateSortList(createReq)
 	return nil
 }
+
 func (handler *DNSHandler) DeleteSortList(req pb.DeleteSortListReq) error {
 	//delete the data in the data base.
 	var acls []string
@@ -2066,39 +931,6 @@ func (handler *DNSHandler) DeleteSortList(req pb.DeleteSortListReq) error {
 	if err := handler.rndcReconfig(); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (handler *DNSHandler) UpdateLog(req pb.UpdateLogReq) error {
-	//update the data in the database;
-	logKVs, err := boltdb.GetDB().GetTableKVs(logPath)
-	if err != nil {
-		return err
-	}
-	kvs := map[string][]byte{}
-	if req.IsOpen {
-		kvs[logStatus] = []byte{byte(1)}
-	} else {
-		kvs[logStatus] = []byte{byte(0)}
-	}
-	if len(logKVs) == 0 {
-		if err := boltdb.GetDB().AddKVs(logPath, kvs); err != nil {
-			return err
-		}
-	} else {
-		if err := boltdb.GetDB().UpdateKVs(logPath, kvs); err != nil {
-			return err
-		}
-	}
-	//rewrite the named.conf file.
-	if err := handler.rewriteNamedFile(false); err != nil {
-		return err
-	}
-	//update bind.
-	if err := handler.rndcReconfig(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -2156,6 +988,7 @@ func updateRR(key string, secret string, rr string, zone string, isAdd bool) err
 	}
 	return nil
 }
+
 func (handler *DNSHandler) CreateUrlRedirect(req pb.CreateUrlRedirectReq) error {
 	//input the data into view's urlRedirects's path store.
 	if err := boltdb.GetDB().AddKVs(filepath.Join(viewsPath, req.ViewID, urlRedirectsPath, req.ID),
@@ -2183,6 +1016,7 @@ func (handler *DNSHandler) CreateUrlRedirect(req pb.CreateUrlRedirectReq) error 
 	}
 	return nil
 }
+
 func (handler *DNSHandler) UpdateUrlRedirect(req pb.UpdateUrlRedirectReq) error {
 	//update view's urlRedirects's data in the db.
 	if err := boltdb.GetDB().UpdateKVs(filepath.Join(viewsPath, req.ViewID, urlRedirectsPath, req.ID),
@@ -2211,6 +1045,7 @@ func (handler *DNSHandler) UpdateUrlRedirect(req pb.UpdateUrlRedirectReq) error 
 	}
 	return nil
 }
+
 func (handler *DNSHandler) DeleteUrlRedirect(req pb.DeleteUrlRedirectReq) error {
 	//delete view's urlRedirects's data in the db.
 	if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsPath, req.ViewID, urlRedirectsPath, req.ID)); err != nil {
@@ -2230,59 +1065,6 @@ func (handler *DNSHandler) DeleteUrlRedirect(req pb.DeleteUrlRedirectReq) error 
 	}
 	if err := handler.nginxReload(); err != nil {
 		return fmt.Errorf("nginx reload error:%s", err.Error())
-	}
-	return nil
-}
-
-func (handler *DNSHandler) rewriteNginxFile() error {
-	data, err := handler.GetNginxData()
-	if err != nil {
-		return fmt.Errorf("get nginx conf data error %s", err.Error())
-	}
-	buf := new(bytes.Buffer)
-	if err = handler.tpl.ExecuteTemplate(buf, nginxDefaultTpl, data); err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(filepath.Join(handler.nginxDefaultConfDir, nginxDefaultConfFile), buf.Bytes(), 0644); err != nil {
-		return fmt.Errorf("write file %s err", filepath.Join(handler.nginxDefaultConfDir, nginxDefaultConfFile), err.Error())
-	}
-	return nil
-}
-
-func (handler *DNSHandler) GetNginxData() (*nginxDefaultConf, error) {
-	data := nginxDefaultConf{}
-	kvs, err := boltdb.GetDB().GetTableKVs(viewsEndPath)
-	if err != nil {
-		return nil, err
-	}
-	viewid := string(kvs["next"])
-	for viewid != "" {
-		tables, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, urlRedirectsPath))
-		if err != nil {
-			return nil, err
-		}
-		for _, t := range tables {
-			urlRedirectkvs, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, string(viewid), urlRedirectsPath, t))
-			if err != nil {
-				return nil, fmt.Errorf("get path %s kvs error", filepath.Join(viewsPath, string(viewid), urlRedirectsPath, t))
-			}
-			data.URLRedirects = append(data.URLRedirects, urlRedirect{Domain: string(urlRedirectkvs[domain]), URL: string(urlRedirectkvs[url])})
-		}
-
-		kvs, err = boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid))
-		if err != nil {
-			return nil, err
-		}
-		viewid = string(kvs["next"])
-	}
-	return &data, nil
-}
-
-func (handler *DNSHandler) nginxReload() error {
-	command := "docker exec -i ddi-nginx nginx -s reload"
-	cmd := exec.Command("/bin/bash", "-c", command)
-	if _, err := cmd.Output(); err != nil {
-		return fmt.Errorf("exec docker nginx reload error: %s", err.Error())
 	}
 	return nil
 }
@@ -2344,26 +1126,9 @@ func (handler *DNSHandler) UpdateTTL(req pb.UpdateTTLReq) error {
 	return nil
 }
 
+//TODO newdb innovation begin————
+
 func (handler *DNSHandler) UpdateDnssec(req pb.UpdateDnssecReq) error {
-	dnssecKVs, err := boltdb.GetDB().GetTableKVs(dnssecPath)
-	if err != nil {
-		return err
-	}
-	kvs := map[string][]byte{}
-	if req.IsOpen {
-		kvs[dnssecStatus] = []byte{byte(1)}
-	} else {
-		kvs[dnssecStatus] = []byte{byte(0)}
-	}
-	if len(dnssecKVs) == 0 {
-		if err := boltdb.GetDB().AddKVs(dnssecPath, kvs); err != nil {
-			return err
-		}
-	} else {
-		if err := boltdb.GetDB().UpdateKVs(dnssecPath, kvs); err != nil {
-			return err
-		}
-	}
 	//rewrite the named.conf file.
 	if err := handler.rewriteNamedFile(false); err != nil {
 		return err
@@ -2371,6 +1136,166 @@ func (handler *DNSHandler) UpdateDnssec(req pb.UpdateDnssecReq) error {
 	//update bind.
 	if err := handler.rndcReconfig(); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (handler *DNSHandler) UpdateLog(req pb.UpdateLogReq) error {
+	//rewrite the named.conf file.
+	if err := handler.rewriteNamedFile(false); err != nil {
+		return err
+	}
+	//update bind.
+	if err := handler.rndcReconfig(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (handler *DNSHandler) CreateACL(req pb.CreateACLReq) error {
+	aCLData := ACL{ID: req.ID, Name: req.Name, IPs: req.IPs}
+	buffer := new(bytes.Buffer)
+	if err := handler.tpl.ExecuteTemplate(buffer, aCLTpl, aCLData); err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(filepath.Join(handler.dnsConfPath, req.ID)+aclSuffix, buffer.Bytes(), 0644); err != nil {
+		return err
+	}
+
+	if err := handler.rewriteNamedFile(false); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (handler *DNSHandler) UpdateACL(req pb.UpdateACLReq) error {
+	reqDel := pb.DeleteACLReq{ID: req.ID}
+	if err := handler.DeleteACL(reqDel); err != nil {
+		return err
+	}
+
+	reqTmp := pb.CreateACLReq{Name: req.Name, ID: req.ID, IPs: req.NewIPs}
+	if err := handler.CreateACL(reqTmp); err != nil {
+		return err
+	}
+
+	//update bind
+	if err := handler.rndcReconfig(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (handler *DNSHandler) DeleteACL(req pb.DeleteACLReq) error {
+	if err := os.Remove(filepath.Join(handler.dnsConfPath, req.ID) + aclSuffix); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
+	if err := handler.rewriteNamedFile(false); err != nil {
+		return err
+	}
+	//update bind
+	if err := handler.rndcReconfig(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (handler *DNSHandler) CreateRedirection(req pb.CreateRedirectionReq) error {
+	formatCnameValue(&req.Value, req.DataType)
+	formatDomain(&req.Name, req.DataType, req.RedirectType)
+	if req.RedirectType == nxDomain {
+		//create the redirection/redirect_$viewname file,use the template.
+		if err := handler.rewriteRedirectFile(); err != nil {
+			return err
+		}
+		//reform the named.conf file
+		if err := handler.rewriteNamedFile(false); err != nil {
+			return err
+		}
+		//update bind
+		if err := handler.rndcReconfig(); err != nil {
+			return err
+		}
+	} else if req.RedirectType == localZoneType {
+		//create the redirection/rpz_$viewname file
+		if err := handler.rewriteRPZFile(false); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (handler *DNSHandler) UpdateRedirection(req pb.UpdateRedirectionReq) error {
+	formatCnameValue(&req.Value, req.DataType)
+	formatDomain(&req.Name, req.DataType, req.RedirectType)
+	if req.RedirectType == nxDomain {
+		if req.IsRedirectTypeChanged {
+			if err := handler.rewriteRPZFile(false); err != nil {
+				return err
+			}
+			if err := handler.rewriteNamedFile(false); err != nil {
+				return err
+			}
+		}
+		//rewrite the redirection/redirect_$viewname file,use the template.
+		if err := handler.rewriteRedirectFile(); err != nil {
+			return err
+		}
+		//update bind
+		if err := handler.rndcReconfig(); err != nil {
+			return err
+		}
+	} else if req.RedirectType == localZoneType {
+		if req.IsRedirectTypeChanged {
+			if err := handler.rewriteRedirectFile(); err != nil {
+				return err
+			}
+		}
+		//rewrite the redirection/rpz_$viewname file
+		if err := handler.rewriteRPZFile(false); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (handler *DNSHandler) DeleteRedirection(req pb.DeleteRedirectionReq) error {
+	//delete the data in the database
+	if req.RedirectType == nxDomain {
+		//input the data into the database.
+		if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, redirectPath, req.ID)); err != nil {
+			return err
+		}
+		//rewrite the redirection/redirect_$viewname file,use the template.
+		if err := handler.rewriteRedirectFile(); err != nil {
+			return err
+		}
+		//rewrite the named.conf file
+		if err := handler.rewriteNamedFile(false); err != nil {
+			return err
+		}
+		//update bind
+		if err := handler.rndcReconfig(); err != nil {
+			return err
+		}
+	} else if req.RedirectType == localZoneType {
+		//input the data into the database.
+		if err := boltdb.GetDB().DeleteTable(filepath.Join(viewsEndPath, req.ViewID, rpzPath, req.ID)); err != nil {
+			return err
+		}
+		//rewrite the redirection/rpz_$viewname file
+		if err := handler.rewriteRPZFile(false); err != nil {
+			return err
+		}
 	}
 	return nil
 }

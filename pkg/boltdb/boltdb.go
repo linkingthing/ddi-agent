@@ -25,9 +25,9 @@ func New(dbPath string) error {
 	return nil
 }
 
-func GetDB() *BoltDB {
-	return globalDB
-}
+//func GetDB() *BoltDB {
+//	return globalDB
+//}
 
 func (b *BoltDB) Close() error {
 	return b.db.Close()
