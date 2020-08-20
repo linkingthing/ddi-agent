@@ -95,10 +95,10 @@ func (dns *DNSCollector) Run() {
 						if c.Name == OpcodeQUERY {
 							now := time.Now()
 							if seconds := now.Sub(dns.lastGetTime).Seconds(); seconds > 0 && dns.lastQueryCount != 0 {
-								if diff := c.Counter - dns.lastQueryCount; diff >= 0 {
-									qps = float64(diff) / seconds
+								if c.Counter >= dns.lastQueryCount {
+									qps = float64(c.Counter-dns.lastQueryCount) / seconds
 								} else {
-									qps = float64(diff+Uint32Max) / seconds
+									qps = float64(c.Counter+Uint32Max-dns.lastQueryCount) / seconds
 								}
 							}
 							dns.lastQueryCount = c.Counter
@@ -134,13 +134,14 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	ch <- prometheus.MustNewConstMetric(DNSQPS, prometheus.CounterValue, float64(atomic.LoadUint64(&dns.qps)), dns.nodeIP)
-	totalCacheHits := dns.collectCacheHits(ch, statistics.Views)
 	totalQueries, ok := dns.getQueryTotal(statistics.Server.Counters)
 	if ok == false || totalQueries == 0 {
 		return
 	}
 
+	totalCacheHits := dns.collectCacheHits(ch, statistics.Views)
+
+	ch <- prometheus.MustNewConstMetric(DNSQPS, prometheus.CounterValue, float64(atomic.LoadUint64(&dns.qps)), dns.nodeIP)
 	ch <- prometheus.MustNewConstMetric(DNSCacheHitsRatio, prometheus.CounterValue, totalCacheHits/totalQueries, dns.nodeIP)
 	ch <- prometheus.MustNewConstMetric(DNSQueriesTotal, prometheus.CounterValue, totalQueries, dns.nodeIP)
 	for _, cs := range statistics.Server.Counters {
