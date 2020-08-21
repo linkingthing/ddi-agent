@@ -1,9 +1,7 @@
 package grpcservice
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -180,11 +178,7 @@ func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	dhcp4Conf.DHCP4.Subnet4s = append(dhcp4Conf.DHCP4.Subnet4s, Subnet4{
 		ID:               req.GetId(),
 		Subent:           req.GetIpnet(),
@@ -196,15 +190,17 @@ func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
 		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
 	})
 
-	return h.reconfig4(&dhcp4Conf)
+	return h.reconfig4(dhcp4Conf)
 }
 
-func deepCopy(src, dst interface{}) error {
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
-		return err
-	}
-	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
+func genDhcp4ConfFromDeepCopy(src *DHCP4Config) *DHCP4Config {
+	dst := &DHCP4Config{}
+	*dst = *src
+	dst.DHCP4.Subnet4s = make([]Subnet4, len(src.DHCP4.Subnet4s))
+	dst.DHCP4.ClientClasses = make([]ClientClass, len(src.DHCP4.ClientClasses))
+	copy(dst.DHCP4.ClientClasses, src.DHCP4.ClientClasses)
+	copy(dst.DHCP4.Subnet4s, src.DHCP4.Subnet4s)
+	return dst
 }
 
 func genDHCPOptionDatas(optionNameDNS string, domainServers []string, routers []string) []OptionData {
@@ -281,11 +277,7 @@ func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetId() {
 			dhcp4Conf.DHCP4.Subnet4s[i].ClientClass = req.GetClientClass()
@@ -300,7 +292,7 @@ func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
 	}
 
 	if exists {
-		return h.reconfig4(&dhcp4Conf)
+		return h.reconfig4(dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found subnet4 %d", req.GetId())
 	}
@@ -311,11 +303,7 @@ func (h *DHCPHandler) DeleteSubnet4(req *pb.DeleteSubnet4Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetId() {
 			dhcp4Conf.DHCP4.Subnet4s = append(dhcp4Conf.DHCP4.Subnet4s[:i], dhcp4Conf.DHCP4.Subnet4s[i+1:]...)
@@ -325,7 +313,7 @@ func (h *DHCPHandler) DeleteSubnet4(req *pb.DeleteSubnet4Request) error {
 	}
 
 	if exists {
-		return h.reconfig4(&dhcp4Conf)
+		return h.reconfig4(dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found subnet4 %d", req.GetId())
 	}
@@ -335,11 +323,7 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	dhcp6Conf.DHCP6.Subnet6s = append(dhcp6Conf.DHCP6.Subnet6s, Subnet6{
 		ID:               req.GetId(),
 		Subent:           req.GetIpnet(),
@@ -351,7 +335,15 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
 	})
 
-	return h.reconfig6(&dhcp6Conf)
+	return h.reconfig6(dhcp6Conf)
+}
+
+func genDhcp6ConfFromDeepCopy(src *DHCP6Config) *DHCP6Config {
+	dst := &DHCP6Config{}
+	*dst = *src
+	dst.DHCP6.Subnet6s = make([]Subnet6, len(dst.DHCP6.Subnet6s))
+	copy(dst.DHCP6.Subnet6s, src.DHCP6.Subnet6s)
+	return dst
 }
 
 func (h *DHCPHandler) reconfig6(dhcp6Conf *DHCP6Config) error {
@@ -371,11 +363,7 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetId() {
 			dhcp6Conf.DHCP6.Subnet6s[i].ClientClass = req.GetClientClass()
@@ -390,7 +378,7 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 	}
 
 	if exists {
-		return h.reconfig6(&dhcp6Conf)
+		return h.reconfig6(dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found subnet6 %d", req.GetId())
 	}
@@ -401,11 +389,7 @@ func (h *DHCPHandler) DeleteSubnet6(req *pb.DeleteSubnet6Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetId() {
 			dhcp6Conf.DHCP6.Subnet6s = append(dhcp6Conf.DHCP6.Subnet6s[:i], dhcp6Conf.DHCP6.Subnet6s[i+1:]...)
@@ -415,7 +399,7 @@ func (h *DHCPHandler) DeleteSubnet6(req *pb.DeleteSubnet6Request) error {
 	}
 
 	if exists {
-		return h.reconfig6(&dhcp6Conf)
+		return h.reconfig6(dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found subnet6 %d", req.GetId())
 	}
@@ -425,11 +409,7 @@ func (h *DHCPHandler) CreatePool4(req *pb.CreatePool4Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			dhcp4Conf.DHCP4.Subnet4s[i].Pools = append(dhcp4Conf.DHCP4.Subnet4s[i].Pools, Pool{
@@ -440,7 +420,7 @@ func (h *DHCPHandler) CreatePool4(req *pb.CreatePool4Request) error {
 			break
 		}
 	}
-	return h.reconfig4(&dhcp4Conf)
+	return h.reconfig4(dhcp4Conf)
 }
 
 func genPoolByBeginAndEnd(begin, end string) string {
@@ -453,11 +433,7 @@ func (h *DHCPHandler) UpdatePool4(req *pb.UpdatePool4Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pool := range subnet.Pools {
@@ -473,7 +449,7 @@ func (h *DHCPHandler) UpdatePool4(req *pb.UpdatePool4Request) error {
 	}
 
 	if exists {
-		return h.reconfig4(&dhcp4Conf)
+		return h.reconfig4(dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
@@ -485,11 +461,7 @@ func (h *DHCPHandler) DeletePool4(req *pb.DeletePool4Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pool := range subnet.Pools {
@@ -504,7 +476,7 @@ func (h *DHCPHandler) DeletePool4(req *pb.DeletePool4Request) error {
 	}
 
 	if exists {
-		return h.reconfig4(&dhcp4Conf)
+		return h.reconfig4(dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
@@ -514,11 +486,7 @@ func (h *DHCPHandler) CreatePool6(req *pb.CreatePool6Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			dhcp6Conf.DHCP6.Subnet6s[i].Pools = append(dhcp6Conf.DHCP6.Subnet6s[i].Pools, Pool{
@@ -529,7 +497,7 @@ func (h *DHCPHandler) CreatePool6(req *pb.CreatePool6Request) error {
 			break
 		}
 	}
-	return h.reconfig6(&dhcp6Conf)
+	return h.reconfig6(dhcp6Conf)
 }
 
 func (h *DHCPHandler) UpdatePool6(req *pb.UpdatePool6Request) error {
@@ -538,11 +506,7 @@ func (h *DHCPHandler) UpdatePool6(req *pb.UpdatePool6Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pool := range subnet.Pools {
@@ -558,7 +522,7 @@ func (h *DHCPHandler) UpdatePool6(req *pb.UpdatePool6Request) error {
 	}
 
 	if exists {
-		return h.reconfig6(&dhcp6Conf)
+		return h.reconfig6(dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
@@ -570,11 +534,7 @@ func (h *DHCPHandler) DeletePool6(req *pb.DeletePool6Request) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pool := range subnet.Pools {
@@ -589,7 +549,7 @@ func (h *DHCPHandler) DeletePool6(req *pb.DeletePool6Request) error {
 	}
 
 	if exists {
-		return h.reconfig6(&dhcp6Conf)
+		return h.reconfig6(dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
@@ -599,11 +559,7 @@ func (h *DHCPHandler) CreatePDPool(req *pb.CreatePDPoolRequest) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			dhcp6Conf.DHCP6.Subnet6s[i].PDPools = append(dhcp6Conf.DHCP6.Subnet6s[i].PDPools, PDPool{
@@ -616,7 +572,7 @@ func (h *DHCPHandler) CreatePDPool(req *pb.CreatePDPoolRequest) error {
 			break
 		}
 	}
-	return h.reconfig6(&dhcp6Conf)
+	return h.reconfig6(dhcp6Conf)
 }
 
 func (h *DHCPHandler) UpdatePDPool(req *pb.UpdatePDPoolRequest) error {
@@ -624,11 +580,7 @@ func (h *DHCPHandler) UpdatePDPool(req *pb.UpdatePDPoolRequest) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pdpool := range subnet.PDPools {
@@ -644,7 +596,7 @@ func (h *DHCPHandler) UpdatePDPool(req *pb.UpdatePDPoolRequest) error {
 	}
 
 	if exists {
-		return h.reconfig6(&dhcp6Conf)
+		return h.reconfig6(dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found pd-pool %s in subnet %d", req.GetPrefix(), req.GetSubnetId())
 	}
@@ -655,11 +607,7 @@ func (h *DHCPHandler) DeletePDPool(req *pb.DeletePDPoolRequest) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, pdpool := range subnet.PDPools {
@@ -674,7 +622,7 @@ func (h *DHCPHandler) DeletePDPool(req *pb.DeletePDPoolRequest) error {
 	}
 
 	if exists {
-		return h.reconfig6(&dhcp6Conf)
+		return h.reconfig6(dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found pd-pool %s in subnet %d", req.GetPrefix(), req.GetSubnetId())
 	}
@@ -684,11 +632,7 @@ func (h *DHCPHandler) CreateReservation4(req *pb.CreateReservation4Request) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			dhcp4Conf.DHCP4.Subnet4s[i].Reservations = append(dhcp4Conf.DHCP4.Subnet4s[i].Reservations, Reservation4{
@@ -699,7 +643,7 @@ func (h *DHCPHandler) CreateReservation4(req *pb.CreateReservation4Request) erro
 			break
 		}
 	}
-	return h.reconfig4(&dhcp4Conf)
+	return h.reconfig4(dhcp4Conf)
 }
 
 func (h *DHCPHandler) UpdateReservation4(req *pb.UpdateReservation4Request) error {
@@ -707,11 +651,7 @@ func (h *DHCPHandler) UpdateReservation4(req *pb.UpdateReservation4Request) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, reservation := range subnet.Reservations {
@@ -727,7 +667,7 @@ func (h *DHCPHandler) UpdateReservation4(req *pb.UpdateReservation4Request) erro
 	}
 
 	if exists {
-		return h.reconfig4(&dhcp4Conf)
+		return h.reconfig4(dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found reservation4 %s in subnet4 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
@@ -738,11 +678,7 @@ func (h *DHCPHandler) DeleteReservation4(req *pb.DeleteReservation4Request) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, subnet := range dhcp4Conf.DHCP4.Subnet4s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, reservation := range subnet.Reservations {
@@ -758,7 +694,7 @@ func (h *DHCPHandler) DeleteReservation4(req *pb.DeleteReservation4Request) erro
 	}
 
 	if exists {
-		return h.reconfig4(&dhcp4Conf)
+		return h.reconfig4(dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found reservation4 %s in subnet4 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
@@ -768,11 +704,7 @@ func (h *DHCPHandler) CreateReservation6(req *pb.CreateReservation6Request) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			dhcp6Conf.DHCP6.Subnet6s[i].Reservations = append(dhcp6Conf.DHCP6.Subnet6s[i].Reservations, Reservation6{
@@ -783,7 +715,7 @@ func (h *DHCPHandler) CreateReservation6(req *pb.CreateReservation6Request) erro
 			break
 		}
 	}
-	return h.reconfig6(&dhcp6Conf)
+	return h.reconfig6(dhcp6Conf)
 }
 
 func (h *DHCPHandler) UpdateReservation6(req *pb.UpdateReservation6Request) error {
@@ -791,11 +723,7 @@ func (h *DHCPHandler) UpdateReservation6(req *pb.UpdateReservation6Request) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, reservation := range subnet.Reservations {
@@ -810,7 +738,7 @@ func (h *DHCPHandler) UpdateReservation6(req *pb.UpdateReservation6Request) erro
 	}
 
 	if exists {
-		return h.reconfig6(&dhcp6Conf)
+		return h.reconfig6(dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found reservation6 %s in subnet6 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
@@ -821,11 +749,7 @@ func (h *DHCPHandler) DeleteReservation6(req *pb.DeleteReservation6Request) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	for i, subnet := range dhcp6Conf.DHCP6.Subnet6s {
 		if subnet.ID == req.GetSubnetId() {
 			for j, reservation := range subnet.Reservations {
@@ -841,7 +765,7 @@ func (h *DHCPHandler) DeleteReservation6(req *pb.DeleteReservation6Request) erro
 	}
 
 	if exists {
-		return h.reconfig6(&dhcp6Conf)
+		return h.reconfig6(dhcp6Conf)
 	} else {
 		return fmt.Errorf("no found reservation6 %s in subnet6 %d", req.GetHwAddress(), req.GetSubnetId())
 	}
@@ -851,17 +775,13 @@ func (h *DHCPHandler) CreateClientClass4(req *pb.CreateClientClass4Request) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	dhcp4Conf.DHCP4.ClientClasses = append(dhcp4Conf.DHCP4.ClientClasses, ClientClass{
 		Name: req.GetName(),
 		Test: req.GetRegexp(),
 	})
 
-	return h.reconfig4(&dhcp4Conf)
+	return h.reconfig4(dhcp4Conf)
 }
 
 func (h *DHCPHandler) UpdateClientClass4(req *pb.UpdateClientClass4Request) error {
@@ -869,11 +789,7 @@ func (h *DHCPHandler) UpdateClientClass4(req *pb.UpdateClientClass4Request) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, clientclass := range dhcp4Conf.DHCP4.ClientClasses {
 		if clientclass.Name == req.GetName() {
 			dhcp4Conf.DHCP4.ClientClasses[i].Test = req.GetRegexp()
@@ -883,7 +799,7 @@ func (h *DHCPHandler) UpdateClientClass4(req *pb.UpdateClientClass4Request) erro
 	}
 
 	if exists {
-		return h.reconfig4(&dhcp4Conf)
+		return h.reconfig4(dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found clientclass4 %s", req.GetName())
 	}
@@ -894,11 +810,7 @@ func (h *DHCPHandler) DeleteClientClass4(req *pb.DeleteClientClass4Request) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	for i, clientclass := range dhcp4Conf.DHCP4.ClientClasses {
 		if clientclass.Name == req.GetName() {
 			dhcp4Conf.DHCP4.ClientClasses = append(dhcp4Conf.DHCP4.ClientClasses[:i], dhcp4Conf.DHCP4.ClientClasses[i+1:]...)
@@ -908,7 +820,7 @@ func (h *DHCPHandler) DeleteClientClass4(req *pb.DeleteClientClass4Request) erro
 	}
 
 	if exists {
-		return h.reconfig4(&dhcp4Conf)
+		return h.reconfig4(dhcp4Conf)
 	} else {
 		return fmt.Errorf("no found clientclass4 %s", req.GetName())
 	}
@@ -918,31 +830,23 @@ func (h *DHCPHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigRequest) erro
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	var dhcp4Conf DHCP4Config
-	if err := deepCopy(h.conf.dhcp4Conf, &dhcp4Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp4 config failed: %s", err.Error())
-	}
-
-	var dhcp6Conf DHCP6Config
-	if err := deepCopy(h.conf.dhcp6Conf, &dhcp6Conf); err != nil {
-		return fmt.Errorf("deep copy dhcp6 config failed: %s", err.Error())
-	}
-
+	dhcp4Conf := genDhcp4ConfFromDeepCopy(h.conf.dhcp4Conf)
 	dhcp4Conf.DHCP4.ValidLifetime = req.GetValidLifetime()
 	dhcp4Conf.DHCP4.MinValidLifetime = req.GetMinValidLifetime()
 	dhcp4Conf.DHCP4.MaxValidLifetime = req.GetMaxValidLifetime()
 	dhcp4Conf.DHCP4.OptionDatas = genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), nil)
 
+	dhcp6Conf := genDhcp6ConfFromDeepCopy(h.conf.dhcp6Conf)
 	dhcp6Conf.DHCP6.ValidLifetime = req.GetValidLifetime()
 	dhcp6Conf.DHCP6.MinValidLifetime = req.GetMinValidLifetime()
 	dhcp6Conf.DHCP6.MaxValidLifetime = req.GetMaxValidLifetime()
 	dhcp6Conf.DHCP6.OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDomainServers(), nil)
 
-	if err := h.reconfig4(&dhcp4Conf); err != nil {
+	if err := h.reconfig4(dhcp4Conf); err != nil {
 		return err
 	}
 
-	return h.reconfig6(&dhcp6Conf)
+	return h.reconfig6(dhcp6Conf)
 }
 
 type Lease4 struct {
