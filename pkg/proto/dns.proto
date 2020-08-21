@@ -36,7 +36,10 @@ rpc UpdateRecursiveConcurrent(UpdateRecurConcuReq) returns (DDIResponse){}
 rpc CreateSortList(CreateSortListReq) returns (DDIResponse){}
 rpc UpdateSortList(UpdateSortListReq) returns (DDIResponse){}
 rpc DeleteSortList(DeleteSortListReq) returns (DDIResponse){}
-rpc UpdateLog(UpdateLogReq) returns (DDIResponse){}
+rpc CreateUrlRedirect(CreateUrlRedirectReq) returns (DDIResponse){}
+rpc UpdateUrlRedirect(UpdateUrlRedirectReq) returns (DDIResponse){}
+rpc DeleteUrlRedirect(DeleteUrlRedirectReq) returns (DDIResponse){}
+rpc UpdateGlobalConfig(UpdateGlobalConfigReq) returns (DDIResponse){}
 }
 
 message DNSStartReq{
@@ -239,6 +242,40 @@ message DeleteSortListReq{
 repeated string ACLs = 1;
 }
 
-message UpdateLogReq{
-bool isOpen = 1;
+
+message CreateUrlRedirectReq{
+string ID = 1;
+string domain = 2;
+string URL = 3;
+string viewID = 4;
+}
+
+message UpdateUrlRedirectReq{
+string ID = 1;
+string domain = 2;
+string URL = 3;
+string viewID = 4;
+}
+
+message DeleteUrlRedirectReq{
+string ID = 1;
+string viewID = 2;
+}
+
+message UpdateGlobalConfigReq{
+	bool log_enable = 1;
+	bool dnssec_enable = 2;
+	uint32 ttl = 3;
+	repeated Redirection redirections =4;
+}
+
+message Redirection{
+	string id = 1;
+	string view_id = 2;
+	string name = 3;
+	string ttl = 4;
+	string data_type = 5;
+	string value = 6;
+	string redirect_type = 7;
+	bool redirect_type_changed = 8;
 }
