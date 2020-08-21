@@ -2,6 +2,8 @@ package grpcservice
 
 import (
 	"path"
+
+	"github.com/linkingthing/ddi-agent/config"
 )
 
 const (
@@ -13,15 +15,15 @@ const (
 	DHCP6LogFileName = "kea-dhcp6.log"
 )
 
-func genDefaultDHCP4Config(logDir string) DHCP4Config {
+func genDefaultDHCP4Config(conf *config.AgentConfig) DHCP4Config {
 	return DHCP4Config{
 		DHCP4: DHCP4{
-			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir, DHCP4LogFileName),
+			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, DHCP4LogFileName, conf),
 		},
 	}
 }
 
-func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string) GenenalConfig {
+func genDefaultGeneralConfig(socketName, logName, logFileName string, conf *config.AgentConfig) GenenalConfig {
 	return GenenalConfig{
 		InterfacesConfig: InterfacesConfig{
 			Interfaces: []string{"*"},
@@ -32,11 +34,11 @@ func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string) Ge
 		},
 		LeaseDatabase: LeaseDatabase{
 			Type:     "postgresql",
-			Name:     "lx",
-			User:     "lx",
-			Password: "lx",
-			Port:     5432,
-			Host:     "localhost",
+			Name:     conf.DHCP.DB.Name,
+			User:     conf.DHCP.DB.User,
+			Password: conf.DHCP.DB.Password,
+			Port:     conf.DHCP.DB.Port,
+			Host:     conf.DHCP.DB.Host,
 		},
 		Loggers: []Logger{
 			{
@@ -45,7 +47,7 @@ func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string) Ge
 				Severity:   "INFO",
 				OutputOptions: []OutputOption{
 					OutputOption{
-						Output: path.Join(logDir, logFileName),
+						Output: path.Join(conf.DHCP.ConfigDir, logFileName),
 					},
 				},
 			},
@@ -147,10 +149,10 @@ type RelayAgent struct {
 	IPAddresses []string `json:"ip-addresses"`
 }
 
-func genDefaultDHCP6Config(logDir string) DHCP6Config {
+func genDefaultDHCP6Config(conf *config.AgentConfig) DHCP6Config {
 	return DHCP6Config{
 		DHCP6: DHCP6{
-			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir, DHCP6LogFileName),
+			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, DHCP6LogFileName, conf),
 		},
 	}
 }
