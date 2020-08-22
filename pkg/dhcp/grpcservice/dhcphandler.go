@@ -92,26 +92,32 @@ func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
 	dhcp4ConfPath := path.Join(conf.DHCP.ConfigDir, DHCP4ConfigFileName)
 	if _, err := os.Stat(dhcp4ConfPath); os.IsNotExist(err) {
 		dhcp4Conf = genDefaultDHCP4Config(conf.DHCP.ConfigDir, conf)
-		if err := genDefaultDHCPConfigFile(dhcp4ConfPath, &dhcp4Conf); err != nil {
-			return err
-		}
 	} else {
 		if err := parseJsonConfig(&dhcp4Conf, dhcp4ConfPath); err != nil {
 			return fmt.Errorf("load dhcp4 config failed: %s", err.Error())
+		} else if len(conf.DHCP.Interfaces4) != 0 {
+			dhcp4Conf.DHCP4.InterfacesConfig.Interfaces = conf.DHCP.Interfaces4
 		}
+	}
+
+	if err := genDefaultDHCPConfigFile(dhcp4ConfPath, &dhcp4Conf); err != nil {
+		return err
 	}
 
 	var dhcp6Conf DHCP6Config
 	dhcp6ConfPath := path.Join(conf.DHCP.ConfigDir, DHCP6ConfigFileName)
 	if _, err := os.Stat(dhcp6ConfPath); os.IsNotExist(err) {
 		dhcp6Conf = genDefaultDHCP6Config(conf.DHCP.ConfigDir, conf)
-		if err := genDefaultDHCPConfigFile(dhcp6ConfPath, &dhcp6Conf); err != nil {
-			return err
-		}
 	} else {
 		if err := parseJsonConfig(&dhcp6Conf, dhcp6ConfPath); err != nil {
 			return fmt.Errorf("load dhcp6 config failed: %s", err.Error())
+		} else if len(conf.DHCP.Interfaces6) != 0 {
+			dhcp6Conf.DHCP6.InterfacesConfig.Interfaces = conf.DHCP.Interfaces6
 		}
+	}
+
+	if err := genDefaultDHCPConfigFile(dhcp6ConfPath, &dhcp6Conf); err != nil {
+		return err
 	}
 
 	dhcp4Conf.Path = dhcp4ConfPath

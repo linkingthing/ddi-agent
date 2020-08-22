@@ -18,15 +18,18 @@ const (
 func genDefaultDHCP4Config(logDir string, conf *config.AgentConfig) DHCP4Config {
 	return DHCP4Config{
 		DHCP4: DHCP4{
-			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir, DHCP4LogFileName, conf),
+			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir, DHCP4LogFileName, conf.DHCP.Interfaces4, conf),
 		},
 	}
 }
 
-func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, conf *config.AgentConfig) GenenalConfig {
+func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, interfaces []string, conf *config.AgentConfig) GenenalConfig {
+	if len(interfaces) == 0 {
+		interfaces = []string{"*"}
+	}
 	return GenenalConfig{
 		InterfacesConfig: InterfacesConfig{
-			Interfaces: []string{"*"},
+			Interfaces: interfaces,
 		},
 		ControlSocket: ControlSocket{
 			SocketType: "unix",
@@ -152,7 +155,7 @@ type RelayAgent struct {
 func genDefaultDHCP6Config(logDir string, conf *config.AgentConfig) DHCP6Config {
 	return DHCP6Config{
 		DHCP6: DHCP6{
-			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir, DHCP6LogFileName, conf),
+			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir, DHCP6LogFileName, conf.DHCP.Interfaces6, conf),
 		},
 	}
 }
