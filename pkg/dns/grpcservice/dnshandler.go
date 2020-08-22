@@ -14,6 +14,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/zdnscloud/cement/uuid"
+
 	"github.com/zdnscloud/cement/log"
 	"github.com/zdnscloud/cement/shell"
 	"github.com/zdnscloud/g53"
@@ -184,7 +186,12 @@ func newDNSHandler(dnsConfPath string, agentPath string, nginxDefaultConfDir str
 		}
 
 		viewkvs["name"] = []byte(defaultView)
-		viewkvs["key"] = []byte(randomdata.RandString(12))
+		key, err := uuid.Gen()
+		if err != nil {
+			key = randomdata.RandString(12)
+			log.Errorf("gen key error:%s\n", err.Error())
+		}
+		viewkvs["key"] = []byte(key)
 		viewkvs["next"] = []byte("")
 		if err := boltdb.GetDB().AddKVs(filepath.Join(viewsPath, defaultView), viewkvs); err != nil {
 			return nil, err
@@ -438,7 +445,12 @@ func (handler *DNSHandler) CreateView(req pb.CreateViewReq) error {
 		return err
 	}
 	//create table viewid and put name into the db.
-	namekvs := map[string][]byte{"name": []byte(req.ViewName), "key": []byte(randomdata.RandString(12))}
+	key, err := uuid.Gen()
+	if err != nil {
+		key = randomdata.RandString(12)
+		log.Errorf("gen key error:%s\n", err.Error())
+	}
+	namekvs := map[string][]byte{"name": []byte(req.ViewName), "key": []byte(key)}
 	if err := boltdb.GetDB().AddKVs(filepath.Join(viewsEndPath, req.ViewID), namekvs); err != nil {
 		return err
 	}

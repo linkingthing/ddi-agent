@@ -37,11 +37,13 @@ type DNSConf struct {
 }
 
 type DHCPConf struct {
-	Enabled   bool       `yaml:"enabled"`
-	CmdAddr   string     `yaml:"cmd_addr"`
-	ConfigDir string     `yaml:"config_dir"`
-	DB        DHCPDBConf `yaml:"db"`
-	GroupID   string     `yaml:"group_id"`
+	Enabled     bool       `yaml:"enabled"`
+	CmdAddr     string     `yaml:"cmd_addr"`
+	ConfigDir   string     `yaml:"config_dir"`
+	DB          DHCPDBConf `yaml:"db"`
+	GroupID     string     `yaml:"group_id"`
+	Interfaces4 []string   `yaml:"interfaces4"`
+	Interfaces6 []string   `yaml:"interfaces6"`
 }
 
 type DHCPDBConf struct {
