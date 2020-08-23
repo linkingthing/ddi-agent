@@ -1133,26 +1133,27 @@ func (handler *DNSHandler) aCLsData() ([]ACL, error) {
 	}
 	for _, viewid := range viewTables {
 		var aCLs []ACL
-		aCLTables, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, aCLsEndPath))
+		aCLOrderNums, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, aCLsEndPath))
 		if err != nil {
 			return nil, err
 		}
-		for _, aCLid := range aCLTables {
-			aCLNames, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid, aCLsPath, aCLid))
+		for _, orderNum := range aCLOrderNums {
+			aclids, err := boltdb.GetDB().GetTables(filepath.Join(viewsPath, viewid, aCLsPath, orderNum))
 			if err != nil {
 				return nil, err
 			}
-			aCLName := aCLNames["name"]
-			ipsMap, err := boltdb.GetDB().GetTableKVs(filepath.Join(viewsPath, viewid, aCLsPath, aCLid, iPsEndPath))
-			if err != nil {
-				return nil, err
+			for _, aclid := range aclids {
+				ipsKVs, err := boltdb.GetDB().GetTableKVs(filepath.Join(aCLsPath, aclid, iPsEndPath))
+				if err != nil {
+					return nil, err
+				}
+				var ips []string
+				for ip, _ := range ipsKVs {
+					ips = append(ips, ip)
+				}
+				aCL := ACL{ID: aclid, Name: string(aclid), IPs: ips}
+				aCLs = append(aCLs, aCL)
 			}
-			var ips []string
-			for ip, _ := range ipsMap {
-				ips = append(ips, ip)
-			}
-			aCL := ACL{Name: string(aCLName), IPs: ips}
-			aCLs = append(aCLs, aCL)
 		}
 		aCLsData = append(aCLsData, aCLs[0:]...)
 	}
