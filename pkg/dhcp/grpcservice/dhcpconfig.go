@@ -25,8 +25,18 @@ func genDefaultDHCP4Config(logDir string, conf *config.AgentConfig) DHCP4Config 
 }
 
 func getInterfaces(isv4 bool) []string {
-	var ips []string
-	if addrs, err := net.InterfaceAddrs(); err == nil {
+	var interfaces []string
+	its, err := net.Interfaces()
+	if err != nil {
+		return []string{"*"}
+	}
+
+	for _, it := range its {
+		addrs, err := it.Addrs()
+		if err != nil {
+			return []string{"*"}
+		}
+
 		for _, addr := range addrs {
 			ipnet, ok := addr.(*net.IPNet)
 			if ok == false {
@@ -44,14 +54,14 @@ func getInterfaces(isv4 bool) []string {
 				}
 			}
 
-			ips = append(ips, ip.String())
+			interfaces = append(interfaces, it.Name+"/"+ip.String())
 		}
 	}
 
-	if len(ips) == 0 {
+	if len(interfaces) == 0 {
 		return []string{"*"}
 	} else {
-		return ips
+		return interfaces
 	}
 }
 
