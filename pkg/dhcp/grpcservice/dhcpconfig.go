@@ -1,6 +1,7 @@
 package grpcservice
 
 import (
+	"net"
 	"path"
 
 	"github.com/linkingthing/ddi-agent/config"
@@ -18,15 +19,43 @@ const (
 func genDefaultDHCP4Config(logDir string, conf *config.AgentConfig) DHCP4Config {
 	return DHCP4Config{
 		DHCP4: DHCP4{
-			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir, DHCP4LogFileName, conf.DHCP.Interfaces4, conf),
+			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir, DHCP4LogFileName, getInterfaces(true), conf),
 		},
 	}
 }
 
-func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, interfaces []string, conf *config.AgentConfig) GenenalConfig {
-	if len(interfaces) == 0 {
-		interfaces = []string{"*"}
+func getInterfaces(isv4 bool) []string {
+	var ips []string
+	if addrs, err := net.InterfaceAddrs(); err == nil {
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if ok == false {
+				continue
+			}
+
+			ip := ipnet.IP
+			if isv4 {
+				if ip.To4() == nil || ip.IsLoopback() {
+					continue
+				}
+			} else {
+				if ip.To4() != nil || ip.IsGlobalUnicast() == false || ip.IsLoopback() {
+					continue
+				}
+			}
+
+			ips = append(ips, ip.String())
+		}
 	}
+
+	if len(ips) == 0 {
+		return []string{"*"}
+	} else {
+		return ips
+	}
+}
+
+func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, interfaces []string, conf *config.AgentConfig) GenenalConfig {
 	return GenenalConfig{
 		InterfacesConfig: InterfacesConfig{
 			Interfaces: interfaces,
@@ -155,7 +184,7 @@ type RelayAgent struct {
 func genDefaultDHCP6Config(logDir string, conf *config.AgentConfig) DHCP6Config {
 	return DHCP6Config{
 		DHCP6: DHCP6{
-			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir, DHCP6LogFileName, conf.DHCP.Interfaces6, conf),
+			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir, DHCP6LogFileName, getInterfaces(false), conf),
 		},
 	}
 }
