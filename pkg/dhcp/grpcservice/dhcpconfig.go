@@ -16,6 +16,8 @@ const (
 	DHCP6LogFileName = "kea-dhcp6.log"
 )
 
+var AllInterfaces = []string{"*"}
+
 func genDefaultDHCP4Config(logDir string, conf *config.AgentConfig) DHCP4Config {
 	return DHCP4Config{
 		DHCP4: DHCP4{
@@ -25,16 +27,16 @@ func genDefaultDHCP4Config(logDir string, conf *config.AgentConfig) DHCP4Config 
 }
 
 func getInterfaces(isv4 bool) []string {
-	var interfaces []string
+	interfaces := AllInterfaces
 	its, err := net.Interfaces()
 	if err != nil {
-		return []string{"*"}
+		return AllInterfaces
 	}
 
 	for _, it := range its {
 		addrs, err := it.Addrs()
 		if err != nil {
-			return []string{"*"}
+			return AllInterfaces
 		}
 
 		for _, addr := range addrs {
@@ -59,7 +61,7 @@ func getInterfaces(isv4 bool) []string {
 	}
 
 	if len(interfaces) == 0 {
-		return []string{"*"}
+		return AllInterfaces
 	} else {
 		return interfaces
 	}
