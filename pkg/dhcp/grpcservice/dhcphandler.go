@@ -88,29 +88,49 @@ func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
 		}
 	}
 
+	genDHCP4ConfFile := false
 	var dhcp4Conf DHCP4Config
 	dhcp4ConfPath := path.Join(conf.DHCP.ConfigDir, DHCP4ConfigFileName)
 	if _, err := os.Stat(dhcp4ConfPath); os.IsNotExist(err) {
 		dhcp4Conf = genDefaultDHCP4Config(conf.DHCP.ConfigDir, conf)
-		if err := genDefaultDHCPConfigFile(dhcp4ConfPath, &dhcp4Conf); err != nil {
-			return err
-		}
+		genDHCP4ConfFile = true
 	} else {
 		if err := parseJsonConfig(&dhcp4Conf, dhcp4ConfPath); err != nil {
 			return fmt.Errorf("load dhcp4 config failed: %s", err.Error())
+		} else {
+			if interfaces := getInterfaces(true); isDiffStrSlice(dhcp4Conf.DHCP4.InterfacesConfig.Interfaces, interfaces) {
+				dhcp4Conf.DHCP4.InterfacesConfig.Interfaces = interfaces
+				genDHCP4ConfFile = true
+			}
 		}
 	}
 
+	if genDHCP4ConfFile {
+		if err := genDefaultDHCPConfigFile(dhcp4ConfPath, &dhcp4Conf); err != nil {
+			return err
+		}
+	}
+
+	genDHCP6ConfFile := false
 	var dhcp6Conf DHCP6Config
 	dhcp6ConfPath := path.Join(conf.DHCP.ConfigDir, DHCP6ConfigFileName)
 	if _, err := os.Stat(dhcp6ConfPath); os.IsNotExist(err) {
 		dhcp6Conf = genDefaultDHCP6Config(conf.DHCP.ConfigDir, conf)
-		if err := genDefaultDHCPConfigFile(dhcp6ConfPath, &dhcp6Conf); err != nil {
-			return err
-		}
+		genDHCP6ConfFile = true
 	} else {
 		if err := parseJsonConfig(&dhcp6Conf, dhcp6ConfPath); err != nil {
 			return fmt.Errorf("load dhcp6 config failed: %s", err.Error())
+		} else {
+			if interfaces := getInterfaces(false); isDiffStrSlice(dhcp6Conf.DHCP6.InterfacesConfig.Interfaces, interfaces) {
+				dhcp6Conf.DHCP6.InterfacesConfig.Interfaces = interfaces
+				genDHCP6ConfFile = true
+			}
+		}
+	}
+
+	if genDHCP6ConfFile {
+		if err := genDefaultDHCPConfigFile(dhcp6ConfPath, &dhcp6Conf); err != nil {
+			return err
 		}
 	}
 
@@ -139,6 +159,28 @@ func parseJsonConfig(conf interface{}, filepath string) error {
 	}
 
 	return json.Unmarshal(data, conf)
+}
+
+func isDiffStrSlice(s1s, s2s []string) bool {
+	if len(s1s) != len(s2s) {
+		return true
+	}
+
+	intersection := getStrSliceIntersection(s1s, s2s)
+	return len(intersection) != len(s1s) || len(intersection) != len(s2s)
+}
+
+func getStrSliceIntersection(s1s, s2s []string) []string {
+	var intersection []string
+	for _, s1 := range s1s {
+		for _, s2 := range s2s {
+			if s1 == s2 {
+				intersection = append(intersection, s1)
+				break
+			}
+		}
+	}
+	return intersection
 }
 
 func (h *DHCPHandler) startDHCP() error {
