@@ -91,7 +91,7 @@ func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, in
 				Severity:   "INFO",
 				OutputOptions: []OutputOption{
 					OutputOption{
-						Output: path.Join(logDir, logFileName),
+						Output: path.Join(conf.DHCP.ConfigDir, logFileName),
 					},
 				},
 			},
