@@ -77,6 +77,7 @@ func newDHCPHandler(conn *grpc.ClientConn, conf *config.AgentConfig) (*DHCPHandl
 		return nil, err
 	}
 
+	handler.stopDHCP()
 	if err := handler.startDHCP(); err != nil {
 		return nil, err
 	}

@@ -360,6 +360,7 @@ func (handler *DNSHandler) Start(req pb.DNSStartReq) error {
 		return fmt.Errorf("rewrite nginx config file error:%s", err.Error())
 	}
 
+	handler.monitorClient.StopDNS(context.Background(), &monitorpb.StopDNSRequest{})
 	_, err := handler.monitorClient.StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
 	return err
 }
