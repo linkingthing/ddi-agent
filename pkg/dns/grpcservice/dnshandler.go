@@ -2,6 +2,7 @@ package grpcservice
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -14,15 +15,18 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/zdnscloud/cement/uuid"
+	"google.golang.org/grpc"
 
 	"github.com/zdnscloud/cement/log"
+	"github.com/zdnscloud/cement/randomdata"
 	"github.com/zdnscloud/cement/shell"
+	"github.com/zdnscloud/cement/uuid"
 	"github.com/zdnscloud/g53"
 
+	"github.com/linkingthing/ddi-agent/config"
 	"github.com/linkingthing/ddi-agent/pkg/boltdb"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
-	"github.com/zdnscloud/cement/randomdata"
+	monitorpb "github.com/linkingthing/ddi-monitor/pkg/proto"
 )
 
 const (
@@ -85,6 +89,7 @@ const (
 )
 
 type DNSHandler struct {
+	monitorClient       monitorpb.DDIMonitorClient
 	tpl                 *template.Template
 	db                  *boltdb.BoltDB
 	dnsConfPath         string
@@ -96,13 +101,14 @@ type DNSHandler struct {
 	localip             string
 }
 
-func newDNSHandler(dnsConfPath string, agentPath string, nginxDefaultConfDir string, localip string) (*DNSHandler, error) {
+func newDNSHandler(conn *grpc.ClientConn, conf *config.AgentConfig) (*DNSHandler, error) {
 	instance := &DNSHandler{
-		dnsConfPath:         filepath.Join(dnsConfPath),
-		dBPath:              filepath.Join(agentPath),
-		tplPath:             filepath.Join(dnsConfPath, "templates"),
-		nginxDefaultConfDir: nginxDefaultConfDir,
-		localip:             localip,
+		monitorClient:       monitorpb.NewDDIMonitorClient(conn),
+		dnsConfPath:         filepath.Join(conf.DNS.ConfDir),
+		dBPath:              filepath.Join(conf.DNS.DBDir),
+		tplPath:             filepath.Join(conf.DNS.ConfDir, "templates"),
+		nginxDefaultConfDir: conf.NginxDefaultDir,
+		localip:             conf.Server.IP,
 	}
 	var err error
 	instance.tpl, err = template.ParseFiles(filepath.Join(instance.tplPath, namedTpl))
@@ -353,21 +359,17 @@ func (handler *DNSHandler) Start(req pb.DNSStartReq) error {
 	if err := handler.rewriteNginxFile(); err != nil {
 		return fmt.Errorf("rewrite nginx config file error:%s", err.Error())
 	}
-	var param string = "-c" + filepath.Join(handler.dnsConfPath, mainConfName)
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "named"), param); err != nil {
-		return err
-	}
-	return nil
+
+	_, err := handler.monitorClient.StartDNS(context.Background(),
+		&monitorpb.StartDNSRequest{ConfigPath: handler.dnsConfPath, ConfigName: mainConfName})
+	return err
 }
 
 func (handler *DNSHandler) StopDNS() error {
-	if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err != nil {
-		return nil
-	}
-	var err error
-	if _, err = shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), "stop"); err != nil {
+	if _, err := handler.monitorClient.StopDNS(context.Background(), &monitorpb.StopDNSRequest{ConfigPath: handler.dnsConfPath}); err != nil {
 		return err
 	}
+
 	handler.quit <- 1
 	return nil
 }
@@ -1690,11 +1692,11 @@ func (handler *DNSHandler) keepDNSAlive() {
 	for {
 		select {
 		case <-handler.ticker.C:
-			if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err == nil {
+			if resp, err := handler.monitorClient.GetDNSState(context.Background(), &monitorpb.GetDNSStateRequest{}); err != nil {
 				continue
+			} else if resp.GetIsRunning() == false {
+				handler.Start(pb.DNSStartReq{})
 			}
-			req := pb.DNSStartReq{}
-			handler.Start(req)
 		case <-handler.quit:
 			return
 		}

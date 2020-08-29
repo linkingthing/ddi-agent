@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v4 v4.6.0
 	github.com/lib/pq v1.3.0
 	github.com/linkingthing/ddi v0.0.0-20200507022207-2c111493656f
+	github.com/linkingthing/ddi-monitor v0.0.0-20200829090621-b1545aa0db37
 	github.com/prometheus/client_golang v1.6.0
 	github.com/segmentio/kafka-go v0.3.6
 	github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518 // indirect
@@ -17,5 +18,5 @@ require (
 	github.com/zdnscloud/kvzoo v0.0.0-20200205072604-297aba5646f7
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	google.golang.org/grpc v1.29.1
-	google.golang.org/protobuf v1.23.0
+	google.golang.org/protobuf v1.24.0
 )

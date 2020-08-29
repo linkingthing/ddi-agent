@@ -16,6 +16,7 @@ type AgentConfig struct {
 	Metric          MetricConf     `yaml:"metric"`
 	DB              BoltDBConf     `yaml:"db"`
 	NginxDefaultDir string         `yaml:"nginx_default_dir"`
+	Monitor         MonitorConf    `yaml:"monitor"`
 }
 
 type ServerConf struct {
@@ -72,6 +73,10 @@ type MetricConf struct {
 
 type BoltDBConf struct {
 	Dir string `yaml:"dir"`
+}
+
+type MonitorConf struct {
+	GrpcAddr string `yaml:"grcp_addr"`
 }
 
 func LoadConfig(path string) (*AgentConfig, error) {

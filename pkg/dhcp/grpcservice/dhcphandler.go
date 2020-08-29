@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"sync"
@@ -17,17 +16,17 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/zdnscloud/cement/log"
+	"google.golang.org/grpc"
 
 	"github.com/linkingthing/ddi-agent/config"
 	"github.com/linkingthing/ddi-agent/pkg/dhcp/util"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
+	monitorpb "github.com/linkingthing/ddi-monitor/pkg/proto"
 )
 
 const (
 	DHCP4ConfigFileName    = "kea-dhcp4.conf"
 	DHCP6ConfigFileName    = "kea-dhcp6.conf"
-	StartDHCPCmd           = "keactrl start"
-	StopDHCPCmd            = "keactrl stop"
 	DHCP4Name              = "dhcp4"
 	DHCP6Name              = "dhcp6"
 	DHCPAgentName          = "ctrl-agent"
@@ -44,11 +43,12 @@ const (
 )
 
 type DHCPHandler struct {
-	cmdUrl     string
-	conf       *DHCPConfig
-	lock       sync.RWMutex
-	db         *pgxpool.Pool
-	httpClient *http.Client
+	monitorClient monitorpb.DDIMonitorClient
+	cmdUrl        string
+	conf          *DHCPConfig
+	lock          sync.RWMutex
+	db            *pgxpool.Pool
+	httpClient    *http.Client
 }
 
 type DHCPConfig struct {
@@ -56,7 +56,7 @@ type DHCPConfig struct {
 	dhcp6Conf *DHCP6Config
 }
 
-func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
+func newDHCPHandler(conn *grpc.ClientConn, conf *config.AgentConfig) (*DHCPHandler, error) {
 	cmdUrl, err := url.Parse(HttpScheme + conf.DHCP.CmdAddr)
 	if err != nil {
 		return nil, fmt.Errorf("parse dhcp cmd url %s failed: %s", HttpScheme+conf.DHCP.CmdAddr, err.Error())
@@ -68,7 +68,11 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 		return nil, err
 	}
 
-	handler := &DHCPHandler{cmdUrl: cmdUrl.String(), db: db, httpClient: &http.Client{Timeout: HttpClientTimeout * time.Second}}
+	handler := &DHCPHandler{
+		monitorClient: monitorpb.NewDDIMonitorClient(conn),
+		cmdUrl:        cmdUrl.String(),
+		db:            db,
+		httpClient:    &http.Client{Timeout: HttpClientTimeout * time.Second}}
 	if err := handler.loadDHCPConfig(conf); err != nil {
 		return nil, err
 	}
@@ -184,23 +188,19 @@ func getStrSliceIntersection(s1s, s2s []string) []string {
 }
 
 func (h *DHCPHandler) startDHCP() error {
-	return runCommand(StartDHCPCmd)
+	_, err := h.monitorClient.StartDHCP(context.Background(), &monitorpb.StartDHCPRequest{})
+	return err
 }
 
 func (h *DHCPHandler) stopDHCP() error {
-	return runCommand(StopDHCPCmd)
-}
-
-func runCommand(cmdline string) error {
-	cmd := exec.Command("bash", "-c", cmdline)
-	return cmd.Run()
+	_, err := h.monitorClient.StopDHCP(context.Background(), &monitorpb.StopDHCPRequest{})
+	return err
 }
 
 func (h *DHCPHandler) monitor() {
 	for {
-		if checkProcessExists(DHCP4Name) == false ||
-			checkProcessExists(DHCP6Name) == false ||
-			checkProcessExists(DHCPAgentName) == false {
+		resp, err := h.monitorClient.GetDHCPState(context.Background(), &monitorpb.GetDHCPStateRequest{})
+		if err == nil && resp.GetIsRunning() == false {
 			h.stopDHCP()
 			if err := h.startDHCP(); err != nil {
 				log.Warnf("start dhcp failed: %s", err.Error())
@@ -209,11 +209,6 @@ func (h *DHCPHandler) monitor() {
 
 		time.Sleep(10 * time.Second)
 	}
-}
-
-func checkProcessExists(processName string) bool {
-	out, _ := exec.Command("bash", "-c", "ps -ef | grep "+processName+" | grep -v grep").Output()
-	return len(out) > 0
 }
 
 func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {

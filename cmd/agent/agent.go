@@ -38,7 +38,13 @@ func main() {
 	}
 	go m.Run()
 
-	s, err := grpcserver.New(conf)
+	monitorConn, err := grpc.Dial(conf.Monitor.GrpcAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("dial monitor grpc server failed: %s", err.Error())
+	}
+	defer monitorConn.Close()
+
+	s, err := grpcserver.New(monitorConn, conf)
 	if err != nil {
 		log.Fatalf("new grpc server failed: %s", err.Error())
 	}
