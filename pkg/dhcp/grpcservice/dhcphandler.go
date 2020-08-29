@@ -35,7 +35,7 @@ const (
 	Option4Routers         = "routers"
 	DHCPCommandConfigSet   = "config-set"
 	DHCPCommandConfigWrite = "config-write"
-	PostgresqlConnStr      = "user=%s password=%s host=localhost port=%d database=%s sslmode=disable pool_max_conns=10"
+	PostgresqlConnStr      = "user=%s password=%s host=%s port=%d database=%s sslmode=disable pool_max_conns=10"
 	TableLease4            = "lease4"
 	TableLease6            = "lease6"
 	HttpClientTimeout      = 10
@@ -63,7 +63,7 @@ func newDHCPHandler(conn *grpc.ClientConn, conf *config.AgentConfig) (*DHCPHandl
 	}
 
 	db, err := pgxpool.Connect(context.Background(), fmt.Sprintf(PostgresqlConnStr, conf.DHCP.DB.User, conf.DHCP.DB.Password,
-		conf.DHCP.DB.Port, conf.DHCP.DB.Name))
+		conf.DHCP.DB.Host, conf.DHCP.DB.Port, conf.DHCP.DB.Name))
 	if err != nil {
 		return nil, err
 	}
@@ -92,17 +92,22 @@ func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
 		}
 	}
 
+	resp, err := h.monitorClient.GetInterfaces(context.Background(), &monitorpb.GetInterfacesRequest{})
+	if err != nil {
+		return err
+	}
+
 	genDHCP4ConfFile := false
 	var dhcp4Conf DHCP4Config
 	dhcp4ConfPath := path.Join(conf.DHCP.ConfigDir, DHCP4ConfigFileName)
 	if _, err := os.Stat(dhcp4ConfPath); os.IsNotExist(err) {
-		dhcp4Conf = genDefaultDHCP4Config(conf.DHCP.ConfigDir, conf)
+		dhcp4Conf = genDefaultDHCP4Config(conf.DHCP.ConfigDir, resp.GetInterfaces4(), conf)
 		genDHCP4ConfFile = true
 	} else {
 		if err := parseJsonConfig(&dhcp4Conf, dhcp4ConfPath); err != nil {
 			return fmt.Errorf("load dhcp4 config failed: %s", err.Error())
 		} else {
-			if interfaces := getInterfaces(true); isDiffStrSlice(dhcp4Conf.DHCP4.InterfacesConfig.Interfaces, interfaces) {
+			if interfaces := resp.GetInterfaces4(); isDiffStrSlice(dhcp4Conf.DHCP4.InterfacesConfig.Interfaces, interfaces) {
 				dhcp4Conf.DHCP4.InterfacesConfig.Interfaces = interfaces
 				genDHCP4ConfFile = true
 			}
@@ -119,13 +124,13 @@ func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
 	var dhcp6Conf DHCP6Config
 	dhcp6ConfPath := path.Join(conf.DHCP.ConfigDir, DHCP6ConfigFileName)
 	if _, err := os.Stat(dhcp6ConfPath); os.IsNotExist(err) {
-		dhcp6Conf = genDefaultDHCP6Config(conf.DHCP.ConfigDir, conf)
+		dhcp6Conf = genDefaultDHCP6Config(conf.DHCP.ConfigDir, resp.GetInterfaces6(), conf)
 		genDHCP6ConfFile = true
 	} else {
 		if err := parseJsonConfig(&dhcp6Conf, dhcp6ConfPath); err != nil {
 			return fmt.Errorf("load dhcp6 config failed: %s", err.Error())
 		} else {
-			if interfaces := getInterfaces(false); isDiffStrSlice(dhcp6Conf.DHCP6.InterfacesConfig.Interfaces, interfaces) {
+			if interfaces := resp.GetInterfaces6(); isDiffStrSlice(dhcp6Conf.DHCP6.InterfacesConfig.Interfaces, interfaces) {
 				dhcp6Conf.DHCP6.InterfacesConfig.Interfaces = interfaces
 				genDHCP6ConfFile = true
 			}

@@ -30,11 +30,12 @@ type ControllerConf struct {
 }
 
 type DNSConf struct {
-	Enabled   bool   `yaml:"enabled"`
-	ConfDir   string `yaml:"conf_dir"`
-	DBDir     string `yaml:"db_dir"`
-	StatsAddr string `yaml:"stats_addr"`
-	GroupID   string `yaml:"group_id"`
+	Enabled     bool   `yaml:"enabled"`
+	ConfDir     string `yaml:"conf_dir"`
+	DBDir       string `yaml:"db_dir"`
+	TemplateDir string `yaml:"template_dir"`
+	StatsAddr   string `yaml:"stats_addr"`
+	GroupID     string `yaml:"group_id"`
 }
 
 type DHCPConf struct {
@@ -76,7 +77,7 @@ type BoltDBConf struct {
 }
 
 type MonitorConf struct {
-	GrpcAddr string `yaml:"grcp_addr"`
+	GrpcAddr string `yaml:"grpc_addr"`
 }
 
 func LoadConfig(path string) (*AgentConfig, error) {
