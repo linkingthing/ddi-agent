@@ -12,7 +12,7 @@ options {
 	sortlist{ {{range $k, $s := .SortList}}{{$s}};{{end}} };{{end}}
 };
 statistics-channels {
-     inet 127.0.0.1 port 58082 allow { 127.0.0.1; };
+     inet 0.0.0.0 port 58082;
 };
 {{range $k, $view := .Views}}
 key key{{$view.Name}} {
