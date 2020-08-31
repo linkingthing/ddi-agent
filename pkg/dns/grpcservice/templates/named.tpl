@@ -3,9 +3,9 @@ options {
 	pid-file "named.pid";
 	allow-new-zones yes;
 	allow-query {any;};
-	{{if .IsDnssecOpen}}dnssec-enable yes;{{else}}dnssec-enable no;{{end}}
+	{{if .DnssecEnable}}dnssec-enable yes;{{else}}dnssec-enable no;{{end}}
 	dnssec-validation no;
-	{{if .IsLogOpen}}querylog yes;{{else}}querylog no;{{end}}{{if .IPBlackHole}}
+	{{if .LogEnable}}querylog yes;{{else}}querylog no;{{end}}{{if .IPBlackHole}}
 	BlackHole{ {{range $k,$v := .IPBlackHole.ACLNames}}{{$v}}; {{end}}};{{end}}{{if .Concu}}
 	recursive-clients {{.Concu.RecursiveClients}};
 	fetches-per-zone {{.Concu.FetchesPerZone}};{{end}}{{if .SortList}}
@@ -21,7 +21,7 @@ key key{{$view.Name}} {
 };
 {{end}}
 
-{{if .IsLogOpen}}logging{
+{{if .LogEnable}}logging{
 	channel query_log{
 	buffered true;
 	file "query.log" versions 5 size 200m;

@@ -3,15 +3,15 @@ package main
 import (
 	"flag"
 
-	"github.com/linkingthing/ddi-controller/pkg/dhcp"
-	"github.com/linkingthing/ddi-controller/pkg/dns"
+	"github.com/linkingthing/ddi-agent/pkg/dns"
 
 	"github.com/linkingthing/ddi-agent/pkg/db"
+
+	"github.com/linkingthing/ddi-agent/config"
 
 	"github.com/zdnscloud/cement/log"
 	"google.golang.org/grpc"
 
-	"github.com/linkingthing/ddi-agent/config"
 	dhcpconsumer "github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
 	dnsconsumer "github.com/linkingthing/ddi-agent/pkg/dns/kafkaconsumer"
 	"github.com/linkingthing/ddi-agent/pkg/grpcserver"
@@ -32,7 +32,6 @@ func main() {
 		log.Fatalf("load config file failed: %s", err.Error())
 	}
 
-	db.RegisterResources(dhcp.PersistentResources()...)
 	db.RegisterResources(dns.PersistentResources()...)
 	if err := db.Init(conf); err != nil {
 		log.Fatalf("new db failed: %s", err.Error())

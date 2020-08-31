@@ -2,275 +2,246 @@ syntax = "proto3";
 
 package proto;
 import "ddi_response.proto";
+
 service AgentManager{
-rpc StartDNS(DNSStartReq) returns (DDIResponse){}
-rpc StopDNS(DNSStopReq) returns (DDIResponse){}
-rpc CreateACL(CreateACLReq) returns (DDIResponse){}
-rpc UpdateACL(UpdateACLReq) returns (DDIResponse){}
-rpc DeleteACL(DeleteACLReq) returns (DDIResponse){}
-rpc CreateView(CreateViewReq) returns (DDIResponse){}
-rpc UpdateView(UpdateViewReq) returns (DDIResponse){}
-rpc DeleteView(DeleteViewReq) returns (DDIResponse){}
-rpc CreateZone(CreateZoneReq) returns (DDIResponse){}
-rpc UpdateZone(UpdateZoneReq) returns (DDIResponse){}
-rpc DeleteZone(DeleteZoneReq) returns (DDIResponse){}
-rpc CreateForwardZone(CreateForwardZoneReq) returns (DDIResponse){}
-rpc UpdateForwardZone(UpdateForwardZoneReq) returns (DDIResponse){}
-rpc DeleteForwardZone(DeleteForwardZoneReq) returns (DDIResponse){}
-rpc CreateRR(CreateRRReq) returns (DDIResponse){}
-rpc UpdateRR(UpdateRRReq) returns (DDIResponse){}
-rpc DeleteRR(DeleteRRReq) returns (DDIResponse){} 
-rpc CreateForward(CreateForwardReq) returns (DDIResponse){}
-rpc UpdateForward(UpdateForwardReq) returns (DDIResponse){}
-rpc DeleteForward(DeleteForwardReq) returns (DDIResponse){} 
-rpc CreateRedirection(CreateRedirectionReq) returns (DDIResponse){}
-rpc UpdateRedirection(UpdateRedirectionReq) returns (DDIResponse){}
-rpc DeleteRedirection(DeleteRedirectionReq) returns (DDIResponse){}
-rpc CreateDNS64(CreateDNS64Req) returns (DDIResponse){}
-rpc UpdateDNS64(UpdateDNS64Req) returns (DDIResponse){}
-rpc DeleteDNS64(DeleteDNS64Req) returns (DDIResponse){}
-rpc CreateIPBlackHole(CreateIPBlackHoleReq) returns (DDIResponse){}
-rpc UpdateIPBlackHole(UpdateIPBlackHoleReq) returns (DDIResponse){}
-rpc DeleteIPBlackHole(DeleteIPBlackHoleReq) returns (DDIResponse){}
-rpc UpdateRecursiveConcurrent(UpdateRecurConcuReq) returns (DDIResponse){}
-rpc CreateSortList(CreateSortListReq) returns (DDIResponse){}
-rpc UpdateSortList(UpdateSortListReq) returns (DDIResponse){}
-rpc DeleteSortList(DeleteSortListReq) returns (DDIResponse){}
-rpc UpdateLog(UpdateLogReq) returns (DDIResponse){}
-rpc CreateUrlRedirect(CreateUrlRedirectReq) returns (DDIResponse){}
-rpc UpdateUrlRedirect(UpdateUrlRedirectReq) returns (DDIResponse){}
-rpc DeleteUrlRedirect(DeleteUrlRedirectReq) returns (DDIResponse){}
-rpc UpdateTTL(UpdateTTLReq) returns (DDIResponse){}
-rpc UpdateDnssec(UpdateDnssecReq) returns (DDIResponse){}
+	rpc StartDNS(DNSStartReq) returns (DDIResponse){}
+	rpc StopDNS(DNSStopReq) returns (DDIResponse){}
+
+	rpc CreateACL(CreateACLReq) returns (DDIResponse){}
+	rpc UpdateACL(UpdateACLReq) returns (DDIResponse){}
+	rpc DeleteACL(DeleteACLReq) returns (DDIResponse){}
+
+	rpc CreateView(CreateViewReq) returns (DDIResponse){}
+	rpc UpdateView(UpdateViewReq) returns (DDIResponse){}
+	rpc DeleteView(DeleteViewReq) returns (DDIResponse){}
+
+	rpc CreateZone(CreateZoneReq) returns (DDIResponse){}
+	rpc UpdateZone(UpdateZoneReq) returns (DDIResponse){}
+	rpc DeleteZone(DeleteZoneReq) returns (DDIResponse){}
+
+	rpc UpdateRRsByZone(UpdateRRsByZoneReq) returns (DDIResponse){}
+
+	rpc CreateForwardZone(CreateForwardZoneReq) returns (DDIResponse){}
+	rpc UpdateForwardZone(UpdateForwardZoneReq) returns (DDIResponse){}
+	rpc DeleteForwardZone(DeleteForwardZoneReq) returns (DDIResponse){}
+
+	rpc CreateRR(CreateRRReq) returns (DDIResponse){}
+	rpc UpdateRR(UpdateRRReq) returns (DDIResponse){}
+	rpc DeleteRR(DeleteRRReq) returns (DDIResponse){}
+
+	rpc CreateForward(CreateForwardReq) returns (DDIResponse){}
+	rpc UpdateForward(UpdateForwardReq) returns (DDIResponse){}
+	rpc DeleteForward(DeleteForwardReq) returns (DDIResponse){}
+
+	rpc CreateRedirection(CreateRedirectionReq) returns (DDIResponse){}
+	rpc UpdateRedirection(UpdateRedirectionReq) returns (DDIResponse){}
+	rpc DeleteRedirection(DeleteRedirectionReq) returns (DDIResponse){}
+
+	rpc CreateIPBlackHole(CreateIPBlackHoleReq) returns (DDIResponse){}
+	rpc UpdateIPBlackHole(UpdateIPBlackHoleReq) returns (DDIResponse){}
+	rpc DeleteIPBlackHole(DeleteIPBlackHoleReq) returns (DDIResponse){}
+
+	rpc UpdateRecursiveConcurrent(UpdateRecurConcuReq) returns (DDIResponse){}
+
+	rpc CreateSortList(CreateSortListReq) returns (DDIResponse){}
+	rpc UpdateSortList(UpdateSortListReq) returns (DDIResponse){}
+	rpc DeleteSortList(DeleteSortListReq) returns (DDIResponse){}
+
+	rpc CreateUrlRedirect(CreateUrlRedirectReq) returns (DDIResponse){}
+	rpc UpdateUrlRedirect(UpdateUrlRedirectReq) returns (DDIResponse){}
+	rpc DeleteUrlRedirect(DeleteUrlRedirectReq) returns (DDIResponse){}
+
+	rpc UpdateGlobalConfig(UpdateGlobalConfigReq) returns (DDIResponse){}
 }
 
 message DNSStartReq{
 	string config = 1;
 }
 
-message DNSStopReq{
+message DNSStopReq{}
+
+message UpdateGlobalConfigReq{
+	bool log_enable = 1;
+	bool dnssec_enable = 2;
+	bool ttl_changed = 3;
+	uint32 ttl = 4;
 }
 
 message CreateACLReq{
-string name = 1;
-string iD = 2;
-repeated string iPs = 3;
+	string id = 1;
+	string name = 2;
+	repeated string ips = 3;
 }
 
 message UpdateACLReq{
-string iD = 1;
-string name = 2;
-repeated string newIPs = 3;
+	string id = 1;
+	string name = 2;
+	repeated string ips = 3;
 }
 
 message DeleteACLReq{
-string iD = 1;
-}
-
-message CreateViewReq{
-string viewName = 1;
-string viewID = 2;
-uint32 priority = 3;
-repeated string aCLs = 4;
-string dNS64 = 5;
-}
-
-message UpdateViewReq{
-string viewID = 1;
-uint32 priority = 2;
-repeated string newACLs = 3;
-string dNS64 = 5;
-}
-
-message DeleteViewReq{
-string viewID = 1;
+	string id = 1;
 }
 
 message CreateZoneReq{
-string viewID = 1;
-string zoneID = 2;
-string zoneName = 3;
-string zoneFileName = 4;
-uint32 tTL = 8;
+	string view_id = 1;
+	string zone_id = 2;
+	string zone_name = 3;
+	string zone_file_name = 4;
+	uint32 ttl = 5;
+	string rrs_role = 6;
 }
 
 message UpdateZoneReq{
-string viewID = 1;
-string zoneID = 2;
-uint32 tTL = 6;
+	string id = 1;
+	uint32 ttl = 2;
 }
 
 message DeleteZoneReq{
-string viewID = 1;
-string zoneID = 2;
+	string id = 1;
 }
 
-message CreateForwardZoneReq{
-string viewID = 1;
-string zoneID = 2;
-string zoneName = 3;
-repeated string forwards = 6;
-string forwardType = 7;
-}
-
-message UpdateForwardZoneReq{
-string viewID = 1;
-string zoneID = 2;
-string forwardType = 4;
-repeated string forwards = 5;
-}
-
-message DeleteForwardZoneReq{
-string viewID = 1;
-string zoneID = 2;
+message UpdateRRsByZoneReq{
+	string zone_id = 1;
+	string role = 2;
 }
 
 message CreateRRReq{
-string viewID = 1;
-string zoneID = 2;
-string rRID = 3;
-string name = 4;
-string type = 5;
-string rData = 6;
-string tTL = 7;
+	string id = 1;
+	string name = 2;
+	string zone_id = 3;
+	string view_id = 4;
+	string data_type = 5;
+	string r_data = 6;
+	string backup_r_data = 7;
+	uint32 ttl = 8;
 }
 
 message UpdateRRReq{
-string viewID = 1;
-string zoneID = 2;
-string rRID = 3;
-string name = 4;
-string type = 5;
-string rData = 6;
-string tTL = 7;
+	string id = 1;
+	string data_type = 2;
+	string r_data = 3;
+	string backup_r_data = 4;
+	uint32 ttl = 5;
 }
 
 message DeleteRRReq{
-string viewID = 1;
-string zoneID = 2;
-string rRID = 3;
+	string id = 1;
 }
 
-message CreateForwardReq{
-string ID = 1;
-repeated string iPs = 2;
+message CreateViewReq{
+	string id = 1;
+	string name = 2;
+	uint32 priority = 3;
+	string dns64 = 4;
+	repeated string acls = 5;
 }
 
-message UpdateForwardReq{
-string ID = 1;
-repeated string iPs = 2;
+message UpdateViewReq{
+	string id = 1;
+	uint32 priority = 2;
+	string dns64 = 3;
+	repeated string acls = 4;
 }
 
-message DeleteForwardReq{
-string ID = 1;
-}
-
-message CreateRedirectionReq{
-string ID = 1;
-string viewID = 2;
-string Name = 3;
-string TTL = 4;
-string DataType = 5;
-string Value = 6;
-string RedirectType = 7;
-}
-
-message UpdateRedirectionReq{
-string ID = 1;
-string viewID = 2;
-string Name = 3;
-string TTL = 4;
-string DataType = 5;
-string Value = 6;
-string RedirectType = 7;
-bool isRedirectTypeChanged = 8;
-}
-
-message DeleteRedirectionReq{
-string viewID = 1;
-string ID = 2;
-string RedirectType = 3;
-}
-
-message CreateDNS64Req{
-string ID = 1;
-string ViewID = 2;
-string Prefix = 3;
-string ClientACL = 4;
-string AAddress = 5;
-}
-
-message UpdateDNS64Req{
-string ID = 1;
-string ViewID = 2;
-string Prefix = 3;
-string ClientACL = 4;
-string AAddress = 5;
-}
-
-message DeleteDNS64Req{
-string ID = 1;
-string ViewID = 2;
-}
-
-message CreateIPBlackHoleReq{
-string ID = 1;
-string ACL = 2;
-}
-
-message UpdateIPBlackHoleReq{
-string ID = 1;
-string ACL = 2;
-}
-
-message DeleteIPBlackHoleReq{
-string ID = 1;
-}
-
-message UpdateRecurConcuReq{
-string RecursiveClients = 1;
-string FetchesPerZone = 2;
-}
-
-message CreateSortListReq{
-repeated string ACLs = 1;
-}
-
-message UpdateSortListReq{
-repeated string ACLs = 1;
-}
-
-message DeleteSortListReq{
-repeated string ACLs = 1;
-}
-
-message UpdateLogReq{
-bool isOpen = 1;
+message DeleteViewReq{
+	string id = 1;
 }
 
 message CreateUrlRedirectReq{
-string ID = 1;
-string domain = 2;
-string URL = 3;
-string viewID = 4;
+	string id = 1;
+	string domain = 2;
+	string url = 3;
+	string view_id = 4;
 }
 
 message UpdateUrlRedirectReq{
-string ID = 1;
-string domain = 2;
-string URL = 3;
-string viewID = 4;
+	string id = 1;
+	string domain = 2;
+	string url = 3;
 }
 
 message DeleteUrlRedirectReq{
-string ID = 1;
-string viewID = 2;
+	string id = 1;
 }
 
-message UpdateTTLReq{
-uint32 TTL = 1;
+message CreateRedirectionReq{
+	string id = 1;
+	string name = 2;
+	uint32 ttl = 3;
+	string data_type = 4;
+	string redirect_type = 5;
+	string r_data = 6;
+	string view_id = 7;
 }
 
-message UpdateDnssecReq{
-	bool isOpen = 1;
+message UpdateRedirectionReq{
+	string id = 1;
+	string data_type = 2;
+	string redirect_type = 3;
+	string r_data = 4;
+	uint32 ttl = 5;
 }
+
+message DeleteRedirectionReq{
+	string id = 1;
+}
+
+message CreateForwardReq{
+	string id = 1;
+	string name = 2;
+	repeated string ips = 3;
+}
+
+message UpdateForwardReq{
+	string id = 1;
+	repeated string ips = 2;
+}
+
+message DeleteForwardReq{
+	string id = 1;
+}
+
+message CreateForwardZoneReq{
+	string id = 1;
+	string name = 2;
+	string forward_type = 3;
+	repeated string forward_ids = 4;
+	string view_id = 5;
+}
+
+message UpdateForwardZoneReq{
+	string id = 1;
+	repeated string forward_ids = 2;
+	string forward_type = 3;
+}
+
+message DeleteForwardZoneReq{
+	string id = 1;
+}
+
+message CreateIPBlackHoleReq{
+	string id = 1;
+	string acl = 2;
+}
+
+message UpdateIPBlackHoleReq{
+	string id = 1;
+	string acl = 2;
+}
+
+message DeleteIPBlackHoleReq{
+	string id = 1;
+}
+
+message UpdateRecurConcuReq{
+	string id = 1;
+	uint32 recursive_clients = 2;
+	uint32 fetches_per_zone = 3;
+}
+
+message CreateSortListReq{}
+
+message UpdateSortListReq{}
+
+message DeleteSortListReq{}

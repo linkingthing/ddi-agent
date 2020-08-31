@@ -21,7 +21,7 @@ key key{{$view.Name}} {
 };
 {{end}}
 
-{{if .IsLogOpen}}logging{
+{{if .LogEnable}}logging{
 	channel query_log{
 	buffered true;
 	file "query.log" versions 5 size 20m;
