@@ -65,9 +65,8 @@ controls {
         allow { 127.0.0.1; } keys { "rndc-key"; };
 };
 
-include "{{$.ConfigPath}}/cmcc.conf";
-include "{{$.ConfigPath}}/ctcc.conf";
-include "{{$.ConfigPath}}/cucc.conf";
+include "/etc/dns/cmcc.conf";
+include "/etc/dns/ctcc.conf";
+include "/etc/dns/cucc.conf";
 {{range $k, $acl := .ACLNames}}
 include "{{$.ConfigPath}}/{{$acl}}.acl";{{end}}
-
