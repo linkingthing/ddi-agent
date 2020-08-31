@@ -3,8 +3,6 @@ package grpcservice
 import (
 	"context"
 
-	"google.golang.org/grpc"
-
 	"github.com/linkingthing/ddi-agent/config"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
@@ -13,8 +11,8 @@ type DHCPService struct {
 	handler *DHCPHandler
 }
 
-func New(conn *grpc.ClientConn, conf *config.AgentConfig) (*DHCPService, error) {
-	handler, err := newDHCPHandler(conn, conf)
+func New(conf *config.AgentConfig) (*DHCPService, error) {
+	handler, err := newDHCPHandler(conf)
 	if err != nil {
 		return nil, err
 	}

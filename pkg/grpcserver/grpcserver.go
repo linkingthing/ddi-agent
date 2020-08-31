@@ -17,10 +17,10 @@ type GRPCServer struct {
 	listener net.Listener
 }
 
-func New(conn *grpc.ClientConn, conf *config.AgentConfig) (*GRPCServer, error) {
-	listener, err := net.Listen("tcp", conf.Grpc.Addr)
+func New(conf *config.AgentConfig) (*GRPCServer, error) {
+	listener, err := net.Listen("tcp", conf.Server.GrpcAddr)
 	if err != nil {
-		return nil, fmt.Errorf("create listener with addr %s failed: %s", conf.Grpc.Addr, err.Error())
+		return nil, fmt.Errorf("create listener with addr %s failed: %s", conf.Server.GrpcAddr, err.Error())
 	}
 
 	grpcServer := &GRPCServer{
@@ -29,7 +29,7 @@ func New(conn *grpc.ClientConn, conf *config.AgentConfig) (*GRPCServer, error) {
 	}
 
 	if conf.DNS.Enabled {
-		dnsService, err := dnssrv.New(conn, conf)
+		dnsService, err := dnssrv.New(conf)
 		if err != nil {
 			return nil, fmt.Errorf("create dns grpc service failed: %s", err.Error())
 		}
@@ -37,7 +37,7 @@ func New(conn *grpc.ClientConn, conf *config.AgentConfig) (*GRPCServer, error) {
 	}
 
 	if conf.DHCP.Enabled {
-		dhcpService, err := dhcpsrv.New(conn, conf)
+		dhcpService, err := dhcpsrv.New(conf)
 		if err != nil {
 			return nil, fmt.Errorf("create dhcp grpc service failed: %s", err.Error())
 		}

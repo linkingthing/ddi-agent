@@ -10,6 +10,7 @@ import (
 	"github.com/linkingthing/ddi-agent/pkg/boltdb"
 	dhcpconsumer "github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
 	dnsconsumer "github.com/linkingthing/ddi-agent/pkg/dns/kafkaconsumer"
+	"github.com/linkingthing/ddi-agent/pkg/grpcclient"
 	"github.com/linkingthing/ddi-agent/pkg/grpcserver"
 	"github.com/linkingthing/ddi-agent/pkg/metric"
 )
@@ -43,13 +44,14 @@ func main() {
 		log.Fatalf("dial monitor grpc server failed: %s", err.Error())
 	}
 	defer monitorConn.Close()
+	grpcclient.New(monitorConn)
 
-	s, err := grpcserver.New(monitorConn, conf)
+	s, err := grpcserver.New(conf)
 	if err != nil {
 		log.Fatalf("new grpc server failed: %s", err.Error())
 	}
 
-	conn, err := grpc.Dial(conf.Grpc.Addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(conf.Server.GrpcAddr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("dial grpc server failed: %s", err.Error())
 	}

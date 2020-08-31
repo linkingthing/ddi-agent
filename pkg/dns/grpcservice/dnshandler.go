@@ -15,8 +15,6 @@ import (
 	"text/template"
 	"time"
 
-	"google.golang.org/grpc"
-
 	"github.com/zdnscloud/cement/log"
 	"github.com/zdnscloud/cement/randomdata"
 	"github.com/zdnscloud/cement/shell"
@@ -25,6 +23,7 @@ import (
 
 	"github.com/linkingthing/ddi-agent/config"
 	"github.com/linkingthing/ddi-agent/pkg/boltdb"
+	"github.com/linkingthing/ddi-agent/pkg/grpcclient"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 	monitorpb "github.com/linkingthing/ddi-monitor/pkg/proto"
 )
@@ -86,10 +85,10 @@ const (
 	url                  = "url"
 	nginxDefaultConfFile = "default.conf"
 	dnssecStatus         = "isopen"
+	TemplateDir          = "/etc/dns/templates"
 )
 
 type DNSHandler struct {
-	monitorClient       monitorpb.DDIMonitorClient
 	tpl                 *template.Template
 	db                  *boltdb.BoltDB
 	dnsConfPath         string
@@ -101,12 +100,11 @@ type DNSHandler struct {
 	localip             string
 }
 
-func newDNSHandler(conn *grpc.ClientConn, conf *config.AgentConfig) (*DNSHandler, error) {
+func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 	instance := &DNSHandler{
-		monitorClient:       monitorpb.NewDDIMonitorClient(conn),
 		dnsConfPath:         filepath.Join(conf.DNS.ConfDir),
 		dBPath:              filepath.Join(conf.DNS.DBDir),
-		tplPath:             filepath.Join(conf.DNS.TemplateDir, "templates"),
+		tplPath:             TemplateDir,
 		nginxDefaultConfDir: conf.NginxDefaultDir,
 		localip:             conf.Server.IP,
 	}
@@ -330,9 +328,6 @@ func (handler *DNSHandler) StartDNS(req pb.DNSStartReq) error {
 
 }
 func (handler *DNSHandler) Start(req pb.DNSStartReq) error {
-	if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err == nil {
-		return nil
-	}
 	if err := handler.rewriteNamedFile(false); err != nil {
 		return err
 	}
@@ -360,13 +355,13 @@ func (handler *DNSHandler) Start(req pb.DNSStartReq) error {
 		return fmt.Errorf("rewrite nginx config file error:%s", err.Error())
 	}
 
-	handler.monitorClient.StopDNS(context.Background(), &monitorpb.StopDNSRequest{})
-	_, err := handler.monitorClient.StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
+	grpcclient.GetDDIMonitorGrpcClient().StopDNS(context.Background(), &monitorpb.StopDNSRequest{})
+	_, err := grpcclient.GetDDIMonitorGrpcClient().StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
 	return err
 }
 
 func (handler *DNSHandler) StopDNS() error {
-	if _, err := handler.monitorClient.StopDNS(context.Background(), &monitorpb.StopDNSRequest{}); err != nil {
+	if _, err := grpcclient.GetDDIMonitorGrpcClient().StopDNS(context.Background(), &monitorpb.StopDNSRequest{}); err != nil {
 		return err
 	}
 
@@ -1692,7 +1687,7 @@ func (handler *DNSHandler) keepDNSAlive() {
 	for {
 		select {
 		case <-handler.ticker.C:
-			if resp, err := handler.monitorClient.GetDNSState(context.Background(), &monitorpb.GetDNSStateRequest{}); err != nil {
+			if resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDNSState(context.Background(), &monitorpb.GetDNSStateRequest{}); err != nil {
 				continue
 			} else if resp.GetIsRunning() == false {
 				handler.Start(pb.DNSStartReq{})

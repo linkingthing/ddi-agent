@@ -10,7 +10,6 @@ type AgentConfig struct {
 	Controller      ControllerConf `yaml:"controller"`
 	DNS             DNSConf        `yaml:"dns"`
 	DHCP            DHCPConf       `yaml:"dhcp"`
-	Grpc            GrpcConf       `yaml:"grpc"`
 	Kafka           KafkaConf      `yaml:"kafka"`
 	Prometheus      PrometheusConf `yaml:"prometheus"`
 	Metric          MetricConf     `yaml:"metric"`
@@ -22,6 +21,7 @@ type AgentConfig struct {
 type ServerConf struct {
 	IP       string `yaml:"ip"`
 	Hostname string `yaml:"hostname"`
+	GrpcAddr string `yaml:"grpc_addr"`
 }
 
 type ControllerConf struct {
@@ -30,12 +30,11 @@ type ControllerConf struct {
 }
 
 type DNSConf struct {
-	Enabled     bool   `yaml:"enabled"`
-	ConfDir     string `yaml:"conf_dir"`
-	DBDir       string `yaml:"db_dir"`
-	TemplateDir string `yaml:"template_dir"`
-	StatsAddr   string `yaml:"stats_addr"`
-	GroupID     string `yaml:"group_id"`
+	Enabled   bool   `yaml:"enabled"`
+	ConfDir   string `yaml:"conf_dir"`
+	DBDir     string `yaml:"db_dir"`
+	StatsAddr string `yaml:"stats_addr"`
+	GroupID   string `yaml:"group_id"`
 }
 
 type DHCPConf struct {
@@ -52,10 +51,6 @@ type DHCPDBConf struct {
 	Password string `json:"password"`
 	Port     uint32 `json:"port"`
 	Host     string `json:"host"`
-}
-
-type GrpcConf struct {
-	Addr string `yaml:"addr"`
 }
 
 type KafkaConf struct {

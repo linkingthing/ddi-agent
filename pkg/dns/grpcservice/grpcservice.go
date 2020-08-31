@@ -3,8 +3,6 @@ package grpcservice
 import (
 	"context"
 
-	"google.golang.org/grpc"
-
 	"github.com/linkingthing/ddi-agent/config"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
@@ -18,8 +16,8 @@ type DNSService struct {
 	handler *DNSHandler
 }
 
-func New(conn *grpc.ClientConn, conf *config.AgentConfig) (*DNSService, error) {
-	handler, err := newDNSHandler(conn, conf)
+func New(conf *config.AgentConfig) (*DNSService, error) {
+	handler, err := newDNSHandler(conf)
 	if err != nil {
 		return nil, err
 	}
