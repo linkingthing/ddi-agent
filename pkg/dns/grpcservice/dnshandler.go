@@ -198,7 +198,7 @@ func (handler *DNSHandler) StartDNS(req *pb.DNSStartReq) error {
 
 func (handler *DNSHandler) Start() error {
 	if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err == nil {
-		return fmt.Errorf("os.Stat named.pid failed:%s", err.Error())
+		return nil
 	}
 	if err := handler.rewriteNamedFile(false); err != nil {
 		return fmt.Errorf("init rewriteNamedFile failed:%s", err.Error())
@@ -308,7 +308,7 @@ func updateRR(key string, secret string, rr string, zone string, isAdd bool) err
 	}
 	msg.Header.Id = 1200
 
-	secret = base64.StdEncoding.EncodeToString([]byte(secret))
+	//secret = base64.StdEncoding.EncodeToString([]byte(secret))
 	tsig, err := g53.NewTSIG(key, secret, "hmac-md5")
 	if err != nil {
 		return err
@@ -887,45 +887,50 @@ func (handler *DNSHandler) CreateRR(req *pb.CreateRRReq) error {
 	}
 	rr.SetID(req.Id)
 
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(rr); err != nil {
 			return err
 		}
-		viewRes, err := dbhandler.Get(req.ViewId, &[]*resource.AgentView{})
-		if err != nil {
-			return err
-		}
-		zoneRes, err := dbhandler.Get(req.ZoneId, &[]*resource.AgentZone{})
-		if err != nil {
-			return err
-		}
-		view := viewRes.(*resource.AgentView)
-		zone := zoneRes.(*resource.AgentZone)
-
-		formatCnameValue(&rr.Rdata, rr.DataType)
-		var buildData strings.Builder
-		buildData.WriteString(rr.Name)
-		buildData.WriteString(".")
-		buildData.WriteString(zone.Name)
-		buildData.WriteString(" ")
-		buildData.WriteString(strconv.FormatUint(uint64(rr.Ttl), 10))
-		buildData.WriteString(" IN ")
-		buildData.WriteString(rr.DataType)
-		buildData.WriteString(" ")
-		if zone.RrsRole == RoleBackup && rr.RdataBackup != "" {
-			buildData.WriteString(rr.RdataBackup)
-		} else {
-			buildData.WriteString(rr.Rdata)
-		}
-
-		if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, true); err != nil {
-			return fmt.Errorf("updateRR %s error:%s", buildData.String(), err.Error())
-		}
-		if err := handler.rndcDumpJNLFile(); err != nil {
-			return fmt.Errorf("rndcDumpJNLFile error:%s", err.Error())
-		}
 		return nil
-	})
+	}); err != nil {
+		fmt.Errorf("CreateRR id:%s insert into db failed:%s", req.Id, err.Error())
+	}
+
+	viewRes, err := dbhandler.Get(req.ViewId, &[]*resource.AgentView{})
+	if err != nil {
+		return err
+	}
+	zoneRes, err := dbhandler.Get(req.ZoneId, &[]*resource.AgentZone{})
+	if err != nil {
+		return err
+	}
+	view := viewRes.(*resource.AgentView)
+	zone := zoneRes.(*resource.AgentZone)
+
+	formatCnameValue(&rr.Rdata, rr.DataType)
+	var buildData strings.Builder
+	buildData.WriteString(rr.Name)
+	buildData.WriteString(".")
+	buildData.WriteString(zone.Name)
+	buildData.WriteString(" ")
+	buildData.WriteString(strconv.FormatUint(uint64(rr.Ttl), 10))
+	buildData.WriteString(" IN ")
+	buildData.WriteString(rr.DataType)
+	buildData.WriteString(" ")
+	if zone.RrsRole == RoleBackup && rr.RdataBackup != "" {
+		buildData.WriteString(rr.RdataBackup)
+	} else {
+		buildData.WriteString(rr.Rdata)
+	}
+
+	if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, true); err != nil {
+		return fmt.Errorf("updateRR %s error:%s", buildData.String(), err.Error())
+	}
+
+	if err := handler.rndcDumpJNLFile(); err != nil {
+		return fmt.Errorf("rndcDumpJNLFile error:%s", err.Error())
+	}
+	return nil
 }
 
 func (handler *DNSHandler) UpdateRRsByZone(req *pb.UpdateRRsByZoneReq) error {

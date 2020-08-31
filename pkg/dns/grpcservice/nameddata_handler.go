@@ -351,7 +351,7 @@ func (handler *DNSHandler) zonesData(zoneId string) ([]zoneData, error) {
 		for _, zone := range zoneList {
 			var rrList []*resource.AgentRr
 			if err := dbhandler.ListByCondition(&rrList,
-				map[string]interface{}{"zone": zoneId, "orderby": "create_time"}); err != nil {
+				map[string]interface{}{"zone": zone.ID, "orderby": "create_time"}); err != nil {
 				return nil, err
 			}
 			oneZone := zoneData{ViewName: zone.View, Name: zone.Name, ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
