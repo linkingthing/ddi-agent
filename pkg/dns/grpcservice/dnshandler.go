@@ -478,26 +478,47 @@ func (handler *DNSHandler) UpdateView(req *pb.UpdateViewReq) error {
 func (handler *DNSHandler) DeleteView(req *pb.DeleteViewReq) error {
 	viewRes, err := dbhandler.Get(req.Id, &[]*resource.AgentView{})
 	if err != nil {
-		return err
+		return fmt.Errorf("DeleteView get view failed:%s", err.Error())
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := adjustPriority(viewRes.(*resource.AgentView), tx, true); err != nil {
 			return fmt.Errorf("adjust priority when delete view failed:%s", err.Error())
 		}
-		c, err := tx.Delete(resource.TableView, map[string]interface{}{
-			restdb.IDField: viewRes.GetID(),
-		})
-		if err != nil {
-			return fmt.Errorf("delete view %s from db failed: %s", viewRes.GetID(), err.Error())
+		if _, err := tx.Delete(resource.TableView, map[string]interface{}{
+			restdb.IDField: req.Id,
+		}); err != nil {
+			return fmt.Errorf("delete view %s from db failed: %s", req.Id, err.Error())
 		}
-		if c == 0 {
-			return nil
+		if _, err := tx.Delete(resource.TableZone, map[string]interface{}{
+			"view": req.Id,
+		}); err != nil {
+			return fmt.Errorf("delete zone viewID:%s from db failed: %s", req.Id, err.Error())
+		}
+		if _, err := tx.Delete(resource.TableRR, map[string]interface{}{
+			"view": req.Id,
+		}); err != nil {
+			return fmt.Errorf("delete rr viewID:%s from db failed: %s", req.Id, err.Error())
+		}
+		if _, err := tx.Delete(resource.TableRedirection, map[string]interface{}{
+			"view": req.Id,
+		}); err != nil {
+			return fmt.Errorf("delete redirection viewID:%s from db failed: %s", req.Id, err.Error())
+		}
+		if _, err := tx.Delete(resource.TableUrlRedirect, map[string]interface{}{
+			"view": req.Id,
+		}); err != nil {
+			return fmt.Errorf("delete urlredirect viewID:%s from db failed: %s", req.Id, err.Error())
+		}
+		if _, err := tx.Delete(resource.TableForwardZone, map[string]interface{}{
+			"view": req.Id,
+		}); err != nil {
+			return fmt.Errorf("delete forwardzone viewID:%s from db failed: %s", req.Id, err.Error())
 		}
 
 		return nil
 	}); err != nil {
-		return fmt.Errorf("DeleteView failed:%s", err.Error())
+		return fmt.Errorf("DeleteView from db failed:%s", err.Error())
 	}
 
 	if err := handler.rewriteNamedFile(false); err != nil {
