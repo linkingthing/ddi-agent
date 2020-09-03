@@ -267,18 +267,17 @@ func formatDomain(name *string, datatype string, redirectType string) {
 	if datatype == ptrType || redirectType == localZoneType {
 		return
 	}
-	if ret := strings.HasSuffix(*name, "."); !ret {
-		*name += "."
+
+	n, err := g53.NameFromString(*name)
+	if err != nil {
+		fmt.Errorf("formatDomain failed:%s", err.Error())
 	}
+
+	*name = n.String(false)
 	return
 }
 
-func updateRR(key string, secret string, rr string, zone string, isAdd bool) error {
-	if len(rr) >= 2 {
-		if rr[0] == '@' && rr[1] == '.' {
-			rr = rr[2:]
-		}
-	}
+func updateRR(key string, secret string, rrset *g53.RRset, zone string, isAdd bool) error {
 	serverAddr, err := net.ResolveUDPAddr("udp", dnsServer)
 	if err != nil {
 		return err
@@ -295,11 +294,6 @@ func updateRR(key string, secret string, rr string, zone string, isAdd bool) err
 		return err
 	}
 
-	rrset, err := g53.RRsetFromString(rr)
-	if err != nil {
-		return err
-	}
-
 	msg := g53.MakeUpdate(zone_)
 	if isAdd {
 		msg.UpdateAddRRset(rrset)
@@ -308,7 +302,6 @@ func updateRR(key string, secret string, rr string, zone string, isAdd bool) err
 	}
 	msg.Header.Id = 1200
 
-	//secret = base64.StdEncoding.EncodeToString([]byte(secret))
 	tsig, err := g53.NewTSIG(key, secret, "hmac-md5")
 	if err != nil {
 		return err
@@ -555,6 +548,8 @@ func (handler *DNSHandler) CreateRedirection(req *pb.CreateRedirectionReq) error
 	redirect.SetID(req.Id)
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		formatDomainName(&redirect.Rdata, redirect.DataType)
+		formatDomain(&redirect.Name, redirect.DataType, redirect.RedirectType)
 		if _, err := tx.Insert(redirect); err != nil {
 			return err
 		}
@@ -563,8 +558,6 @@ func (handler *DNSHandler) CreateRedirection(req *pb.CreateRedirectionReq) error
 		return fmt.Errorf("insert redirection id:%s to db failed:%s ", req.Id, err.Error())
 	}
 
-	formatCnameValue(&redirect.Rdata, redirect.DataType)
-	formatDomain(&redirect.Name, redirect.DataType, redirect.RedirectType)
 	if redirect.RedirectType == nxDomain {
 		if err := handler.rewriteRedirectFile(req.ViewId); err != nil {
 			return fmt.Errorf("CreateRedirection id:%s rewriteRedirectFile failed:%s", req.Id, err.Error())
@@ -585,22 +578,23 @@ func (handler *DNSHandler) CreateRedirection(req *pb.CreateRedirectionReq) error
 }
 
 func (handler *DNSHandler) UpdateRedirection(req *pb.UpdateRedirectionReq) error {
-	redirectRes, err := dbhandler.Get(req.Id, &[]*resource.AgentRedirection{})
-	if err != nil {
-		return fmt.Errorf("UpdateRedirection id:%s Get redirection from db failed:%s", req.Id, err.Error())
-	}
-	redirection := redirectRes.(*resource.AgentRedirection)
-	redirection.DataType = req.DataType
-	redirection.Rdata = req.RData
-	redirection.Ttl = uint(req.Ttl)
-
+	var redirection *resource.AgentRedirection
 	redirectTypeChanged := false
-	if redirection.RedirectType != req.RedirectType {
-		redirectTypeChanged = true
-	}
-	redirection.RedirectType = req.RedirectType
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		redirectRes, err := dbhandler.GetWithTx(req.Id, &[]*resource.AgentRedirection{}, tx)
+		if err != nil {
+			return fmt.Errorf("UpdateRedirection id:%s Get redirection from db failed:%s", req.Id, err.Error())
+		}
+		redirection = redirectRes.(*resource.AgentRedirection)
+		redirection.DataType = req.DataType
+		redirection.Rdata = req.RData
+		redirection.Ttl = uint(req.Ttl)
+		if redirection.RedirectType != req.RedirectType {
+			redirectTypeChanged = true
+		}
+		redirection.RedirectType = req.RedirectType
+		formatDomainName(&redirection.Rdata, redirection.DataType)
 		if _, err := tx.Update(
 			resource.TableRedirection,
 			map[string]interface{}{
@@ -617,8 +611,6 @@ func (handler *DNSHandler) UpdateRedirection(req *pb.UpdateRedirectionReq) error
 		return fmt.Errorf("update redirect id:%s to db failed:%s ", req.Id, err.Error())
 	}
 
-	formatCnameValue(&redirection.Rdata, redirection.DataType)
-	formatDomain(&redirection.Name, redirection.DataType, redirection.RedirectType)
 	if redirection.RedirectType == nxDomain {
 		if err := handler.rewriteRedirectFile(redirection.View); err != nil {
 			return fmt.Errorf("UpdateRedirection id:%s rewriteRedirectFile failed:%s", req.Id, err.Error())
@@ -651,13 +643,13 @@ func (handler *DNSHandler) UpdateRedirection(req *pb.UpdateRedirectionReq) error
 }
 
 func (handler *DNSHandler) DeleteRedirection(req *pb.DeleteRedirectionReq) error {
-	redirectRes, err := dbhandler.Get(req.Id, &[]*resource.AgentRedirection{})
-	if err != nil {
-		return err
-	}
-
-	redirection := redirectRes.(*resource.AgentRedirection)
+	var redirection *resource.AgentRedirection
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		redirectRes, err := dbhandler.GetWithTx(req.Id, &[]*resource.AgentRedirection{}, tx)
+		if err != nil {
+			return err
+		}
+		redirection = redirectRes.(*resource.AgentRedirection)
 		if _, err := tx.Delete(
 			resource.TableRedirection,
 			map[string]interface{}{restdb.IDField: req.Id}); err != nil {
@@ -885,72 +877,110 @@ func (handler *DNSHandler) DeleteForwardZone(req *pb.DeleteForwardZoneReq) error
 	return nil
 }
 
-func formatCnameValue(rr *string, datatype string) {
-	if datatype != cnameType {
+func formatDomainName(rr *string, datatype string) {
+	rrType, err := g53.TypeFromString(datatype)
+	if err != nil {
+		fmt.Errorf("formatDomainName datatype error:%s", err.Error())
 		return
 	}
-	if ret := strings.HasSuffix(*rr, "."); !ret {
-		*rr += "."
+
+	rdata, err := g53.RdataFromString(rrType, *rr)
+	if err != nil {
+		fmt.Errorf("formatDomainName rdata error:%s", err.Error())
+		return
 	}
-	return
+
+	*rr = rdata.String()
+}
+
+func generateRRset(rr *resource.AgentRr, zoneName string, RrsRole string) (*g53.RRset, error) {
+	domainName := rr.Name + "." + zoneName
+	name, err := g53.NameFromString(domainName)
+	if err != nil {
+		return nil, fmt.Errorf("generateRRset name:%s error:%s", domainName, err.Error())
+	}
+	ttl, err := g53.TTLFromString(strconv.FormatUint(uint64(rr.Ttl), 10))
+	if err != nil {
+		return nil, fmt.Errorf("generateRRset ttl:%d error:%s", rr.Ttl, err.Error())
+	}
+	cls, err := g53.ClassFromString("IN")
+	if err != nil {
+		return nil, fmt.Errorf("generateRRset cls:IN error:%s", err.Error())
+	}
+	rrType, err := g53.TypeFromString(rr.DataType)
+	if err != nil {
+		return nil, fmt.Errorf("generateRRset rrType:%s error:%s", rr.DataType, err.Error())
+	}
+
+	var rdata g53.Rdata
+	if RrsRole == RoleBackup && rr.RdataBackup != "" {
+		rdata, err = g53.RdataFromString(rrType, rr.Rdata)
+		if err != nil {
+			return nil, fmt.Errorf("generateRRset rdata:%s error:%s", rr.Rdata, err.Error())
+		}
+	} else {
+		rdata, err = g53.RdataFromString(rrType, rr.Rdata)
+		if err != nil {
+			return nil, fmt.Errorf("generateRRset rdata:%s error:%s", rr.Rdata, err.Error())
+		}
+	}
+
+	rrset := &g53.RRset{
+		Name:   name,
+		Type:   rrType,
+		Class:  cls,
+		Ttl:    ttl,
+		Rdatas: []g53.Rdata{rdata},
+	}
+	return rrset, nil
 }
 
 func (handler *DNSHandler) CreateRR(req *pb.CreateRRReq) error {
-	rr := &resource.AgentRr{
-		Name:        req.Name,
-		DataType:    req.DataType,
-		Ttl:         uint(req.Ttl),
-		Rdata:       req.RData,
-		RdataBackup: req.BackupRData,
-		ActiveRdata: req.RData,
-		View:        req.ViewId,
-		Zone:        req.ZoneId,
-	}
-	rr.SetID(req.Id)
-
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		rr := &resource.AgentRr{
+			Name:        req.Name,
+			DataType:    req.DataType,
+			Ttl:         uint(req.Ttl),
+			Rdata:       req.RData,
+			RdataBackup: req.BackupRData,
+			ActiveRdata: req.RData,
+			View:        req.ViewId,
+			Zone:        req.ZoneId,
+		}
+		rr.SetID(req.Id)
+
 		if _, err := tx.Insert(rr); err != nil {
 			return err
 		}
+
+		viewRes, err := dbhandler.GetWithTx(req.ViewId, &[]*resource.AgentView{}, tx)
+		if err != nil {
+			return err
+		}
+		zoneRes, err := dbhandler.GetWithTx(req.ZoneId, &[]*resource.AgentZone{}, tx)
+		if err != nil {
+			return err
+		}
+		view := viewRes.(*resource.AgentView)
+		zone := zoneRes.(*resource.AgentZone)
+		rrset, err := generateRRset(rr, zone.Name, zone.RrsRole)
+		if err != nil {
+			return fmt.Errorf("CreateRR generateRRset failed:%s", err.Error())
+		}
+
+		if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, true); err != nil {
+			return fmt.Errorf("updateRR %s error:%s", rrset.String(), err.Error())
+		}
+
+		if err := handler.rndcDumpJNLFile(); err != nil {
+			return fmt.Errorf("rndcDumpJNLFile error:%s", err.Error())
+		}
+
 		return nil
 	}); err != nil {
 		fmt.Errorf("CreateRR id:%s insert into db failed:%s", req.Id, err.Error())
 	}
 
-	viewRes, err := dbhandler.Get(req.ViewId, &[]*resource.AgentView{})
-	if err != nil {
-		return err
-	}
-	zoneRes, err := dbhandler.Get(req.ZoneId, &[]*resource.AgentZone{})
-	if err != nil {
-		return err
-	}
-	view := viewRes.(*resource.AgentView)
-	zone := zoneRes.(*resource.AgentZone)
-
-	formatCnameValue(&rr.Rdata, rr.DataType)
-	var buildData strings.Builder
-	buildData.WriteString(rr.Name)
-	buildData.WriteString(".")
-	buildData.WriteString(zone.Name)
-	buildData.WriteString(" ")
-	buildData.WriteString(strconv.FormatUint(uint64(rr.Ttl), 10))
-	buildData.WriteString(" IN ")
-	buildData.WriteString(rr.DataType)
-	buildData.WriteString(" ")
-	if zone.RrsRole == RoleBackup && rr.RdataBackup != "" {
-		buildData.WriteString(rr.RdataBackup)
-	} else {
-		buildData.WriteString(rr.Rdata)
-	}
-
-	if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, true); err != nil {
-		return fmt.Errorf("updateRR %s error:%s", buildData.String(), err.Error())
-	}
-
-	if err := handler.rndcDumpJNLFile(); err != nil {
-		return fmt.Errorf("rndcDumpJNLFile error:%s", err.Error())
-	}
 	return nil
 }
 
@@ -983,30 +1013,18 @@ func (handler *DNSHandler) UpdateRRsByZone(req *pb.UpdateRRsByZoneReq) error {
 			return err
 		}
 
-		var buildData strings.Builder
 		for _, rr := range rrList {
-			formatCnameValue(&rr.Rdata, rr.DataType)
-			buildData.Reset()
-			buildData.WriteString(rr.Name)
-			buildData.WriteString(".")
-			buildData.WriteString(zone.Name)
-			buildData.WriteString(" ")
-			buildData.WriteString(strconv.FormatUint(uint64(rr.Ttl), 10))
-			buildData.WriteString(" IN ")
-			buildData.WriteString(rr.DataType)
-			buildData.WriteString(" ")
-			if req.Role == RoleBackup && rr.RdataBackup != "" {
-				buildData.WriteString(rr.RdataBackup)
-			} else {
-				continue
+			rrset, err := generateRRset(rr, zone.Name, zone.RrsRole)
+			if err != nil {
+				return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
 			}
 
-			if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, false); err != nil {
-				return fmt.Errorf("updateRR delete rrset:%s error:%s", buildData.String(), err.Error())
+			if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, false); err != nil {
+				return fmt.Errorf("updateRR delete rrset:%s error:%s", rrset.String(), err.Error())
 			}
 
-			if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, true); err != nil {
-				return fmt.Errorf("updateRR add rrset:%s error:%s", buildData.String(), err.Error())
+			if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, true); err != nil {
+				return fmt.Errorf("updateRR add rrset:%s error:%s", rrset.String(), err.Error())
 			}
 		}
 
@@ -1034,28 +1052,17 @@ func (handler *DNSHandler) UpdateAllRR() error {
 		}
 		view := viewRes.(*resource.AgentView)
 		zone := zoneRes.(*resource.AgentZone)
-
-		formatCnameValue(&rr.Rdata, rr.DataType)
-		var buildData strings.Builder
-		buildData.WriteString(rr.Name)
-		buildData.WriteString(".")
-		buildData.WriteString(rr.Zone)
-		buildData.WriteString(" ")
-		buildData.WriteString(strconv.FormatUint(uint64(rr.Ttl), 10))
-		buildData.WriteString(" IN ")
-		buildData.WriteString(rr.DataType)
-		buildData.WriteString(" ")
-		if zone.RrsRole == RoleBackup && rr.RdataBackup != "" {
-			buildData.WriteString(rr.RdataBackup)
-		} else {
-			buildData.WriteString(rr.Rdata)
-		}
-		if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, false); err != nil {
-			return fmt.Errorf("UpdateAllRR delete rrset:%s error:%s", buildData.String(), err.Error())
+		rrset, err := generateRRset(rr, zone.Name, zone.RrsRole)
+		if err != nil {
+			return fmt.Errorf("UpdateAllRR generateRRset failed:%s", err.Error())
 		}
 
-		if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, true); err != nil {
-			return fmt.Errorf("UpdateAllRR add rrset:%s error:%s", buildData.String(), err.Error())
+		if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, false); err != nil {
+			return fmt.Errorf("UpdateAllRR delete rrset:%s error:%s", rrset.String(), err.Error())
+		}
+
+		if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, true); err != nil {
+			return fmt.Errorf("UpdateAllRR add rrset:%s error:%s", rrset.String(), err.Error())
 		}
 	}
 
@@ -1067,55 +1074,48 @@ func (handler *DNSHandler) UpdateAllRR() error {
 }
 
 func (handler *DNSHandler) UpdateRR(req *pb.UpdateRRReq) error {
-	rr, err := dbhandler.Get(req.Id, &[]*resource.AgentRr{})
-	if err != nil {
-		return err
-	}
-
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		rrRes, err := dbhandler.GetWithTx(req.Id, &[]*resource.AgentRr{}, tx)
+		if err != nil {
+			return fmt.Errorf("UpdateRR get rr id:%s from db failed:%s", req.Id, err.Error())
+		}
+		rr := rrRes.(*resource.AgentRr)
+		rr.DataType = req.DataType
+		rr.Ttl = uint(req.Ttl)
+		rr.Rdata = req.RData
+		rr.RdataBackup = req.BackupRData
+
 		if _, err := tx.Update(resource.TableRR,
 			map[string]interface{}{
-				"data_type":    req.DataType,
-				"ttl":          req.Ttl,
-				"rdata":        req.RData,
-				"rdata_backup": req.BackupRData,
+				"data_type":    rr.DataType,
+				"ttl":          rr.Ttl,
+				"rdata":        rr.Rdata,
+				"rdata_backup": rr.RdataBackup,
 			},
 			map[string]interface{}{restdb.IDField: req.Id}); err != nil {
 			return err
 		}
-
-		viewRes, err := dbhandler.Get(rr.(*resource.AgentRr).View, &[]*resource.AgentView{})
+		viewRes, err := dbhandler.GetWithTx(rr.View, &[]*resource.AgentView{}, tx)
 		if err != nil {
-			return err
+			return fmt.Errorf("UpdateRR get view id:%s from db failed:%s", rr.View, err.Error())
 		}
-		zoneRes, err := dbhandler.Get(rr.(*resource.AgentRr).Zone, &[]*resource.AgentZone{})
+		zoneRes, err := dbhandler.GetWithTx(rr.Zone, &[]*resource.AgentZone{}, tx)
 		if err != nil {
-			return err
+			return fmt.Errorf("UpdateRR get zone id:%s from db failed:%s", rr.Zone, err.Error())
 		}
 		view := viewRes.(*resource.AgentView)
 		zone := zoneRes.(*resource.AgentZone)
-
-		formatCnameValue(&req.RData, req.DataType)
-		var buildData strings.Builder
-		buildData.WriteString(rr.(*resource.AgentRr).Name)
-		buildData.WriteString(".")
-		buildData.WriteString(zone.Name)
-		buildData.WriteString(" ")
-		buildData.WriteString(strconv.FormatUint(uint64(req.Ttl), 10))
-		buildData.WriteString(" IN ")
-		buildData.WriteString(req.DataType)
-		buildData.WriteString(" ")
-		if zone.RrsRole == RoleBackup && req.BackupRData != "" {
-			buildData.WriteString(req.BackupRData)
-		} else {
-			buildData.WriteString(req.RData)
-		}
-		if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, false); err != nil {
-			return fmt.Errorf("updateRR delete rrset:%s error:%s", buildData.String(), err.Error())
+		rrset, err := generateRRset(rr, zone.Name, zone.RrsRole)
+		if err != nil {
+			return fmt.Errorf("UpdateRR generateRRset failed:%s", err.Error())
 		}
 
-		if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, true); err != nil {
-			return fmt.Errorf("updateRR add rrset:%s error:%s", buildData.String(), err.Error())
+		if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, false); err != nil {
+			return fmt.Errorf("updateRR delete rrset:%s error:%s", rrset.String(), err.Error())
+		}
+
+		if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, true); err != nil {
+			return fmt.Errorf("updateRR add rrset:%s error:%s", rrset.String(), err.Error())
 		}
 
 		if err := handler.rndcDumpJNLFile(); err != nil {
@@ -1126,52 +1126,41 @@ func (handler *DNSHandler) UpdateRR(req *pb.UpdateRRReq) error {
 }
 
 func (handler *DNSHandler) DeleteRR(req *pb.DeleteRRReq) error {
-	rrRes, err := dbhandler.Get(req.Id, &[]*resource.AgentRr{})
-	if err != nil {
-		return err
-	}
-
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		rrRes, err := dbhandler.GetWithTx(req.Id, &[]*resource.AgentRr{}, tx)
+		if err != nil {
+			return fmt.Errorf("DeleteRR get rr id:%s from db failed:%s", req.Id, err.Error())
+		}
 		if _, err := tx.Delete(resource.TableRR, map[string]interface{}{restdb.IDField: req.Id}); err != nil {
-			return fmt.Errorf("delete  rr id:%s from db failed:%s", req.Id, err.Error())
+			return fmt.Errorf("delete rr id:%s from db failed:%s", req.Id, err.Error())
 		}
 
 		rr := rrRes.(*resource.AgentRr)
-		viewRes, err := dbhandler.Get(rr.View, &[]*resource.AgentView{})
+		viewRes, err := dbhandler.GetWithTx(rr.View, &[]*resource.AgentView{}, tx)
 		if err != nil {
-			return fmt.Errorf("get view id:%s from db failed:%s", rr.View, err.Error())
+			return fmt.Errorf("DeleteRR get view id:%s from db failed:%s", rr.View, err.Error())
 		}
-		zoneRes, err := dbhandler.Get(rr.Zone, &[]*resource.AgentZone{})
+		zoneRes, err := dbhandler.GetWithTx(rr.Zone, &[]*resource.AgentZone{}, tx)
 		if err != nil {
-			return fmt.Errorf("get zone id:%s from db failed:%s", rr.Zone, err.Error())
+			return fmt.Errorf("DeleteRR get zone id:%s from db failed:%s", rr.Zone, err.Error())
 		}
 		view := viewRes.(*resource.AgentView)
 		zone := zoneRes.(*resource.AgentZone)
+		rrset, err := generateRRset(rr, zone.Name, "")
+		if err != nil {
+			return fmt.Errorf("DeleteRR generateRRset failed:%s", err.Error())
+		}
 
-		var buildData strings.Builder
-		buildData.WriteString(rr.Name)
-		buildData.WriteString(".")
-		buildData.WriteString(zone.Name)
-		buildData.WriteString(" ")
-		buildData.WriteString(strconv.FormatUint(uint64(rr.Ttl), 10))
-		buildData.WriteString(" IN ")
-		buildData.WriteString(rr.DataType)
-		buildData.WriteString(" ")
-		buildData.WriteString(rr.Rdata)
-		if err := updateRR("key"+view.Name, view.Key, buildData.String(), zone.Name, false); err != nil {
-			return fmt.Errorf("updateRR delete rrset:%s error:%s", buildData.String(), err.Error())
+		if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, false); err != nil {
+			return fmt.Errorf("DeleteRR delete rrset:%s error:%s", rrset.String(), err.Error())
 		}
 
 		if err := handler.rndcDumpJNLFile(); err != nil {
-			return fmt.Errorf("rndcDumpJNLFile error:%s", err.Error())
+			return fmt.Errorf("DeleteRR rndcDumpJNLFile error:%s", err.Error())
 		}
 
 		return nil
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func (handler *DNSHandler) CreateForward(req *pb.CreateForwardReq) error {

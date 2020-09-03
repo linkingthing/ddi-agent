@@ -2,6 +2,7 @@ package dbhandler
 
 import (
 	"fmt"
+	"reflect"
 
 	restdb "github.com/zdnscloud/gorest/db"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -51,6 +52,14 @@ func ListByCondition(resources interface{}, cond map[string]interface{}) error {
 	return nil
 }
 
+func ListByConditionWithTx(resources interface{}, cond map[string]interface{}, tx restdb.Transaction) error {
+	if err := tx.Fill(cond, resources); err != nil {
+		return fmt.Errorf("dbhandler ListByCondition:%+v failed:%s", resources, err.Error())
+	}
+
+	return nil
+}
+
 func Get(ID string, inRes interface{}) (restresource.Resource, error) {
 	outRes, err := restdb.GetResourceWithID(db.GetDB(), ID, inRes)
 	if err != nil {
@@ -58,6 +67,19 @@ func Get(ID string, inRes interface{}) (restresource.Resource, error) {
 	}
 
 	return outRes.(restresource.Resource), nil
+}
+
+func GetWithTx(ID string, out interface{}, tx restdb.Transaction) (interface{}, error) {
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: ID}, out); err != nil {
+		return nil, err
+	}
+
+	sliceVal := reflect.ValueOf(out).Elem()
+	if sliceVal.Len() == 1 {
+		return sliceVal.Index(0).Interface(), nil
+	} else {
+		return nil, fmt.Errorf("not found")
+	}
 }
 
 func Exist(table restdb.ResourceType, ID string) (bool, error) {

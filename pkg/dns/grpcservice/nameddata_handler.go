@@ -144,11 +144,6 @@ func (handler *DNSHandler) namedConfData() (*namedData, error) {
 		}
 		view := View{Name: value.Name, ACLs: acls, Key: value.Key}
 
-		if value.Name == defaultView {
-			data.Views = append(data.Views, view)
-			continue
-		}
-
 		var redirectionList []*resource.AgentRedirection
 		if err := dbhandler.ListByCondition(&redirectionList,
 			map[string]interface{}{"view": value.ID}); err != nil {
@@ -278,8 +273,6 @@ func (handler *DNSHandler) redirectData(viewID, redirectType string) ([]redirect
 			}
 			oneRedirectionData := redirectionData{ViewName: view.Name}
 			for _, redirection := range redirectList {
-				formatCnameValue(&redirection.Rdata, redirection.DataType)
-				formatDomain(&redirection.Name, redirection.DataType, redirection.RedirectType)
 				oneRR := RR{Name: redirection.Name, Type: redirection.DataType, Value: redirection.Rdata, TTL: strconv.FormatUint(uint64(redirection.Ttl), 10)}
 				oneRedirectionData.RRs = append(oneRedirectionData.RRs, oneRR)
 			}
@@ -308,9 +301,6 @@ func (handler *DNSHandler) redirectData(viewID, redirectType string) ([]redirect
 		}
 		oneRedirectionData := redirectionData{ViewName: view.Name}
 		for _, redirection := range redirectList {
-			formatCnameValue(&redirection.Rdata, redirection.DataType)
-			formatDomain(&redirection.Name, redirection.DataType, redirection.RedirectType)
-
 			oneRR := RR{Name: redirection.Name, Type: redirection.DataType, Value: redirection.Rdata, TTL: strconv.FormatUint(uint64(redirection.Ttl), 10)}
 			oneRedirectionData.RRs = append(oneRedirectionData.RRs, oneRR)
 		}
@@ -331,14 +321,19 @@ func (handler *DNSHandler) zonesData(zoneId string) ([]zoneData, error) {
 
 		var rrList []*resource.AgentRr
 		if err := dbhandler.ListByCondition(&rrList,
-			map[string]interface{}{"zone": zoneId, "orderby": "create_time"}); err != nil {
+			map[string]interface{}{"zone": zoneId, "orderby": "name"}); err != nil {
 			return nil, err
 		}
 		zone := zoneRes.(*resource.AgentZone)
 
 		oneZone := zoneData{ViewName: zone.View, Name: zone.Name, ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
+		preName := ""
 		for _, rr := range rrList {
-			oneRR := RR{Name: rr.Name, Type: rr.DataType, Value: rr.Rdata, TTL: strconv.FormatUint(uint64(rr.Ttl), 10)}
+			oneRR := RR{Type: rr.DataType, Value: rr.Rdata, TTL: strconv.FormatUint(uint64(rr.Ttl), 10)}
+			if preName != rr.Name {
+				oneRR.Name = rr.Name
+			}
+			preName = rr.Name
 			oneZone.RRs = append(oneZone.RRs, oneRR)
 		}
 		zonesData = append(zonesData, oneZone)
@@ -351,12 +346,17 @@ func (handler *DNSHandler) zonesData(zoneId string) ([]zoneData, error) {
 		for _, zone := range zoneList {
 			var rrList []*resource.AgentRr
 			if err := dbhandler.ListByCondition(&rrList,
-				map[string]interface{}{"zone": zone.ID, "orderby": "create_time"}); err != nil {
+				map[string]interface{}{"zone": zone.ID, "orderby": "name"}); err != nil {
 				return nil, err
 			}
 			oneZone := zoneData{ViewName: zone.View, Name: zone.Name, ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
+			preName := ""
 			for _, rr := range rrList {
-				oneRR := RR{Name: rr.Name, Type: rr.DataType, Value: rr.Rdata, TTL: strconv.FormatUint(uint64(rr.Ttl), 10)}
+				oneRR := RR{Type: rr.DataType, Value: rr.Rdata, TTL: strconv.FormatUint(uint64(rr.Ttl), 10)}
+				if preName != rr.Name {
+					oneRR.Name = rr.Name
+				}
+				preName = rr.Name
 				oneZone.RRs = append(oneZone.RRs, oneRR)
 			}
 			zonesData = append(zonesData, oneZone)
@@ -519,12 +519,17 @@ func (handler *DNSHandler) rewriteRPZFile(isStart bool, viewID string) error {
 		return err
 	}
 
-	if !isStart && viewID == "" {
-		if err := removeFiles(filepath.Join(handler.dnsConfPath, "redirection"), "rpz_", ""); err != nil {
-			return fmt.Errorf("delete all the rpz file in %s err: %s", filepath.Join(handler.dnsConfPath, "redirection"), err.Error())
+	if !isStart {
+		if viewID == "" {
+			if err := removeFiles(filepath.Join(handler.dnsConfPath, "redirection"), "rpz_", ""); err != nil {
+				return fmt.Errorf("delete all the rpz file in %s err: %s", filepath.Join(handler.dnsConfPath, "redirection"), err.Error())
+			}
 		}
 
 		if err := handler.rewriteNamedFile(true); err != nil {
+			return err
+		}
+		if err := handler.rndcReconfig(); err != nil {
 			return err
 		}
 	}
@@ -558,6 +563,17 @@ func (handler *DNSHandler) rndcReconfig() error {
 	var para2 = "-s" + "localhost"
 	var para3 = "-p" + rndcPort
 	var para4 = "reconfig"
+	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), para1, para2, para3, para4); err != nil {
+		return fmt.Errorf("rndc reconfig error, %w", err)
+	}
+	return nil
+}
+
+func (handler *DNSHandler) rndcReload() error {
+	var para1 = "-c" + filepath.Join(handler.dnsConfPath, "rndc.conf")
+	var para2 = "-s" + "localhost"
+	var para3 = "-p" + rndcPort
+	var para4 = "reload"
 	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), para1, para2, para3, para4); err != nil {
 		return fmt.Errorf("rndc reconfig error, %w", err)
 	}
