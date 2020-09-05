@@ -542,7 +542,7 @@ func (handler *DNSHandler) rewriteRedirectFile(isStart bool, viewID string) erro
 	}
 
 	if err := handler.rewriteNamedViewFile(isStart, false); err != nil {
-		return fmt.Errorf("rewriteRPZFile rewriteRedirectFile failed:%s", err.Error())
+		return fmt.Errorf("rewriteRedirectFile rewriteRedirectFile failed:%s", err.Error())
 	}
 
 	return nil
@@ -588,17 +588,6 @@ func (handler *DNSHandler) rewriteRPZFile(isStart bool, viewID string) error {
 		return fmt.Errorf("rewriteRPZFile rewriteNamedViewFile failed:%s", err.Error())
 	}
 
-	return nil
-}
-
-func PathExists(path string) error {
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return err
-		}
-		return err
-	}
 	return nil
 }
 
@@ -700,6 +689,17 @@ func removeFiles(dir string, prefix string, suffix string) error {
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+func PathExists(path string) error {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return err
+		}
+		return err
 	}
 	return nil
 }
