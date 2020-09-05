@@ -62,9 +62,11 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 
 	cli := pb.NewAgentManagerClient(conn)
 	kafkaReader := kg.NewReader(kg.ReaderConfig{
-		Brokers: []string{conf.Kafka.Addr},
-		Topic:   DNSTopic,
-		GroupID: conf.DNS.GroupID,
+		Brokers:  []string{conf.Kafka.Addr},
+		Topic:    DNSTopic,
+		GroupID:  conf.DNS.GroupID,
+		MinBytes: 10,
+		MaxBytes: 10e6,
 	})
 
 	for {

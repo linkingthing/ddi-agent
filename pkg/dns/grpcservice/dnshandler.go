@@ -848,7 +848,6 @@ func generateRRset(rr *resource.AgentRr, zoneName string, RrsRole string) (*g53.
 		Rdatas: []g53.Rdata{rdata},
 	}
 
-	fmt.Println("generateRRset:", rrset.String())
 	return rrset, nil
 }
 
