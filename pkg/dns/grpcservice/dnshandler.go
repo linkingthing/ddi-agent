@@ -640,32 +640,33 @@ func (handler *DNSHandler) UpdateZone(req *pb.UpdateZoneReq) error {
 }
 
 func (handler *DNSHandler) DeleteZone(req *pb.DeleteZoneReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	var zone *resource.AgentZone
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		zoneRes, err := dbhandler.GetWithTx(req.Id, &[]*resource.AgentZone{}, tx)
 		if err != nil {
 			return fmt.Errorf("DeleteZone get zone from db failed:%s", req.Id)
 		}
-		zone, ok := zoneRes.(*resource.AgentZone)
-		if !ok {
-			return fmt.Errorf("DeleteZone inflect agent_zone failed")
-		}
-
+		zone = zoneRes.(*resource.AgentZone)
 		if _, err := tx.Delete(
 			resource.TableZone,
 			map[string]interface{}{restdb.IDField: req.Id}); err != nil {
 			return fmt.Errorf("delete zone id:%s from db failed:%s", req.Id, err.Error())
 		}
 
-		if err := handler.rndcDelZone(zone.Name, zone.View); err != nil {
-			return fmt.Errorf("DeleteZone id:%s rndcDelZone view:%s failed:%s", req.Id, zone.View, err.Error())
-		}
-
-		if err := os.Remove(filepath.Join(handler.dnsConfPath, zone.ZoneFile)); err != nil {
-			return fmt.Errorf("DeleteZone id:%s Remove %s failed:%s", req.Id, zone.ZoneFile, err.Error())
-		}
-
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	if err := handler.rndcDelZone(zone.Name, zone.View); err != nil {
+		return fmt.Errorf("DeleteZone id:%s rndcDelZone view:%s failed:%s", req.Id, zone.View, err.Error())
+	}
+
+	if err := os.Remove(filepath.Join(handler.dnsConfPath, zone.ZoneFile)); err != nil {
+		return fmt.Errorf("DeleteZone id:%s Remove %s failed:%s", req.Id, zone.ZoneFile, err.Error())
+	}
+
+	return nil
 }
 
 func (handler *DNSHandler) CreateForwardZone(req *pb.CreateForwardZoneReq) error {

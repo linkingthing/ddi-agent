@@ -522,8 +522,8 @@ func (handler *DNSHandler) rewriteRedirectFile(isStart bool, viewID string) erro
 			return fmt.Errorf("delete all the rpz file in %s err: %s", filepath.Join(handler.dnsConfPath, "redirection"), err.Error())
 		}
 	} else {
-		if len(redirectionList) > 0 {
-			path := filepath.Join(handler.dnsConfPath, "redirection", "redirect_"+viewID)
+		path := filepath.Join(handler.dnsConfPath, "redirection", "redirect_"+viewID)
+		if err := PathExists(path); err == nil {
 			if err := os.Remove(path); err != nil {
 				return fmt.Errorf("delete %s file err: %s", path, err.Error())
 			}
@@ -559,8 +559,8 @@ func (handler *DNSHandler) rewriteRPZFile(isStart bool, viewID string) error {
 			return fmt.Errorf("delete all the rpz file in %s err: %s", filepath.Join(handler.dnsConfPath, "redirection"), err.Error())
 		}
 	} else {
-		if len(redirectionList) > 0 {
-			path := filepath.Join(handler.dnsConfPath, "redirection", "rpz_"+viewID)
+		path := filepath.Join(handler.dnsConfPath, "redirection", "rpz_"+viewID)
+		if err := PathExists(path); err == nil {
 			if err := os.Remove(path); err != nil {
 				return fmt.Errorf("delete %s file err: %s", path, err.Error())
 			}
@@ -588,6 +588,17 @@ func (handler *DNSHandler) rewriteRPZFile(isStart bool, viewID string) error {
 		return fmt.Errorf("rewriteRPZFile rewriteNamedViewFile failed:%s", err.Error())
 	}
 
+	return nil
+}
+
+func PathExists(path string) error {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return err
+		}
+		return err
+	}
 	return nil
 }
 
