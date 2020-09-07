@@ -111,8 +111,15 @@ func (handler *DNSHandler) Start() error {
 		return err
 	}
 
+	path := filepath.Join(handler.dnsConfPath, "named.log")
+	if pathExists(path) {
+		if err := os.Remove(path); err != nil {
+			log.Errorf("remove  named.log fail:%s", err.Error())
+		}
+	}
 	var param = "-c" + filepath.Join(handler.dnsConfPath, mainConfName)
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "named"), param); err != nil {
+	var logParam = "-L" + "named.log"
+	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "named"), param, logParam); err != nil {
 		return fmt.Errorf("exec named -c  failed:%s", err.Error())
 	}
 
@@ -991,7 +998,7 @@ func (handler *DNSHandler) UpdateRR(req *pb.UpdateRRReq) error {
 		}
 
 		if err := handler.rndcZoneDumpJNLFile(zone.Name, view.Name); err != nil {
-			return fmt.Errorf("CreateRR rndcDumpJNLFile error:%s", err.Error())
+			return fmt.Errorf("UpdateRR rndcDumpJNLFile error:%s", err.Error())
 		}
 		return nil
 	})
