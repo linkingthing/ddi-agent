@@ -103,3 +103,11 @@ func Exist(table restdb.ResourceType, ID string) (bool, error) {
 
 	return false, nil
 }
+
+func ExistWithTx(table restdb.ResourceType, ID string, tx restdb.Transaction) (bool, error) {
+	if exist, err := tx.Exists(table, map[string]interface{}{restdb.IDField: ID}); err != nil {
+		return false, fmt.Errorf("Exist id:%s failed:%s ", ID, err.Error())
+	} else {
+		return exist, nil
+	}
+}
