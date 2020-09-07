@@ -783,9 +783,9 @@ func generateRRset(rr *resource.AgentRr, zoneName string, RrsRole string) (*g53.
 
 	var rdata g53.Rdata
 	if RrsRole == RoleBackup && rr.RdataBackup != "" {
-		rdata, err = g53.RdataFromString(rrType, rr.Rdata)
+		rdata, err = g53.RdataFromString(rrType, rr.RdataBackup)
 		if err != nil {
-			return nil, fmt.Errorf("generateRRset rdata:%s error:%s", rr.Rdata, err.Error())
+			return nil, fmt.Errorf("generateRRset rdata:%s error:%s", rr.RdataBackup, err.Error())
 		}
 	} else {
 		rdata, err = g53.RdataFromString(rrType, rr.Rdata)
@@ -888,11 +888,14 @@ func (handler *DNSHandler) UpdateRRsByZone(req *pb.UpdateRRsByZoneReq) error {
 			if err != nil {
 				return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
 			}
-
 			if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, false); err != nil {
 				return fmt.Errorf("UpdateRRsByZone updateRR delete rrset:%s error:%s", rrset.String(), err.Error())
 			}
 
+			rrset, err = generateRRset(rr, zone.Name, req.Role)
+			if err != nil {
+				return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
+			}
 			if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, true); err != nil {
 				return fmt.Errorf("UpdateRRsByZone updateRR add rrset:%s error:%s", rrset.String(), err.Error())
 			}
