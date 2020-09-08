@@ -908,48 +908,51 @@ func (handler *DNSHandler) UpdateRRsByZone(req *pb.UpdateRRsByZoneReq) error {
 	})
 }
 
-func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		var rrList []*resource.AgentRr
-		if err := dbhandler.ListWithTx(&rrList, tx); err != nil {
-			return fmt.Errorf("UpdateAllRRTtl List rr falied:%s", err.Error())
+func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32, tx restdb.Transaction) error {
+	var rrList []*resource.AgentRr
+	if err := dbhandler.ListWithTx(&rrList, tx); err != nil {
+		return fmt.Errorf("UpdateAllRRTtl List rr falied:%s", err.Error())
+	}
+
+	for _, rr := range rrList {
+		viewRes, err := dbhandler.GetWithTx(rr.View, &[]*resource.AgentView{}, tx)
+		if err != nil {
+			return fmt.Errorf("UpdateAllRRTtl Get views rr.id:%s falied:%s", rr.ID, err.Error())
+		}
+		zoneRes, err := dbhandler.GetWithTx(rr.Zone, &[]*resource.AgentZone{}, tx)
+		if err != nil {
+			return fmt.Errorf("UpdateAllRRTtl Get zones rr.id:%s falied:%s", rr.ID, err.Error())
+		}
+		view := viewRes.(*resource.AgentView)
+		zone := zoneRes.(*resource.AgentZone)
+		if _, err := tx.Exec(updateRRsTTLSQL, ttl); err != nil {
+			return fmt.Errorf("update updateRR to db failed:%s", err.Error())
 		}
 
-		for _, rr := range rrList {
-			viewRes, err := dbhandler.GetWithTx(rr.View, &[]*resource.AgentView{}, tx)
-			if err != nil {
-				return fmt.Errorf("UpdateAllRRTtl Get views falied:%s", err.Error())
-			}
-			zoneRes, err := dbhandler.GetWithTx(rr.Zone, &[]*resource.AgentZone{}, tx)
-			if err != nil {
-				return fmt.Errorf("UpdateAllRRTtl Get zones falied:%s", err.Error())
-			}
-			view := viewRes.(*resource.AgentView)
-			zone := zoneRes.(*resource.AgentZone)
-			rrset, err := generateRRset(rr, zone.Name, zone.RrsRole)
-			if err != nil {
-				return fmt.Errorf("UpdateAllRRTtl generateRRset failed:%s", err.Error())
-			}
-			if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, false); err != nil {
-				return fmt.Errorf("UpdateAllRRTtl delete rrset:%s error:%s", rrset.String(), err.Error())
-			}
-
-			rr.Ttl = uint(ttl)
-			newRRset, err := generateRRset(rr, zone.Name, zone.RrsRole)
-			if err != nil {
-				return fmt.Errorf("UpdateAllRRTtl generateRRset failed:%s", err.Error())
-			}
-			if err := updateRR("key"+view.Name, view.Key, newRRset, zone.Name, true); err != nil {
-				return fmt.Errorf("UpdateAllRRTtl add rrset:%s error:%s", rrset.String(), err.Error())
-			}
+		rrset, err := generateRRset(rr, zone.Name, zone.RrsRole)
+		if err != nil {
+			return fmt.Errorf("UpdateAllRRTtl generateRRset failed:%s", err.Error())
+		}
+		if err := updateRR("key"+view.Name, view.Key, rrset, zone.Name, false); err != nil {
+			return fmt.Errorf("UpdateAllRRTtl delete rrset:%s error:%s", rrset.String(), err.Error())
 		}
 
-		if err := handler.rndcDumpJNLFile(); err != nil {
-			return fmt.Errorf("UpdateAllRRTtl rndcDumpJNLFile error:%s", err.Error())
+		rr.Ttl = uint(ttl)
+		newRRset, err := generateRRset(rr, zone.Name, zone.RrsRole)
+		if err != nil {
+			return fmt.Errorf("UpdateAllRRTtl generateRRset failed:%s", err.Error())
+		}
+		if err := updateRR("key"+view.Name, view.Key, newRRset, zone.Name, true); err != nil {
+			return fmt.Errorf("UpdateAllRRTtl add rrset:%s error:%s", rrset.String(), err.Error())
 		}
 
-		return nil
-	})
+	}
+
+	if err := handler.rndcDumpJNLFile(); err != nil {
+		return fmt.Errorf("UpdateAllRRTtl rndcDumpJNLFile error:%s", err.Error())
+	}
+
+	return nil
 }
 
 func (handler *DNSHandler) UpdateRR(req *pb.UpdateRRReq) error {
@@ -1355,19 +1358,21 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 			if _, err := tx.Exec(updateRedirectionTtlSQL, req.Ttl); err != nil {
 				return fmt.Errorf("update updateRedirectionTtlSQL to db failed:%s", err.Error())
 			}
-			if _, err := tx.Exec(updateRRsTTLSQL, req.Ttl); err != nil {
-				return fmt.Errorf("update updateRRsTTLSQL to db failed:%s", err.Error())
-			}
 
-			if err := handler.UpdateAllRRTtl(req.Ttl); err != nil {
+			if err := handler.UpdateAllRRTtl(req.Ttl, tx); err != nil {
 				return err
 			}
-			if err := handler.rewriteNamedViewFile(false, tx); err != nil {
-				return fmt.Errorf("UpdateGlobalConfig rewriteNamedViewFile failed:%s", err.Error())
+
+			if err := handler.initRPZFile(tx); err != nil {
+				return fmt.Errorf("UpdateGlobalConfig initRPZFile failed:%s", err.Error())
 			}
-			if err := handler.rewriteNamedViewFile(false, tx); err != nil {
+			if err := handler.initRedirectFile(tx); err != nil {
 				return fmt.Errorf("UpdateGlobalConfig  rewriteNamedViewFile failed:%s", err.Error())
 			}
+			if err := handler.rndcReconfig(); err != nil {
+				return fmt.Errorf("UpdateGlobalConfig  rndcReconfig failed:%s", err.Error())
+			}
+
 		}
 
 		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
