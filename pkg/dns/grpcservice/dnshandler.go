@@ -58,6 +58,15 @@ const (
 	updateRedirectionTtlSQL = "update gr_agent_redirection set ttl = $1"
 )
 
+var (
+	rndcConfPath    = ""
+	rndcPath        = ""
+	nginxConfPath   = ""
+	namedViewPath   = ""
+	namedOptionPath = ""
+	namedAclPath    = ""
+)
+
 type DNSHandler struct {
 	tpl                 *template.Template
 	dnsConfPath         string
@@ -83,10 +92,6 @@ func newDNSHandler(dnsConfPath string, agentPath string, nginxDefaultConfDir str
 	instance.ticker = time.NewTicker(checkPeriod * time.Second)
 	instance.quit = make(chan int)
 
-	if err := initDefaultDbData(); err != nil {
-		return nil, fmt.Errorf("initDefaultDbData failed:%s", err.Error())
-	}
-
 	if err := instance.StartDNS(&pb.DNSStartReq{}); err != nil {
 		log.Errorf("start dns fail:%s", err.Error())
 	}
@@ -105,6 +110,10 @@ func (handler *DNSHandler) StartDNS(req *pb.DNSStartReq) error {
 func (handler *DNSHandler) Start() error {
 	if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err == nil {
 		return nil
+	}
+
+	if err := initDefaultDbData(); err != nil {
+		return fmt.Errorf("initDefaultDbData failed:%s", err.Error())
 	}
 
 	if err := handler.initFiles(); err != nil {
@@ -156,6 +165,13 @@ func (handler *DNSHandler) keepDNSAlive() {
 }
 
 func (handler *DNSHandler) initFiles() error {
+	rndcConfPath = filepath.Join(handler.dnsConfPath, "rndc.conf")
+	rndcPath = filepath.Join(handler.dnsConfPath, "rndc")
+	nginxConfPath = filepath.Join(handler.nginxDefaultConfDir, nginxDefaultConfFile)
+	namedViewPath = filepath.Join(handler.dnsConfPath, namedViewConfName)
+	namedOptionPath = filepath.Join(handler.dnsConfPath, namedOptionsConfName)
+	namedAclPath = filepath.Join(handler.dnsConfPath, namedAclConfName)
+
 	path := filepath.Join(handler.dnsConfPath, "redirection")
 	if !pathExists(path) {
 		if err := os.Mkdir(path, 0644); err != nil {

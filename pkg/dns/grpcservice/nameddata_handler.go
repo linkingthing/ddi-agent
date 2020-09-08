@@ -10,9 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	restdb "github.com/zdnscloud/gorest/db"
-
 	"github.com/zdnscloud/cement/shell"
+	restdb "github.com/zdnscloud/gorest/db"
 
 	"github.com/linkingthing/ddi-agent/pkg/dns/dbhandler"
 	"github.com/linkingthing/ddi-agent/pkg/dns/resource"
@@ -130,18 +129,18 @@ func (handler *DNSHandler) initNamedConf() error {
 		NamedViewPath:    filepath.Join(handler.dnsConfPath, namedViewConfName),
 		NamedOptionsPath: filepath.Join(handler.dnsConfPath, namedOptionsConfName),
 	}
-	return handler.FlushTemplateFiles(namedTpl, filepath.Join(handler.dnsConfPath, mainConfName), data)
+	return handler.flushTemplateFiles(namedTpl, filepath.Join(handler.dnsConfPath, mainConfName), data)
 }
 
 func (handler *DNSHandler) rndcReconfig() error {
 	paras := []string{
-		"-c" + filepath.Join(handler.dnsConfPath, "rndc.conf"),
+		"-c" + rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"reconfig",
 	}
 
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), paras...); err != nil {
+	if _, err := shell.Shell(rndcPath, paras...); err != nil {
 		return fmt.Errorf("rndc reconfig error, %w", err)
 	}
 	return nil
@@ -149,13 +148,13 @@ func (handler *DNSHandler) rndcReconfig() error {
 
 func (handler *DNSHandler) rndcReload() error {
 	paras := []string{
-		"-c" + filepath.Join(handler.dnsConfPath, "rndc.conf"),
+		"-c" + rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"reload",
 	}
 
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), paras...); err != nil {
+	if _, err := shell.Shell(rndcPath, paras...); err != nil {
 		return fmt.Errorf("rndc reconfig error, %w", err)
 	}
 	return nil
@@ -163,12 +162,12 @@ func (handler *DNSHandler) rndcReload() error {
 
 func (handler *DNSHandler) rndcAddZone(name string, zoneFile string, viewName string) error {
 	paras := []string{
-		"-c" + filepath.Join(handler.dnsConfPath, "rndc.conf"),
+		"-c" + rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"addzone " + name + " in " + viewName + " { type master; file \"" + zoneFile + "\";};",
 	}
-	if out, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), paras...); err != nil {
+	if out, err := shell.Shell(rndcPath, paras...); err != nil {
 		return fmt.Errorf("rndcAddZone error:%s cmd:%s error:%s", out, paras, err.Error())
 	}
 	return nil
@@ -176,12 +175,12 @@ func (handler *DNSHandler) rndcAddZone(name string, zoneFile string, viewName st
 
 func (handler *DNSHandler) rndcModZone(name string, zoneFile string, viewName string) error {
 	paras := []string{
-		"-c" + filepath.Join(handler.dnsConfPath, "rndc.conf"),
+		"-c" + rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"modzone " + name + " in " + viewName + " { type master; file \"" + zoneFile + "\";};",
 	}
-	if out, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), paras...); err != nil {
+	if out, err := shell.Shell(rndcPath, paras...); err != nil {
 		return fmt.Errorf("rndcModZone error:%s cmd:%s error:%s", out, paras, err.Error())
 	}
 	return nil
@@ -189,14 +188,14 @@ func (handler *DNSHandler) rndcModZone(name string, zoneFile string, viewName st
 
 func (handler *DNSHandler) rndcDelZone(name string, viewName string) error {
 	paras := []string{
-		"-c" + filepath.Join(handler.dnsConfPath, "rndc.conf"),
+		"-c" + rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"delzone",
 		"-clean",
 		name + " in " + viewName,
 	}
-	if out, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), paras...); err != nil {
+	if out, err := shell.Shell(rndcPath, paras...); err != nil {
 		return fmt.Errorf("rndcDelZone error:%s cmd:%s error:%s", out, paras, err.Error())
 	}
 	return nil
@@ -204,13 +203,13 @@ func (handler *DNSHandler) rndcDelZone(name string, viewName string) error {
 
 func (handler *DNSHandler) rndcDumpJNLFile() error {
 	paras := []string{
-		"-c" + filepath.Join(handler.dnsConfPath, "rndc.conf"),
+		"-c" + rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"sync",
 		"-clean",
 	}
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), paras...); err != nil {
+	if _, err := shell.Shell(rndcPath, paras...); err != nil {
 		return fmt.Errorf("exec rndc sync -clean err:%s", err.Error())
 	}
 	return nil
@@ -218,14 +217,14 @@ func (handler *DNSHandler) rndcDumpJNLFile() error {
 
 func (handler *DNSHandler) rndcZoneDumpJNLFile(zoneName string, viewName string) error {
 	paras := []string{
-		"-c" + filepath.Join(handler.dnsConfPath, "rndc.conf"),
+		"-c" + rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"sync",
 		"-clean",
 		zoneName + " in " + viewName,
 	}
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), paras...); err != nil {
+	if _, err := shell.Shell(rndcPath, paras...); err != nil {
 		return fmt.Errorf("exec rndc sync -clean err:%s", err.Error())
 	}
 	return nil
@@ -240,8 +239,8 @@ func (handler *DNSHandler) rewriteNginxFile(tx restdb.Transaction) error {
 	if err = handler.tpl.ExecuteTemplate(buf, nginxDefaultTpl, data); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(filepath.Join(handler.nginxDefaultConfDir, nginxDefaultConfFile), buf.Bytes(), 0644); err != nil {
-		return fmt.Errorf("write file %s err:%s", filepath.Join(handler.nginxDefaultConfDir, nginxDefaultConfFile), err.Error())
+	if err := ioutil.WriteFile(nginxConfPath, buf.Bytes(), 0644); err != nil {
+		return fmt.Errorf("write file %s err:%s", nginxConfPath, err.Error())
 	}
 	return nil
 }
@@ -339,9 +338,9 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 		viewConfigData.Views = append(viewConfigData.Views, view)
 	}
 
-	if err := handler.FlushTemplateFiles(namedViewTpl,
-		filepath.Join(handler.dnsConfPath, namedViewConfName), viewConfigData); err != nil {
-		return fmt.Errorf("FlushTemplateFiles failed :%s", err.Error())
+	if err := handler.flushTemplateFiles(namedViewTpl,
+		namedViewPath, viewConfigData); err != nil {
+		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
 	return nil
@@ -418,9 +417,9 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 		viewConfigData.Views = append(viewConfigData.Views, view)
 	}
 
-	if err := handler.FlushTemplateFiles(namedViewTpl,
-		filepath.Join(handler.dnsConfPath, namedViewConfName), viewConfigData); err != nil {
-		return fmt.Errorf("FlushTemplateFiles failed :%s", err.Error())
+	if err := handler.flushTemplateFiles(namedViewTpl,
+		namedViewPath, viewConfigData); err != nil {
+		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
 	return handler.rndcReconfig()
@@ -461,9 +460,9 @@ func (handler *DNSHandler) initNamedOptionsFile(tx restdb.Transaction) error {
 		}
 	}
 
-	if err := handler.FlushTemplateFiles(namedOptionsTpl,
-		filepath.Join(handler.dnsConfPath, namedOptionsConfName), namedOptionData); err != nil {
-		return fmt.Errorf("FlushTemplateFiles failed :%s", err.Error())
+	if err := handler.flushTemplateFiles(namedOptionsTpl,
+		namedOptionPath, namedOptionData); err != nil {
+		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
 	return nil
@@ -505,9 +504,9 @@ func (handler *DNSHandler) rewriteNamedOptionsFile(tx restdb.Transaction) error 
 		}
 	}
 
-	if err := handler.FlushTemplateFiles(namedOptionsTpl,
-		filepath.Join(handler.dnsConfPath, namedOptionsConfName), namedOptionData); err != nil {
-		return fmt.Errorf("FlushTemplateFiles failed :%s", err.Error())
+	if err := handler.flushTemplateFiles(namedOptionsTpl,
+		namedOptionPath, namedOptionData); err != nil {
+		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
 	return handler.rndcReconfig()
@@ -527,9 +526,9 @@ func (handler *DNSHandler) initNamedAclFile(tx restdb.Transaction) error {
 		}
 	}
 
-	if err := handler.FlushTemplateFiles(namedAclTpl,
-		filepath.Join(handler.dnsConfPath, namedAclConfName), namedAcl); err != nil {
-		return fmt.Errorf("FlushTemplateFiles failed :%s", err.Error())
+	if err := handler.flushTemplateFiles(namedAclTpl,
+		namedAclPath, namedAcl); err != nil {
+		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
 	return nil
@@ -549,9 +548,9 @@ func (handler *DNSHandler) rewriteNamedAclFile(isInit bool, tx restdb.Transactio
 		}
 	}
 
-	if err := handler.FlushTemplateFiles(namedAclTpl,
-		filepath.Join(handler.dnsConfPath, namedAclConfName), namedAcl); err != nil {
-		return fmt.Errorf("FlushTemplateFiles failed :%s", err.Error())
+	if err := handler.flushTemplateFiles(namedAclTpl,
+		namedAclPath, namedAcl); err != nil {
+		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
 	if isInit {
@@ -874,14 +873,14 @@ func (handler *DNSHandler) getOneRedirectData(viewID, redirectType string, tx re
 	return data, nil
 }
 
-func (handler *DNSHandler) FlushTemplateFiles(tplName, tplConfName string, data interface{}) error {
+func (handler *DNSHandler) flushTemplateFiles(tplName, tplConfName string, data interface{}) error {
 	buffer := new(bytes.Buffer)
 	if err := handler.tpl.ExecuteTemplate(buffer, tplName, data); err != nil {
-		return fmt.Errorf("FlushTemplateFiles tplName:%s tplConfName:%s  failed:%s", tplName, tplConfName, err.Error())
+		return fmt.Errorf("flushTemplateFiles tplName:%s tplConfName:%s  failed:%s", tplName, tplConfName, err.Error())
 	}
 
 	if err := ioutil.WriteFile(tplConfName, buffer.Bytes(), 0644); err != nil {
-		return fmt.Errorf("FlushTemplateFiles tplName:%s tplConfName:%s  WriteFile failed:%s", tplName, tplConfName, err.Error())
+		return fmt.Errorf("flushTemplateFiles tplName:%s tplConfName:%s  WriteFile failed:%s", tplName, tplConfName, err.Error())
 	}
 
 	return nil
@@ -917,15 +916,6 @@ func removeFiles(dir string, prefix string, suffix string) error {
 func RemoveOneFile(path string) error {
 	if pathExists(path) {
 		if err := os.Remove(path); err != nil {
-			return fmt.Errorf("Remove %s failed:%s ", path, err.Error())
-		}
-	}
-	return nil
-}
-
-func CreateOneFile(path string) error {
-	if !pathExists(path) {
-		if _, err := os.Create(path); err != nil {
 			return fmt.Errorf("Remove %s failed:%s ", path, err.Error())
 		}
 	}
