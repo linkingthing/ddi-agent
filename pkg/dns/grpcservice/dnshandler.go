@@ -171,11 +171,15 @@ func (handler *DNSHandler) initFiles() error {
 	namedViewPath = filepath.Join(handler.dnsConfPath, namedViewConfName)
 	namedOptionPath = filepath.Join(handler.dnsConfPath, namedOptionsConfName)
 	namedAclPath = filepath.Join(handler.dnsConfPath, namedAclConfName)
+	if rndcConfPath == "" && rndcPath == "" && nginxConfPath == "" &&
+		namedViewPath == "" && namedOptionPath == "" && namedAclPath == "" {
+		return fmt.Errorf("init path failed path is empty")
+	}
 
 	path := filepath.Join(handler.dnsConfPath, "redirection")
 	if !pathExists(path) {
 		if err := os.Mkdir(path, 0644); err != nil {
-			log.Errorf("create redirection fail:%s", err.Error())
+			return fmt.Errorf("create redirection fail:%s", err.Error())
 		}
 	}
 
