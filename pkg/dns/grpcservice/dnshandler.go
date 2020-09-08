@@ -448,7 +448,7 @@ func (handler *DNSHandler) DeleteView(req *pb.DeleteViewReq) error {
 			return fmt.Errorf("DeleteView delete forwardzone viewID:%s from db failed: %s", req.Id, err.Error())
 		}
 
-		if err := removeFiles(filepath.Join(handler.dnsConfPath), req.Id+"_", zoneSuffix); err != nil {
+		if err := removeFiles(filepath.Join(handler.dnsConfPath), req.Id+"#", zoneSuffix); err != nil {
 			return fmt.Errorf("DeleteView zonefile in %s err: %s", filepath.Join(handler.dnsConfPath, "redirection"), err.Error())
 		}
 		if err := RemoveOneFile(filepath.Join(handler.dnsConfPath, req.Id) + nzfSuffix); err != nil {
@@ -1090,16 +1090,9 @@ func (handler *DNSHandler) UpdateForward(req *pb.UpdateForwardReq) error {
 		if err := tx.FillEx(&forwardZoneList, "select * from gr_agent_forward_zone where $1 = ANY(forward_ids)", req.Id); err != nil {
 			return fmt.Errorf("get forwardZoneList from db failed:%s", err.Error())
 		}
-		for _, forwardZone := range forwardZoneList {
-			for k, ip := range append(forwardZone.Ips, req.Ips...) {
-				for _, fip := range forward.Ips {
-					if fip == ip {
-						forwardZone.Ips = append(forwardZone.Ips[:k], forwardZone.Ips[k+1:]...)
-						continue
-					}
-				}
-			}
 
+		for _, forwardZone := range forwardZoneList {
+			forwardZone.Ips = append(removeSameIp(forwardZone.Ips, forward.Ips), req.Ips...)
 			if _, err := tx.Exec("update gr_agent_forward_zone set ips = $1 where id = $2", forwardZone.Ips, forwardZone.ID); err != nil {
 				return fmt.Errorf("update gr_agent_forward_zone id:%s to db failed:%s", forwardZone.ID, err.Error())
 			}
@@ -1433,4 +1426,26 @@ func isSlicesDiff(slice1, slice2 []string) bool {
 		}
 	}
 	return len(temp) > 0
+}
+
+func removeSameIp(slice1, slice2 []string) []string {
+	temp := make(map[string]string)
+	for _, v := range slice1 {
+		temp[v] = v
+	}
+	for _, v := range slice2 {
+		if _, ok := temp[v]; ok {
+			delete(temp, v)
+		} else {
+			temp[v] = v
+
+		}
+	}
+
+	slice1 = []string{}
+	for _, v := range temp {
+		slice1 = append(slice1, v)
+	}
+
+	return slice1
 }

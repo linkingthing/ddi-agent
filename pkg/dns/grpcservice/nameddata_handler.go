@@ -402,8 +402,8 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 		}
 
 		var forwardZoneList []*resource.AgentForwardZone
-		if err := dbhandler.ListByCondition(&forwardZoneList,
-			map[string]interface{}{"view": value.ID}); err != nil {
+		if err := dbhandler.ListByConditionWithTx(&forwardZoneList,
+			map[string]interface{}{"view": value.ID}, tx); err != nil {
 			return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
 		}
 
