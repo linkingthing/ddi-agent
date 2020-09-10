@@ -680,8 +680,16 @@ func (handler *DNSHandler) CreateRR(req *pb.CreateRRReq) error {
 	rr.SetID(req.Id)
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if req.ViewId == defaultView {
+			rrRes, err := dbhandler.GetWithTx(req.ViewId, &[]*resource.AgentView{}, tx)
+			if err != nil {
+				return fmt.Errorf("CreateRR get default view id:%s from db failed:%s", req.ViewId, err.Error())
+			}
+			req.ViewKey = rrRes.(*resource.AgentView).Key
+		}
+
 		if _, err := tx.Insert(rr); err != nil {
-			return fmt.Errorf("CreateRR insert id:%s to dbfailed:%s", req.Id, err.Error())
+			return fmt.Errorf("CreateRR insert id:%s to db failed:%s", req.Id, err.Error())
 		}
 
 		rrset, err := generateRRset(rr, req.ZoneName, req.ZoneRrsRole)
@@ -702,6 +710,14 @@ func (handler *DNSHandler) CreateRR(req *pb.CreateRRReq) error {
 
 func (handler *DNSHandler) UpdateRRsByZone(req *pb.UpdateRRsByZoneReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if req.ViewName == defaultView {
+			rrRes, err := dbhandler.GetWithTx(req.ViewName, &[]*resource.AgentView{}, tx)
+			if err != nil {
+				return fmt.Errorf("UpdateRRsByZone get default view id:%s from db failed:%s", req.ViewName, err.Error())
+			}
+			req.ViewKey = rrRes.(*resource.AgentView).Key
+		}
+
 		var rrList []*resource.AgentRr
 		if err := dbhandler.ListWithTx(&rrList, tx); err != nil {
 			return fmt.Errorf("UpdateRRsByZone list rr from db failed:%s ", err.Error())
@@ -787,6 +803,14 @@ func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32, tx restdb.Transaction) err
 
 func (handler *DNSHandler) UpdateRR(req *pb.UpdateRRReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if req.ViewName == defaultView {
+			rrRes, err := dbhandler.GetWithTx(req.ViewName, &[]*resource.AgentView{}, tx)
+			if err != nil {
+				return fmt.Errorf("UpdateRR get default view id:%s from db failed:%s", req.ViewName, err.Error())
+			}
+			req.ViewKey = rrRes.(*resource.AgentView).Key
+		}
+
 		rrRes, err := dbhandler.GetWithTx(req.Id, &[]*resource.AgentRr{}, tx)
 		if err != nil {
 			return fmt.Errorf("UpdateRR get rr id:%s from db failed:%s", req.Id, err.Error())
@@ -843,6 +867,14 @@ func (handler *DNSHandler) DeleteRR(req *pb.DeleteRRReq) error {
 	rr.SetID(req.Id)
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if req.ViewName == defaultView {
+			rrRes, err := dbhandler.GetWithTx(req.ViewName, &[]*resource.AgentView{}, tx)
+			if err != nil {
+				return fmt.Errorf("DeleteRR get default view id:%s from db failed:%s", req.ViewName, err.Error())
+			}
+			req.ViewKey = rrRes.(*resource.AgentView).Key
+		}
+
 		if _, err := tx.Delete(resource.TableRR, map[string]interface{}{restdb.IDField: rr.ID}); err != nil {
 			return fmt.Errorf("delete rr id:%s from db failed:%s", rr.ID, err.Error())
 		}
