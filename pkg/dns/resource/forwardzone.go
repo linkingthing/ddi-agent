@@ -13,5 +13,5 @@ type AgentForwardZone struct {
 	ForwardType           string   `json:"forwardtype" rest:"required=true,options=only|first"`
 	ForwardIds            []string `json:"forward" db:"uk"`
 	Ips                   []string `json:"ips"`
-	View                  string   `json:"-" db:"uk"`
+	AgentView             string   `json:"-" db:"ownby,uk"`
 }

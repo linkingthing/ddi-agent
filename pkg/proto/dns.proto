@@ -95,15 +95,24 @@ message CreateZoneReq{
 message UpdateZoneReq{
 	string id = 1;
 	uint32 ttl = 2;
+	string name = 3;
+	string zone_file_name = 4;
+	string view = 5;
 }
 
 message DeleteZoneReq{
 	string id = 1;
+	string name = 2;
+	string view = 3;
 }
 
 message UpdateRRsByZoneReq{
 	string zone_id = 1;
-	string role = 2;
+	string new_rrs_role = 2;
+	string view_name = 3;
+	string view_key = 4;
+	string zone_name = 5;
+	string old_rrs_role = 6;
 }
 
 message CreateRRReq{
@@ -115,6 +124,9 @@ message CreateRRReq{
 	string r_data = 6;
 	string backup_r_data = 7;
 	uint32 ttl = 8;
+	string view_key = 9;
+	string zone_name = 10;
+	string zone_rrs_role = 11;
 }
 
 message UpdateRRReq{
@@ -123,10 +135,24 @@ message UpdateRRReq{
 	string r_data = 3;
 	string backup_r_data = 4;
 	uint32 ttl = 5;
+	string view_name = 6;
+	string view_key = 7;
+	string zone_name = 8;
+	string zone_rrs_role = 9;
 }
 
 message DeleteRRReq{
 	string id = 1;
+	string name = 2;
+	string zone_id = 3;
+	string data_type = 4;
+	string r_data = 5;
+	string backup_r_data = 6;
+	uint32 ttl = 7;
+	string view_name = 8;
+	string view_key = 9;
+	string zone_name = 10;
+	string zone_rrs_role = 11;
 }
 
 message CreateViewReq{
@@ -134,7 +160,14 @@ message CreateViewReq{
 	string name = 2;
 	uint32 priority = 3;
 	string dns64 = 4;
-	repeated string acls = 5;
+	string key = 5;
+	repeated string acls = 6;
+	repeated ViewPriority view_priority = 7;
+}
+
+message ViewPriority{
+	string id = 1;
+	uint32 priority = 3;
 }
 
 message UpdateViewReq{
@@ -142,10 +175,12 @@ message UpdateViewReq{
 	uint32 priority = 2;
 	string dns64 = 3;
 	repeated string acls = 4;
+	repeated ViewPriority view_priority = 5;
 }
 
 message DeleteViewReq{
 	string id = 1;
+	repeated ViewPriority view_priority = 2;
 }
 
 message CreateUrlRedirectReq{
@@ -159,10 +194,12 @@ message UpdateUrlRedirectReq{
 	string id = 1;
 	string domain = 2;
 	string url = 3;
+	string view = 5;
 }
 
 message DeleteUrlRedirectReq{
 	string id = 1;
+	string view = 2;
 }
 
 message CreateRedirectionReq{
@@ -181,10 +218,14 @@ message UpdateRedirectionReq{
 	string redirect_type = 3;
 	string r_data = 4;
 	uint32 ttl = 5;
+	bool redirect_type_changed = 6;
+	string view = 7;
 }
 
 message DeleteRedirectionReq{
 	string id = 1;
+	string redirect_type = 2;
+	string view = 3;
 }
 
 message CreateForwardReq{
@@ -196,6 +237,12 @@ message CreateForwardReq{
 message UpdateForwardReq{
 	string id = 1;
 	repeated string ips = 2;
+	repeated ForwardZone forwardZones = 3;
+}
+
+message ForwardZone{
+	string id = 1;
+	repeated string forward_ips = 2;
 }
 
 message DeleteForwardReq{
@@ -207,13 +254,16 @@ message CreateForwardZoneReq{
 	string name = 2;
 	string forward_type = 3;
 	repeated string forward_ids = 4;
-	string view_id = 5;
+	repeated string forward_ips = 5;
+	string view_id = 6;
 }
 
 message UpdateForwardZoneReq{
 	string id = 1;
 	repeated string forward_ids = 2;
 	string forward_type = 3;
+	bool ips_changed = 4;
+	repeated string forward_ips = 5;
 }
 
 message DeleteForwardZoneReq{

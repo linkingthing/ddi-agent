@@ -13,6 +13,7 @@ import (
 	"github.com/zdnscloud/cement/shell"
 	restdb "github.com/zdnscloud/gorest/db"
 
+	"github.com/linkingthing/ddi-agent/pkg/db"
 	"github.com/linkingthing/ddi-agent/pkg/dns/dbhandler"
 	"github.com/linkingthing/ddi-agent/pkg/dns/resource"
 )
@@ -123,6 +124,55 @@ type urlRedirect struct {
 	URL    string
 }
 
+func (handler *DNSHandler) initFiles() error {
+	handler.rndcConfPath = filepath.Join(handler.dnsConfPath, "rndc.conf")
+	handler.rndcPath = filepath.Join(handler.dnsConfPath, "rndc")
+	handler.nginxConfPath = filepath.Join(handler.nginxDefaultConfDir, nginxDefaultConfFile)
+	handler.namedViewPath = filepath.Join(handler.dnsConfPath, namedViewConfName)
+	handler.namedOptionPath = filepath.Join(handler.dnsConfPath, namedOptionsConfName)
+	handler.namedAclPath = filepath.Join(handler.dnsConfPath, namedAclConfName)
+	if handler.rndcConfPath == "" && handler.rndcPath == "" && handler.nginxConfPath == "" &&
+		handler.namedViewPath == "" && handler.namedOptionPath == "" && handler.namedAclPath == "" {
+		return fmt.Errorf("init path failed path is empty")
+	}
+
+	if err := createOneFile(filepath.Join(handler.dnsConfPath, "redirection")); err != nil {
+		return err
+	}
+
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := handler.initNamedConf(); err != nil {
+			return fmt.Errorf("initNamedConf failed:%s", err.Error())
+		}
+		if err := handler.initNamedOptionsFile(tx); err != nil {
+			return fmt.Errorf("init rewriteNamedOptionsFile failed:%s", err.Error())
+		}
+		if err := handler.initNamedViewFile(tx); err != nil {
+			return fmt.Errorf("initNamedViewFile failed:%s", err.Error())
+		}
+		if err := handler.initNamedAclFile(tx); err != nil {
+			return fmt.Errorf("init rewriteNamedFile failed:%s", err.Error())
+		}
+		if err := handler.initZoneFiles(tx); err != nil {
+			return fmt.Errorf("initZoneFiles failed:%s", err.Error())
+		}
+		if err := handler.rewriteNzfsFile(tx); err != nil {
+			return fmt.Errorf("init rewriteNzfsFile failed:%s", err.Error())
+		}
+		if err := handler.initRPZFile(tx); err != nil {
+			return fmt.Errorf("init rewriteRPZFile failed:%s", err.Error())
+		}
+		if err := handler.initRedirectFile(tx); err != nil {
+			return fmt.Errorf("init rewriteRedirectFile failed:%s", err.Error())
+		}
+		if err := handler.rewriteNginxFile(tx); err != nil {
+			return fmt.Errorf("rewrite nginx config file error:%s", err.Error())
+		}
+
+		return nil
+	})
+}
+
 func (handler *DNSHandler) initNamedConf() error {
 	data := &NamedData{
 		NamedAclPath:     filepath.Join(handler.dnsConfPath, namedAclConfName),
@@ -134,13 +184,13 @@ func (handler *DNSHandler) initNamedConf() error {
 
 func (handler *DNSHandler) rndcReconfig() error {
 	paras := []string{
-		"-c" + rndcConfPath,
+		"-c" + handler.rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"reconfig",
 	}
 
-	if _, err := shell.Shell(rndcPath, paras...); err != nil {
+	if _, err := shell.Shell(handler.rndcPath, paras...); err != nil {
 		return fmt.Errorf("rndc reconfig error, %w", err)
 	}
 	return nil
@@ -148,13 +198,13 @@ func (handler *DNSHandler) rndcReconfig() error {
 
 func (handler *DNSHandler) rndcReload() error {
 	paras := []string{
-		"-c" + rndcConfPath,
+		"-c" + handler.rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"reload",
 	}
 
-	if _, err := shell.Shell(rndcPath, paras...); err != nil {
+	if _, err := shell.Shell(handler.rndcPath, paras...); err != nil {
 		return fmt.Errorf("rndc reconfig error, %w", err)
 	}
 	return nil
@@ -162,54 +212,54 @@ func (handler *DNSHandler) rndcReload() error {
 
 func (handler *DNSHandler) rndcAddZone(name string, zoneFile string, viewName string) error {
 	paras := []string{
-		"-c" + rndcConfPath,
+		"-c" + handler.rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"addzone " + name + " in " + viewName + " { type master; file \"" + zoneFile + "\";};",
 	}
-	if out, err := shell.Shell(rndcPath, paras...); err != nil {
+	if out, err := shell.Shell(handler.rndcPath, paras...); err != nil {
 		return fmt.Errorf("rndcAddZone error:%s cmd:%s error:%s", out, paras, err.Error())
 	}
 	return nil
 }
 
-func (handler *DNSHandler) rndcModZone(name string, zoneFile string, viewName string) error {
+func (handler *DNSHandler) rndcModifyZone(name string, zoneFile string, viewName string) error {
 	paras := []string{
-		"-c" + rndcConfPath,
+		"-c" + handler.rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"modzone " + name + " in " + viewName + " { type master; file \"" + zoneFile + "\";};",
 	}
-	if out, err := shell.Shell(rndcPath, paras...); err != nil {
-		return fmt.Errorf("rndcModZone error:%s cmd:%s error:%s", out, paras, err.Error())
+	if out, err := shell.Shell(handler.rndcPath, paras...); err != nil {
+		return fmt.Errorf("rndcModifyZone error:%s cmd:%s error:%s", out, paras, err.Error())
 	}
 	return nil
 }
 
-func (handler *DNSHandler) rndcDelZone(name string, viewName string) error {
+func (handler *DNSHandler) rndcDeleteZone(name string, viewName string) error {
 	paras := []string{
-		"-c" + rndcConfPath,
+		"-c" + handler.rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"delzone",
 		"-clean",
 		name + " in " + viewName,
 	}
-	if out, err := shell.Shell(rndcPath, paras...); err != nil {
-		return fmt.Errorf("rndcDelZone error:%s cmd:%s error:%s", out, paras, err.Error())
+	if out, err := shell.Shell(handler.rndcPath, paras...); err != nil {
+		return fmt.Errorf("rndcDeleteZone error:%s cmd:%s error:%s", out, paras, err.Error())
 	}
 	return nil
 }
 
 func (handler *DNSHandler) rndcDumpJNLFile() error {
 	paras := []string{
-		"-c" + rndcConfPath,
+		"-c" + handler.rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"sync",
 		"-clean",
 	}
-	if _, err := shell.Shell(rndcPath, paras...); err != nil {
+	if _, err := shell.Shell(handler.rndcPath, paras...); err != nil {
 		return fmt.Errorf("exec rndc sync -clean err:%s", err.Error())
 	}
 	return nil
@@ -217,14 +267,15 @@ func (handler *DNSHandler) rndcDumpJNLFile() error {
 
 func (handler *DNSHandler) rndcZoneDumpJNLFile(zoneName string, viewName string) error {
 	paras := []string{
-		"-c" + rndcConfPath,
+		"-c" + handler.rndcConfPath,
 		"-s" + "localhost",
 		"-p" + rndcPort,
 		"sync",
 		"-clean",
 		zoneName + " in " + viewName,
 	}
-	if _, err := shell.Shell(rndcPath, paras...); err != nil {
+
+	if _, err := shell.Shell(handler.rndcPath, paras...); err != nil {
 		return fmt.Errorf("exec rndc sync -clean err:%s", err.Error())
 	}
 	return nil
@@ -239,8 +290,8 @@ func (handler *DNSHandler) rewriteNginxFile(tx restdb.Transaction) error {
 	if err = handler.tpl.ExecuteTemplate(buf, nginxDefaultTpl, data); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(nginxConfPath, buf.Bytes(), 0644); err != nil {
-		return fmt.Errorf("write file %s err:%s", nginxConfPath, err.Error())
+	if err := ioutil.WriteFile(handler.nginxConfPath, buf.Bytes(), 0644); err != nil {
+		return fmt.Errorf("write file %s err:%s", handler.nginxConfPath, err.Error())
 	}
 	return nil
 }
@@ -270,9 +321,20 @@ func (handler *DNSHandler) nginxReload() error {
 func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 	viewConfigData := &NamedViews{}
 	var viewList []*resource.AgentView
-
 	if err := dbhandler.ListByConditionWithTx(&viewList,
 		map[string]interface{}{"orderby": "priority"}, tx); err != nil {
+		return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
+	}
+
+	var redirectionList []*resource.AgentRedirection
+	if err := dbhandler.ListByConditionWithTx(&redirectionList,
+		map[string]interface{}{}, tx); err != nil {
+		return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
+	}
+
+	var forwardZoneList []*resource.AgentForwardZone
+	if err := dbhandler.ListByCondition(&forwardZoneList,
+		map[string]interface{}{}); err != nil {
 		return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
 	}
 
@@ -283,17 +345,11 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 		}
 		view := View{Name: value.Name, ACLs: acls, Key: value.Key}
 
-		var redirectionList []*resource.AgentRedirection
-		if err := dbhandler.ListByConditionWithTx(&redirectionList,
-			map[string]interface{}{"view": value.ID}, tx); err != nil {
-			return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
-		}
-
-		if len(redirectionList) > 0 {
-			var redirectRR []RR
-			var rpzRR []RR
-			for _, reValue := range redirectionList {
-				var rr RR
+		for _, reValue := range redirectionList {
+			if reValue.AgentView == value.ID {
+				var redirectRR []RR
+				var rpzRR []RR
+				rr := RR{}
 				rr.Name = reValue.Name
 				rr.TTL = strconv.Itoa(int(reValue.Ttl))
 				rr.Type = reValue.DataType
@@ -303,13 +359,13 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 				} else if reValue.RedirectType == nxDomain {
 					redirectRR = append(redirectRR, rr)
 				}
-			}
 
-			if len(redirectRR) > 0 {
-				view.Redirect = &Redirect{redirectRR}
-			}
-			if len(rpzRR) > 0 {
-				view.RPZ = &Rpz{rpzRR}
+				if len(redirectRR) > 0 {
+					view.Redirect = &Redirect{redirectRR}
+				}
+				if len(rpzRR) > 0 {
+					view.RPZ = &Rpz{rpzRR}
+				}
 			}
 		}
 
@@ -321,25 +377,21 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 			view.DNS64s = append(view.DNS64s, dns64)
 		}
 
-		var forwardZoneList []*resource.AgentForwardZone
-		if err := dbhandler.ListByCondition(&forwardZoneList,
-			map[string]interface{}{"view": value.ID}); err != nil {
-			return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
-		}
-
 		for _, forwardZone := range forwardZoneList {
-			var tmp Zone
-			tmp.Name = forwardZone.Name
-			tmp.ForwardType = forwardZone.ForwardType
-			tmp.IPs = append(tmp.IPs, forwardZone.Ips...)
-			view.Zones = append(view.Zones, tmp)
+			if forwardZone.AgentView == value.ID {
+				var tmp Zone
+				tmp.Name = forwardZone.Name
+				tmp.ForwardType = forwardZone.ForwardType
+				tmp.IPs = append(tmp.IPs, forwardZone.Ips...)
+				view.Zones = append(view.Zones, tmp)
+			}
 		}
 
 		viewConfigData.Views = append(viewConfigData.Views, view)
 	}
 
 	if err := handler.flushTemplateFiles(namedViewTpl,
-		namedViewPath, viewConfigData); err != nil {
+		handler.namedViewPath, viewConfigData); err != nil {
 		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
@@ -355,6 +407,18 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 		return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
 	}
 
+	var redirectionList []*resource.AgentRedirection
+	if err := dbhandler.ListByConditionWithTx(&redirectionList,
+		map[string]interface{}{}, tx); err != nil {
+		return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
+	}
+
+	var forwardZoneList []*resource.AgentForwardZone
+	if err := dbhandler.ListByConditionWithTx(&forwardZoneList,
+		map[string]interface{}{}, tx); err != nil {
+		return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
+	}
+
 	for _, value := range viewList {
 		var acls []ACL
 		for _, aclValue := range value.Acls {
@@ -362,17 +426,11 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 		}
 		view := View{Name: value.Name, ACLs: acls, Key: value.Key}
 
-		var redirectionList []*resource.AgentRedirection
-		if err := dbhandler.ListByConditionWithTx(&redirectionList,
-			map[string]interface{}{"view": value.ID}, tx); err != nil {
-			return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
-		}
-
-		if len(redirectionList) > 0 {
-			var redirectRR []RR
-			var rpzRR []RR
-			for _, reValue := range redirectionList {
-				var rr RR
+		for _, reValue := range redirectionList {
+			if reValue.AgentView == value.ID {
+				var redirectRR []RR
+				var rpzRR []RR
+				rr := RR{}
 				rr.Name = reValue.Name
 				rr.TTL = strconv.Itoa(int(reValue.Ttl))
 				rr.Type = reValue.DataType
@@ -382,13 +440,13 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 				} else if reValue.RedirectType == nxDomain {
 					redirectRR = append(redirectRR, rr)
 				}
-			}
 
-			if len(redirectRR) > 0 {
-				view.Redirect = &Redirect{redirectRR}
-			}
-			if !existRPZ && len(rpzRR) > 0 {
-				view.RPZ = &Rpz{rpzRR}
+				if len(redirectRR) > 0 {
+					view.Redirect = &Redirect{redirectRR}
+				}
+				if !existRPZ && len(rpzRR) > 0 {
+					view.RPZ = &Rpz{rpzRR}
+				}
 			}
 		}
 
@@ -400,25 +458,21 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 			view.DNS64s = append(view.DNS64s, dns64)
 		}
 
-		var forwardZoneList []*resource.AgentForwardZone
-		if err := dbhandler.ListByConditionWithTx(&forwardZoneList,
-			map[string]interface{}{"view": value.ID}, tx); err != nil {
-			return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
-		}
-
 		for _, forwardZone := range forwardZoneList {
-			var tmp Zone
-			tmp.Name = forwardZone.Name
-			tmp.ForwardType = forwardZone.ForwardType
-			tmp.IPs = append(tmp.IPs, forwardZone.Ips...)
-			view.Zones = append(view.Zones, tmp)
+			if forwardZone.AgentView == value.ID {
+				var tmp Zone
+				tmp.Name = forwardZone.Name
+				tmp.ForwardType = forwardZone.ForwardType
+				tmp.IPs = append(tmp.IPs, forwardZone.Ips...)
+				view.Zones = append(view.Zones, tmp)
+			}
 		}
 
 		viewConfigData.Views = append(viewConfigData.Views, view)
 	}
 
 	if err := handler.flushTemplateFiles(namedViewTpl,
-		namedViewPath, viewConfigData); err != nil {
+		handler.namedViewPath, viewConfigData); err != nil {
 		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
@@ -461,7 +515,7 @@ func (handler *DNSHandler) initNamedOptionsFile(tx restdb.Transaction) error {
 	}
 
 	if err := handler.flushTemplateFiles(namedOptionsTpl,
-		namedOptionPath, namedOptionData); err != nil {
+		handler.namedOptionPath, namedOptionData); err != nil {
 		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
@@ -505,7 +559,7 @@ func (handler *DNSHandler) rewriteNamedOptionsFile(tx restdb.Transaction) error 
 	}
 
 	if err := handler.flushTemplateFiles(namedOptionsTpl,
-		namedOptionPath, namedOptionData); err != nil {
+		handler.namedOptionPath, namedOptionData); err != nil {
 		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
@@ -527,7 +581,7 @@ func (handler *DNSHandler) initNamedAclFile(tx restdb.Transaction) error {
 	}
 
 	if err := handler.flushTemplateFiles(namedAclTpl,
-		namedAclPath, namedAcl); err != nil {
+		handler.namedAclPath, namedAcl); err != nil {
 		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
@@ -549,7 +603,7 @@ func (handler *DNSHandler) rewriteNamedAclFile(isInit bool, tx restdb.Transactio
 	}
 
 	if err := handler.flushTemplateFiles(namedAclTpl,
-		namedAclPath, namedAcl); err != nil {
+		handler.namedAclPath, namedAcl); err != nil {
 		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
 	}
 
@@ -566,16 +620,19 @@ func (handler *DNSHandler) initZoneFiles(tx restdb.Transaction) error {
 	if err := dbhandler.ListWithTx(&zoneList, tx); err != nil {
 		return err
 	}
+
+	var rrList []*resource.AgentRr
+	if err := dbhandler.ListByCondition(&rrList,
+		map[string]interface{}{"orderby": "name"}); err != nil {
+		return err
+	}
 	for _, zone := range zoneList {
-		var rrList []*resource.AgentRr
-		if err := dbhandler.ListByCondition(&rrList,
-			map[string]interface{}{"zone": zone.ID, "orderby": "name"}); err != nil {
-			return err
-		}
-		oneZone := ZoneFileData{ViewName: zone.View, Name: zone.Name, ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
+		oneZone := ZoneFileData{ViewName: zone.AgentView, Name: zone.Name, ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
 		for _, rr := range rrList {
-			oneRR := RR{Name: rr.Name, Type: rr.DataType, Value: rr.Rdata, TTL: strconv.FormatUint(uint64(rr.Ttl), 10)}
-			oneZone.RRs = append(oneZone.RRs, oneRR)
+			if rr.Zone == zone.ID {
+				oneRR := RR{Name: rr.Name, Type: rr.DataType, Value: rr.Rdata, TTL: strconv.FormatUint(uint64(rr.Ttl), 10)}
+				oneZone.RRs = append(oneZone.RRs, oneRR)
+			}
 		}
 		zonesData = append(zonesData, oneZone)
 	}
@@ -599,7 +656,7 @@ func (handler *DNSHandler) initZoneFiles(tx restdb.Transaction) error {
 }
 
 func (handler *DNSHandler) createZoneFile(zone *resource.AgentZone) error {
-	oneZone := ZoneFileData{ViewName: zone.View, Name: zone.Name,
+	oneZone := ZoneFileData{ViewName: zone.AgentView, Name: zone.Name,
 		ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
 
 	buf := new(bytes.Buffer)
@@ -623,18 +680,15 @@ func (handler *DNSHandler) rewriteOneZoneFile(zoneId, zoneFile string, tx restdb
 		return err
 	}
 	zone := zoneRes.(*resource.AgentZone)
-	oneZone := ZoneFileData{ViewName: zone.View, Name: zone.Name,
+	oneZone := ZoneFileData{ViewName: zone.AgentView, Name: zone.Name,
 		ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
 	for _, rr := range rrList {
 		oneRR := RR{Name: rr.Name, Type: rr.DataType, Value: rr.Rdata, TTL: strconv.FormatUint(uint64(rr.Ttl), 10)}
 		oneZone.RRs = append(oneZone.RRs, oneRR)
 	}
 
-	path := filepath.Join(handler.dnsConfPath, zoneFile)
-	if pathExists(path) {
-		if err := os.Remove(path); err != nil {
-			return fmt.Errorf("delete %s file err: %s", path, err.Error())
-		}
+	if err := removeOneFile(filepath.Join(handler.dnsConfPath, zoneFile)); err != nil {
+		return err
 	}
 
 	buf := new(bytes.Buffer)
@@ -655,7 +709,7 @@ func (handler *DNSHandler) rewriteNzfsFile(tx restdb.Transaction) error {
 	}
 
 	for _, zone := range zoneList {
-		oneNzfData := nzfData{ViewName: zone.View}
+		oneNzfData := nzfData{ViewName: zone.AgentView}
 		if zone.ZoneFile != "" {
 			oneZone := Zone{Name: zone.Name, ZoneFile: zone.ZoneFile}
 			oneNzfData.Zones = append(oneNzfData.Zones, oneZone)
@@ -686,7 +740,7 @@ func (handler *DNSHandler) nzfsData(tx restdb.Transaction) ([]nzfData, error) {
 	}
 
 	for _, zone := range zoneList {
-		oneNzfData := nzfData{ViewName: zone.View}
+		oneNzfData := nzfData{ViewName: zone.AgentView}
 		if zone.ZoneFile != "" {
 			oneZone := Zone{Name: zone.Name, ZoneFile: zone.ZoneFile}
 			oneNzfData.Zones = append(oneNzfData.Zones, oneZone)
@@ -721,11 +775,8 @@ func (handler *DNSHandler) initRedirectFile(tx restdb.Transaction) error {
 }
 
 func (handler *DNSHandler) rewriteOneRedirectFile(viewID string, tx restdb.Transaction) error {
-	path := filepath.Join(handler.dnsConfPath, "redirection", "redirect_"+viewID)
-	if pathExists(path) {
-		if err := os.Remove(path); err != nil {
-			return fmt.Errorf("delete %s file err: %s", path, err.Error())
-		}
+	if err := removeOneFile(filepath.Join(handler.dnsConfPath, "redirection", "redirect_"+viewID)); err != nil {
+		return err
 	}
 
 	redirectionList, err := handler.getOneRedirectData(viewID, nxDomain, tx)
@@ -775,11 +826,8 @@ func (handler *DNSHandler) initRPZFile(tx restdb.Transaction) error {
 }
 
 func (handler *DNSHandler) rewriteOneRPZFile(viewID string, tx restdb.Transaction) error {
-	path := filepath.Join(handler.dnsConfPath, "redirection", "rpz_"+viewID)
-	if pathExists(path) {
-		if err := os.Remove(path); err != nil {
-			return fmt.Errorf("delete %s file err: %s", path, err.Error())
-		}
+	if err := removeOneFile(filepath.Join(handler.dnsConfPath, "redirection", "rpz_"+viewID)); err != nil {
+		return err
 	}
 
 	redirectionList, err := handler.getOneRedirectData(viewID, localZoneType, tx)
@@ -815,28 +863,28 @@ func (handler *DNSHandler) getAllRedirectData(redirectType string, tx restdb.Tra
 	if err := dbhandler.ListWithTx(&viewList, tx); err != nil {
 		return nil, err
 	}
+
+	cond := map[string]interface{}{
+		"orderby": "create_time",
+	}
+	if redirectType != "" {
+		cond["redirect_type"] = redirectType
+	}
+	var redirectList []*resource.AgentRedirection
+	if err := dbhandler.ListByConditionWithTx(&redirectList, cond, tx); err != nil {
+		return nil, err
+	}
 	for _, view := range viewList {
-		cond := map[string]interface{}{
-			"view":    view.ID,
-			"orderby": "create_time",
-		}
-		if redirectType != "" {
-			cond["redirect_type"] = redirectType
-		}
-		var redirectList []*resource.AgentRedirection
-		if err := dbhandler.ListByConditionWithTx(&redirectList, cond, tx); err != nil {
-			return nil, err
-		}
-		if len(redirectList) == 0 {
-			continue
-		}
 		oneRedirectionData := RedirectionData{ViewName: view.Name}
 		for _, redirection := range redirectList {
-			oneRR := RR{Name: redirection.Name, Type: redirection.DataType, Value: redirection.Rdata, TTL: strconv.FormatUint(uint64(redirection.Ttl), 10)}
-			oneRedirectionData.RRs = append(oneRedirectionData.RRs, oneRR)
+			if redirection.AgentView == view.ID {
+				oneRR := RR{Name: redirection.Name, Type: redirection.DataType, Value: redirection.Rdata, TTL: strconv.FormatUint(uint64(redirection.Ttl), 10)}
+				oneRedirectionData.RRs = append(oneRedirectionData.RRs, oneRR)
+			}
 		}
-
-		data = append(data, oneRedirectionData)
+		if len(oneRedirectionData.RRs) > 0 {
+			data = append(data, oneRedirectionData)
+		}
 	}
 
 	return data, nil
@@ -850,8 +898,8 @@ func (handler *DNSHandler) getOneRedirectData(viewID, redirectType string, tx re
 	}
 	view := viewRes.(*resource.AgentView)
 	cond := map[string]interface{}{
-		"view":    view.ID,
-		"orderby": "create_time",
+		"agent_view": view.ID,
+		"orderby":    "create_time",
 	}
 	if redirectType != "" {
 		cond["redirect_type"] = redirectType
@@ -913,8 +961,9 @@ func removeFiles(dir string, prefix string, suffix string) error {
 	return nil
 }
 
-func RemoveOneFile(path string) error {
-	if pathExists(path) {
+func removeOneFile(path string) error {
+	_, err := os.Stat(path)
+	if !os.IsNotExist(err) {
 		if err := os.Remove(path); err != nil {
 			return fmt.Errorf("Remove %s failed:%s ", path, err.Error())
 		}
@@ -922,14 +971,12 @@ func RemoveOneFile(path string) error {
 	return nil
 }
 
-func pathExists(path string) bool {
+func createOneFile(path string) error {
 	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false
+	if os.IsNotExist(err) {
+		if err := os.Remove(path); err != nil {
+			return fmt.Errorf("create %s fail:%s", path, err.Error())
 		}
-		return false
 	}
-
-	return true
+	return nil
 }

@@ -13,5 +13,5 @@ type AgentZone struct {
 	Ttl                   uint   `json:"ttl" rest:"required=true, min=0,max=3000000"`
 	ZoneFile              string `json:"-"`
 	RrsRole               string `json:"rrsRole"`
-	View                  string `json:"-" db:"uk"`
+	AgentView             string `json:"-" db:"ownby,uk"`
 }

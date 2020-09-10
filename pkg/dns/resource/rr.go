@@ -16,5 +16,5 @@ type AgentRr struct {
 	RdataBackup           string `json:"rdataBackup"`
 	ActiveRdata           string `json:"activeRdata"`
 	Zone                  string `json:"-" db:"uk"`
-	View                  string `json:"-" db:"uk"`
+	AgentView             string `json:"-" db:"ownby,uk"`
 }
