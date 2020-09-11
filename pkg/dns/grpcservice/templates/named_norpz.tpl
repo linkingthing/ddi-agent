@@ -45,7 +45,6 @@ view "{{$view.Name}}" {
         dns64 {{$dns64.Prefix}} {
         clients { {{$dns64.ClientACLName}}; };
         mapped { {{$dns64.AAddressACLName}}; };
-        exclude { {{$dns64.Prefix}}; };
         suffix ::;
         };{{end}}{{if $view.Redirect}}
 	zone "." {
