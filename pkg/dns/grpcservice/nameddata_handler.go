@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -309,10 +308,10 @@ func (handler *DNSHandler) GetNginxData(tx restdb.Transaction) (*nginxDefaultCon
 	return &data, nil
 }
 
+//TODO 0911 to check command
 func (handler *DNSHandler) nginxReload() error {
 	command := "docker exec -i ddi-nginx nginx -s reload"
-	cmd := exec.Command("/bin/bash", "-c", command)
-	if _, err := cmd.Output(); err != nil {
+	if _, err := shell.Shell("/bin/bash", "-c", command); err != nil {
 		return fmt.Errorf("exec docker nginx reload error: %s", err.Error())
 	}
 	return nil
@@ -347,13 +346,9 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 
 		for _, reValue := range redirectionList {
 			if reValue.AgentView == value.ID {
-				var redirectRR []RR
-				var rpzRR []RR
-				rr := RR{}
-				rr.Name = reValue.Name
-				rr.TTL = strconv.Itoa(int(reValue.Ttl))
-				rr.Type = reValue.DataType
-				rr.Value = reValue.Rdata
+				var redirectRR, rpzRR []RR
+				rr := RR{Name: reValue.Name, TTL: strconv.Itoa(int(reValue.Ttl)),
+					Type: reValue.DataType, Value: reValue.Rdata}
 				if reValue.RedirectType == localZoneType {
 					rpzRR = append(rpzRR, rr)
 				} else if reValue.RedirectType == nxDomain {
@@ -370,20 +365,18 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 		}
 
 		if value.Dns64 != "" {
-			var dns64 Dns64
-			dns64.Prefix = value.Dns64
-			dns64.AAddressACLName = anyACL
-			dns64.ClientACLName = anyACL
-			view.DNS64s = append(view.DNS64s, dns64)
+			view.DNS64s = append(view.DNS64s, Dns64{
+				Prefix:          value.Dns64,
+				AAddressACLName: anyACL,
+				ClientACLName:   anyACL})
 		}
 
 		for _, forwardZone := range forwardZoneList {
 			if forwardZone.AgentView == value.ID {
-				var tmp Zone
-				tmp.Name = forwardZone.Name
-				tmp.ForwardType = forwardZone.ForwardType
-				tmp.IPs = append(tmp.IPs, forwardZone.Ips...)
-				view.Zones = append(view.Zones, tmp)
+				view.Zones = append(view.Zones, Zone{
+					Name:        forwardZone.Name,
+					ForwardType: forwardZone.ForwardType,
+					IPs:         forwardZone.Ips})
 			}
 		}
 
@@ -428,13 +421,9 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 
 		for _, reValue := range redirectionList {
 			if reValue.AgentView == value.ID {
-				var redirectRR []RR
-				var rpzRR []RR
-				rr := RR{}
-				rr.Name = reValue.Name
-				rr.TTL = strconv.Itoa(int(reValue.Ttl))
-				rr.Type = reValue.DataType
-				rr.Value = reValue.Rdata
+				var redirectRR, rpzRR []RR
+				rr := RR{Name: reValue.Name, TTL: strconv.Itoa(int(reValue.Ttl)),
+					Type: reValue.DataType, Value: reValue.Rdata}
 				if reValue.RedirectType == localZoneType {
 					rpzRR = append(rpzRR, rr)
 				} else if reValue.RedirectType == nxDomain {
@@ -451,20 +440,18 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 		}
 
 		if value.Dns64 != "" {
-			var dns64 Dns64
-			dns64.Prefix = value.Dns64
-			dns64.AAddressACLName = anyACL
-			dns64.ClientACLName = anyACL
-			view.DNS64s = append(view.DNS64s, dns64)
+			view.DNS64s = append(view.DNS64s, Dns64{
+				Prefix:          value.Dns64,
+				AAddressACLName: anyACL,
+				ClientACLName:   anyACL})
 		}
 
 		for _, forwardZone := range forwardZoneList {
 			if forwardZone.AgentView == value.ID {
-				var tmp Zone
-				tmp.Name = forwardZone.Name
-				tmp.ForwardType = forwardZone.ForwardType
-				tmp.IPs = append(tmp.IPs, forwardZone.Ips...)
-				view.Zones = append(view.Zones, tmp)
+				view.Zones = append(view.Zones, Zone{
+					Name:        forwardZone.Name,
+					ForwardType: forwardZone.ForwardType,
+					IPs:         forwardZone.Ips})
 			}
 		}
 
@@ -575,8 +562,7 @@ func (handler *DNSHandler) initNamedAclFile(tx restdb.Transaction) error {
 
 	for _, acl := range aclList {
 		if acl.ID != anyACL && acl.ID != noneACL {
-			oneAcl := ACL{Name: acl.Name, Ips: acl.Ips}
-			namedAcl.Acls = append(namedAcl.Acls, oneAcl)
+			namedAcl.Acls = append(namedAcl.Acls, ACL{Name: acl.Name, Ips: acl.Ips})
 		}
 	}
 
@@ -588,7 +574,7 @@ func (handler *DNSHandler) initNamedAclFile(tx restdb.Transaction) error {
 	return nil
 }
 
-func (handler *DNSHandler) rewriteNamedAclFile(isInit bool, tx restdb.Transaction) error {
+func (handler *DNSHandler) rewriteNamedAclFile(tx restdb.Transaction) error {
 	namedAcl := &NamedAcl{ConfigPath: handler.dnsConfPath}
 	var aclList []*resource.AgentAcl
 	if err := dbhandler.ListWithTx(&aclList, tx); err != nil {
@@ -597,18 +583,13 @@ func (handler *DNSHandler) rewriteNamedAclFile(isInit bool, tx restdb.Transactio
 
 	for _, acl := range aclList {
 		if acl.ID != anyACL && acl.ID != noneACL {
-			oneAcl := ACL{Name: acl.Name, Ips: acl.Ips}
-			namedAcl.Acls = append(namedAcl.Acls, oneAcl)
+			namedAcl.Acls = append(namedAcl.Acls, ACL{Name: acl.Name, Ips: acl.Ips})
 		}
 	}
 
 	if err := handler.flushTemplateFiles(namedAclTpl,
 		handler.namedAclPath, namedAcl); err != nil {
 		return fmt.Errorf("flushTemplateFiles failed :%s", err.Error())
-	}
-
-	if isInit {
-		return nil
 	}
 
 	return handler.rndcReconfig()
@@ -627,11 +608,15 @@ func (handler *DNSHandler) initZoneFiles(tx restdb.Transaction) error {
 		return err
 	}
 	for _, zone := range zoneList {
-		oneZone := ZoneFileData{ViewName: zone.AgentView, Name: zone.Name, ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
+		oneZone := ZoneFileData{ViewName: zone.AgentView, Name: zone.Name,
+			ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
 		for _, rr := range rrList {
 			if rr.Zone == zone.ID {
-				oneRR := RR{Name: rr.Name, Type: rr.DataType, Value: rr.Rdata, TTL: strconv.FormatUint(uint64(rr.Ttl), 10)}
-				oneZone.RRs = append(oneZone.RRs, oneRR)
+				oneZone.RRs = append(oneZone.RRs, RR{
+					Name:  rr.Name,
+					Type:  rr.DataType,
+					Value: rr.Rdata,
+					TTL:   strconv.FormatUint(uint64(rr.Ttl), 10)})
 			}
 		}
 		zonesData = append(zonesData, oneZone)
@@ -656,16 +641,18 @@ func (handler *DNSHandler) initZoneFiles(tx restdb.Transaction) error {
 }
 
 func (handler *DNSHandler) createZoneFile(zone *resource.AgentZone) error {
-	oneZone := ZoneFileData{ViewName: zone.AgentView, Name: zone.Name,
-		ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
-
 	buf := new(bytes.Buffer)
-	if err := handler.tpl.ExecuteTemplate(buf, zoneTpl, oneZone); err != nil {
+	if err := handler.tpl.ExecuteTemplate(buf, zoneTpl, ZoneFileData{
+		ViewName: zone.AgentView,
+		Name:     zone.Name,
+		ZoneFile: zone.ZoneFile,
+		TTL:      strconv.FormatUint(uint64(zone.Ttl), 10)}); err != nil {
 		return err
 	}
 	if err := ioutil.WriteFile(filepath.Join(handler.dnsConfPath, zone.ZoneFile), buf.Bytes(), 0644); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -683,8 +670,11 @@ func (handler *DNSHandler) rewriteOneZoneFile(zoneId, zoneFile string, tx restdb
 	oneZone := ZoneFileData{ViewName: zone.AgentView, Name: zone.Name,
 		ZoneFile: zone.ZoneFile, TTL: strconv.FormatUint(uint64(zone.Ttl), 10)}
 	for _, rr := range rrList {
-		oneRR := RR{Name: rr.Name, Type: rr.DataType, Value: rr.Rdata, TTL: strconv.FormatUint(uint64(rr.Ttl), 10)}
-		oneZone.RRs = append(oneZone.RRs, oneRR)
+		oneZone.RRs = append(oneZone.RRs, RR{
+			Name:  rr.Name,
+			Type:  rr.DataType,
+			Value: rr.Rdata,
+			TTL:   strconv.FormatUint(uint64(rr.Ttl), 10)})
 	}
 
 	if err := removeOneFile(filepath.Join(handler.dnsConfPath, zoneFile)); err != nil {
@@ -711,8 +701,8 @@ func (handler *DNSHandler) rewriteNzfsFile(tx restdb.Transaction) error {
 	for _, zone := range zoneList {
 		oneNzfData := nzfData{ViewName: zone.AgentView}
 		if zone.ZoneFile != "" {
-			oneZone := Zone{Name: zone.Name, ZoneFile: zone.ZoneFile}
-			oneNzfData.Zones = append(oneNzfData.Zones, oneZone)
+			oneNzfData.Zones = append(oneNzfData.Zones,
+				Zone{Name: zone.Name, ZoneFile: zone.ZoneFile})
 		}
 		nzfsData = append(nzfsData, oneNzfData)
 	}
@@ -742,8 +732,8 @@ func (handler *DNSHandler) nzfsData(tx restdb.Transaction) ([]nzfData, error) {
 	for _, zone := range zoneList {
 		oneNzfData := nzfData{ViewName: zone.AgentView}
 		if zone.ZoneFile != "" {
-			oneZone := Zone{Name: zone.Name, ZoneFile: zone.ZoneFile}
-			oneNzfData.Zones = append(oneNzfData.Zones, oneZone)
+			oneNzfData.Zones = append(oneNzfData.Zones,
+				Zone{Name: zone.Name, ZoneFile: zone.ZoneFile})
 		}
 		data = append(data, oneNzfData)
 	}
@@ -878,8 +868,11 @@ func (handler *DNSHandler) getAllRedirectData(redirectType string, tx restdb.Tra
 		oneRedirectionData := RedirectionData{ViewName: view.Name}
 		for _, redirection := range redirectList {
 			if redirection.AgentView == view.ID {
-				oneRR := RR{Name: redirection.Name, Type: redirection.DataType, Value: redirection.Rdata, TTL: strconv.FormatUint(uint64(redirection.Ttl), 10)}
-				oneRedirectionData.RRs = append(oneRedirectionData.RRs, oneRR)
+				oneRedirectionData.RRs = append(oneRedirectionData.RRs, RR{
+					Name:  redirection.Name,
+					Type:  redirection.DataType,
+					Value: redirection.Rdata,
+					TTL:   strconv.FormatUint(uint64(redirection.Ttl), 10)})
 			}
 		}
 		if len(oneRedirectionData.RRs) > 0 {
@@ -913,8 +906,11 @@ func (handler *DNSHandler) getOneRedirectData(viewID, redirectType string, tx re
 	}
 	oneRedirectionData := RedirectionData{ViewName: view.Name}
 	for _, redirection := range redirectList {
-		oneRR := RR{Name: redirection.Name, Type: redirection.DataType, Value: redirection.Rdata, TTL: strconv.FormatUint(uint64(redirection.Ttl), 10)}
-		oneRedirectionData.RRs = append(oneRedirectionData.RRs, oneRR)
+		oneRedirectionData.RRs = append(oneRedirectionData.RRs, RR{
+			Name:  redirection.Name,
+			Type:  redirection.DataType,
+			Value: redirection.Rdata,
+			TTL:   strconv.FormatUint(uint64(redirection.Ttl), 10)})
 	}
 	data = append(data, oneRedirectionData)
 
@@ -974,7 +970,7 @@ func removeOneFile(path string) error {
 func createOneFile(path string) error {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		if err := os.Remove(path); err != nil {
+		if err := os.Mkdir(path, 0644); err != nil {
 			return fmt.Errorf("create %s fail:%s", path, err.Error())
 		}
 	}

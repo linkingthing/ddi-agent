@@ -257,7 +257,7 @@ func (handler *DNSHandler) CreateACL(req *pb.CreateACLReq) error {
 			return fmt.Errorf("CreateACL insert acl db id:%s failed: %s ", req.Id, err.Error())
 		}
 
-		if err := handler.rewriteNamedAclFile(false, tx); err != nil {
+		if err := handler.rewriteNamedAclFile(tx); err != nil {
 			return fmt.Errorf("CreateACL id:%s rewriteNamedFile failed :%s", req.Id, err.Error())
 		}
 		return nil
@@ -273,7 +273,7 @@ func (handler *DNSHandler) UpdateACL(req *pb.UpdateACLReq) error {
 			return fmt.Errorf("UpdateACL failed:%s", err.Error())
 		}
 
-		if err := handler.rewriteNamedAclFile(false, tx); err != nil {
+		if err := handler.rewriteNamedAclFile(tx); err != nil {
 			return fmt.Errorf("UpdateACL id:%s rewriteNamedFile failed :%s", req.Id, err.Error())
 		}
 		return nil
@@ -286,7 +286,7 @@ func (handler *DNSHandler) DeleteACL(req *pb.DeleteACLReq) error {
 			return fmt.Errorf("DeleteACL acl id:%s from db failed: %s", req.Id, err.Error())
 		}
 
-		if err := handler.rewriteNamedAclFile(false, tx); err != nil {
+		if err := handler.rewriteNamedAclFile(tx); err != nil {
 			return fmt.Errorf("DeleteACL id:%s rewriteNamedFile failed :%s", req.Id, err.Error())
 		}
 		return nil
@@ -988,11 +988,7 @@ func (handler *DNSHandler) DeleteIPBlackHole(req *pb.DeleteIPBlackHoleReq) error
 
 func (handler *DNSHandler) UpdateRecursiveConcurrent(req *pb.UpdateRecurConcuReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		c, err := tx.Count(resource.TableRecursiveConcurrent, nil)
-		if err != nil {
-			return fmt.Errorf("get RecursiveConcurrent from db failed:%s", err.Error())
-		}
-		if c == 0 {
+		if req.IsCreate {
 			recursiveConcurrent := &resource.AgentRecursiveConcurrent{
 				RecursiveClients: req.RecursiveClients,
 				FetchesPerZone:   req.FetchesPerZone,
@@ -1014,33 +1010,6 @@ func (handler *DNSHandler) UpdateRecursiveConcurrent(req *pb.UpdateRecurConcuReq
 
 		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
 			return fmt.Errorf("UpdateRecursiveConcurrent id:%s rewriteNamedOptionsFile failed:%s", req.Id, err.Error())
-		}
-		return nil
-	})
-}
-
-func (handler *DNSHandler) CreateSortList(req *pb.CreateSortListReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
-			return fmt.Errorf("CreateSortList  rewriteNamedOptionsFile failed:%s", err.Error())
-		}
-		return nil
-	})
-}
-
-func (handler *DNSHandler) UpdateSortList(req *pb.UpdateSortListReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
-			return fmt.Errorf("UpdateSortList rewriteNamedOptionsFile failed:%s", err.Error())
-		}
-		return nil
-	})
-}
-
-func (handler *DNSHandler) DeleteSortList(req *pb.DeleteSortListReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
-			return fmt.Errorf("DeleteSortList rewriteNamedOptionsFile failed:%s", err.Error())
 		}
 		return nil
 	})

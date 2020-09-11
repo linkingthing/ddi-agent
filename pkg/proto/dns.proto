@@ -43,10 +43,6 @@ service AgentManager{
 
 	rpc UpdateRecursiveConcurrent(UpdateRecurConcuReq) returns (DDIResponse){}
 
-	rpc CreateSortList(CreateSortListReq) returns (DDIResponse){}
-	rpc UpdateSortList(UpdateSortListReq) returns (DDIResponse){}
-	rpc DeleteSortList(DeleteSortListReq) returns (DDIResponse){}
-
 	rpc CreateUrlRedirect(CreateUrlRedirectReq) returns (DDIResponse){}
 	rpc UpdateUrlRedirect(UpdateUrlRedirectReq) returns (DDIResponse){}
 	rpc DeleteUrlRedirect(DeleteUrlRedirectReq) returns (DDIResponse){}
@@ -286,12 +282,7 @@ message DeleteIPBlackHoleReq{
 
 message UpdateRecurConcuReq{
 	string id = 1;
-	uint32 recursive_clients = 2;
-	uint32 fetches_per_zone = 3;
+	bool is_create = 2;
+	uint32 recursive_clients = 3;
+	uint32 fetches_per_zone = 4;
 }
-
-message CreateSortListReq{}
-
-message UpdateSortListReq{}
-
-message DeleteSortListReq{}

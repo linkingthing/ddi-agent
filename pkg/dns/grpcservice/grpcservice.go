@@ -279,27 +279,3 @@ func (service *DNSService) UpdateRecursiveConcurrent(context context.Context, re
 
 	return &pb.DDIResponse{Succeed: true}, nil
 }
-
-func (service *DNSService) CreateSortList(context context.Context, req *pb.CreateSortListReq) (*pb.DDIResponse, error) {
-	if err := service.handler.CreateSortList(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
-func (service *DNSService) UpdateSortList(context context.Context, req *pb.UpdateSortListReq) (*pb.DDIResponse, error) {
-	if err := service.handler.UpdateSortList(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
-func (service *DNSService) DeleteSortList(context context.Context, req *pb.DeleteSortListReq) (*pb.DDIResponse, error) {
-	if err := service.handler.DeleteSortList(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}

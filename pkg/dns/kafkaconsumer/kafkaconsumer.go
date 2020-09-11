@@ -273,27 +273,6 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			if _, err := cli.UpdateRecursiveConcurrent(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec UpdateRecursiveConcurrent failed: %s", err.Error())
 			}
-		case CreateSortList:
-			var target pb.CreateSortListReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.CreateSortList(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec CreateSortList failed: %s", err.Error())
-			}
-		case UpdateSortList:
-			var target pb.UpdateSortListReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.UpdateSortList(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec UpdateSortList failed: %s", err.Error())
-			}
-		case DeleteSortList:
-			var target pb.DeleteSortListReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.DeleteSortList(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec DeleteSortList failed: %s", err.Error())
-			}
 		case CreateUrlRedirect:
 			var target pb.CreateUrlRedirectReq
 			if err := proto.Unmarshal(message.Value, &target); err != nil {
