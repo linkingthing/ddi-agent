@@ -225,6 +225,8 @@ github.com/zdnscloud/gorest v0.0.0-20200519040400-d04098e907f6 h1:VWQh7LJgEAONFr
 github.com/zdnscloud/gorest v0.0.0-20200519040400-d04098e907f6/go.mod h1:2G/eH1oigNVgdaLWRuHimLqbkJyPaQFvLt+Rd0BI0Vw=
 github.com/zdnscloud/gorest v0.0.0-20200622065944-f3aa7bff7d4b h1:MQW9d7ZaOk5Xfss1H0n0Y1spKAFbW+9P/i0GTcLzGgc=
 github.com/zdnscloud/gorest v0.0.0-20200622065944-f3aa7bff7d4b/go.mod h1:2G/eH1oigNVgdaLWRuHimLqbkJyPaQFvLt+Rd0BI0Vw=
+github.com/zdnscloud/gorest v0.0.0-20200909072941-55569cb2f203 h1:SrlNd+iIFlLHnlK8ddZzpjy1nKmUdAeTban1y0k+/eY=
+github.com/zdnscloud/gorest v0.0.0-20200909072941-55569cb2f203/go.mod h1:2G/eH1oigNVgdaLWRuHimLqbkJyPaQFvLt+Rd0BI0Vw=
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 go.uber.org/atomic v1.3.2/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
