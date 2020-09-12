@@ -386,6 +386,8 @@ github.com/zdnscloud/g53 v0.0.0-20200610043040-c71a4decb734 h1:WoxcKmz01xmXRl5+Q
 github.com/zdnscloud/g53 v0.0.0-20200610043040-c71a4decb734/go.mod h1:GrZWv638nfn+7y+E5OkKepRuyOeerwTPCNAtAQAdtec=
 github.com/zdnscloud/gorest v0.0.0-20200622065944-f3aa7bff7d4b h1:MQW9d7ZaOk5Xfss1H0n0Y1spKAFbW+9P/i0GTcLzGgc=
 github.com/zdnscloud/gorest v0.0.0-20200622065944-f3aa7bff7d4b/go.mod h1:2G/eH1oigNVgdaLWRuHimLqbkJyPaQFvLt+Rd0BI0Vw=
+github.com/zdnscloud/gorest v0.0.0-20200909072941-55569cb2f203 h1:SrlNd+iIFlLHnlK8ddZzpjy1nKmUdAeTban1y0k+/eY=
+github.com/zdnscloud/gorest v0.0.0-20200909072941-55569cb2f203/go.mod h1:2G/eH1oigNVgdaLWRuHimLqbkJyPaQFvLt+Rd0BI0Vw=
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
