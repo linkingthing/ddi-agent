@@ -29,9 +29,7 @@ service AgentManager{
 	rpc UpdateRR(UpdateRRReq) returns (DDIResponse){}
 	rpc DeleteRR(DeleteRRReq) returns (DDIResponse){}
 
-	rpc CreateForward(CreateForwardReq) returns (DDIResponse){}
 	rpc UpdateForward(UpdateForwardReq) returns (DDIResponse){}
-	rpc DeleteForward(DeleteForwardReq) returns (DDIResponse){}
 
 	rpc CreateRedirection(CreateRedirectionReq) returns (DDIResponse){}
 	rpc UpdateRedirection(UpdateRedirectionReq) returns (DDIResponse){}
@@ -224,25 +222,13 @@ message DeleteRedirectionReq{
 	string view = 3;
 }
 
-message CreateForwardReq{
-	string id = 1;
-	string name = 2;
-	repeated string ips = 3;
-}
-
 message UpdateForwardReq{
-	string id = 1;
-	repeated string ips = 2;
-	repeated ForwardZone forwardZones = 3;
+	repeated ForwardZone forwardZones = 1;
 }
 
 message ForwardZone{
 	string id = 1;
 	repeated string forward_ips = 2;
-}
-
-message DeleteForwardReq{
-	string id = 1;
 }
 
 message CreateForwardZoneReq{

@@ -12,7 +12,7 @@ type DNSService struct {
 }
 
 func New(conf *config.AgentConfig) (*DNSService, error) {
-	handler, err := newDNSHandler(conf.DNS.ConfDir, conf.DNS.DBDir, conf.NginxDefaultDir, conf.Server.IP)
+	handler, err := newDNSHandler(conf)
 	if err != nil {
 		return nil, err
 	}
@@ -200,24 +200,8 @@ func (service *DNSService) DeleteUrlRedirect(context context.Context, req *pb.De
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) CreateForward(context context.Context, req *pb.CreateForwardReq) (*pb.DDIResponse, error) {
-	if err := service.handler.CreateForward(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
 func (service *DNSService) UpdateForward(context context.Context, req *pb.UpdateForwardReq) (*pb.DDIResponse, error) {
 	if err := service.handler.UpdateForward(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
-func (service *DNSService) DeleteForward(context context.Context, req *pb.DeleteForwardReq) (*pb.DDIResponse, error) {
-	if err := service.handler.DeleteForward(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 

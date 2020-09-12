@@ -13,7 +13,6 @@ func PersistentResources() []restresource.Resource {
 		&resource.AgentZone{},
 		&resource.AgentForwardZone{},
 		&resource.AgentRr{},
-		&resource.AgentForward{},
 		&resource.AgentIpBlackHole{},
 		&resource.AgentRecursiveConcurrent{},
 		&resource.AgentRedirection{},

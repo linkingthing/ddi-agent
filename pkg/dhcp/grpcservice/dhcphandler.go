@@ -62,8 +62,8 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 		return nil, fmt.Errorf("parse dhcp cmd url %s failed: %s", HttpScheme+conf.DHCP.CmdAddr, err.Error())
 	}
 
-	db, err := pgxpool.Connect(context.Background(), fmt.Sprintf(PostgresqlConnStr, conf.DHCP.DB.User, conf.DHCP.DB.Password,
-		conf.DHCP.DB.Port, conf.DHCP.DB.Name))
+	db, err := pgxpool.Connect(context.Background(), fmt.Sprintf(PostgresqlConnStr, conf.DB.User, conf.DB.Password,
+		conf.DB.Port, conf.DB.Name))
 	if err != nil {
 		return nil, err
 	}

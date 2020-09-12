@@ -29,27 +29,19 @@ type ControllerConf struct {
 }
 
 type DNSConf struct {
-	Enabled   bool   `yaml:"enabled"`
-	ConfDir   string `yaml:"conf_dir"`
-	DBDir     string `yaml:"db_dir"`
-	StatsAddr string `yaml:"stats_addr"`
-	GroupID   string `yaml:"group_id"`
+	Enabled    bool   `yaml:"enabled"`
+	ConfDir    string `yaml:"conf_dir"`
+	DBDir      string `yaml:"db_dir"`
+	StatsAddr  string `yaml:"stats_addr"`
+	GroupID    string `yaml:"group_id"`
+	ServerAddr string `yaml:"server_addr"`
 }
 
 type DHCPConf struct {
-	Enabled   bool       `yaml:"enabled"`
-	CmdAddr   string     `yaml:"cmd_addr"`
-	ConfigDir string     `yaml:"config_dir"`
-	DB        DHCPDBConf `yaml:"db"`
-	GroupID   string     `yaml:"group_id"`
-}
-
-type DHCPDBConf struct {
-	Name     string `json:"name"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Port     uint32 `json:"port"`
-	Host     string `json:"host"`
+	Enabled   bool   `yaml:"enabled"`
+	CmdAddr   string `yaml:"cmd_addr"`
+	ConfigDir string `yaml:"config_dir"`
+	GroupID   string `yaml:"group_id"`
 }
 
 type GrpcConf struct {

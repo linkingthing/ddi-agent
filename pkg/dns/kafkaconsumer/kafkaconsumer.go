@@ -32,9 +32,7 @@ const (
 	UpdateRR                  = "UpdateRR"
 	DeleteRR                  = "DeleteRR"
 	UpdateRRsByZone           = "UpdateRRsByZone"
-	CreateForward             = "CreateForward"
 	UpdateForward             = "UpdateForward"
-	DeleteForward             = "DeleteForward"
 	CreateRedirection         = "CreateRedirection"
 	UpdateRedirection         = "UpdateRedirection"
 	DeleteRedirection         = "DeleteRedirection"
@@ -42,9 +40,6 @@ const (
 	UpdateIPBlackHole         = "UpdateIPBlackHole"
 	DeleteIPBlackHole         = "DeleteIPBlackHole"
 	UpdateRecursiveConcurrent = "UpdateRecursiveConcurrent"
-	CreateSortList            = "CreateSortList"
-	UpdateSortList            = "UpdateSortList"
-	DeleteSortList            = "DeleteSortList"
 	CreateUrlRedirect         = "CreateUrlRedirect"
 	UpdateUrlRedirect         = "UpdateUrlRedirect"
 	DeleteUrlRedirect         = "DeleteUrlRedirect"
@@ -203,26 +198,12 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			if _, err := cli.UpdateRRsByZone(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec UpdateRRsByZone failed: %s", err.Error())
 			}
-		case CreateForward:
-			var target pb.CreateForwardReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.CreateForward(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec CreateForward failed: %s", err.Error())
-			}
 		case UpdateForward:
 			var target pb.UpdateForwardReq
 			if err := proto.Unmarshal(message.Value, &target); err != nil {
 			}
 			if _, err := cli.UpdateForward(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec UpdateForward failed: %s", err.Error())
-			}
-		case DeleteForward:
-			var target pb.DeleteForwardReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.DeleteForward(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec DeleteForward failed: %s", err.Error())
 			}
 		case CreateRedirection:
 			var target pb.CreateRedirectionReq

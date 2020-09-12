@@ -15,3 +15,10 @@ type AgentForwardZone struct {
 	Ips                   []string `json:"ips"`
 	AgentView             string   `json:"-" db:"ownby,uk"`
 }
+
+func (forwardZone AgentForwardZone) ToZoneData() ZoneData {
+	return ZoneData{
+		Name:        forwardZone.Name,
+		ForwardType: forwardZone.ForwardType,
+		IPs:         forwardZone.Ips}
+}

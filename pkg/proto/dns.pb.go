@@ -1773,83 +1773,18 @@ func (x *DeleteRedirectionReq) GetView() string {
 	return ""
 }
 
-type CreateForwardReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Id   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Ips  []string `protobuf:"bytes,3,rep,name=ips,proto3" json:"ips,omitempty"`
-}
-
-func (x *CreateForwardReq) Reset() {
-	*x = CreateForwardReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[23]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *CreateForwardReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateForwardReq) ProtoMessage() {}
-
-func (x *CreateForwardReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[23]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateForwardReq.ProtoReflect.Descriptor instead.
-func (*CreateForwardReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *CreateForwardReq) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *CreateForwardReq) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *CreateForwardReq) GetIps() []string {
-	if x != nil {
-		return x.Ips
-	}
-	return nil
-}
-
 type UpdateForwardReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id           string         `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Ips          []string       `protobuf:"bytes,2,rep,name=ips,proto3" json:"ips,omitempty"`
-	ForwardZones []*ForwardZone `protobuf:"bytes,3,rep,name=forwardZones,proto3" json:"forwardZones,omitempty"`
+	ForwardZones []*ForwardZone `protobuf:"bytes,1,rep,name=forwardZones,proto3" json:"forwardZones,omitempty"`
 }
 
 func (x *UpdateForwardReq) Reset() {
 	*x = UpdateForwardReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[24]
+		mi := &file_dns_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1862,7 +1797,7 @@ func (x *UpdateForwardReq) String() string {
 func (*UpdateForwardReq) ProtoMessage() {}
 
 func (x *UpdateForwardReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[24]
+	mi := &file_dns_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1875,21 +1810,7 @@ func (x *UpdateForwardReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateForwardReq.ProtoReflect.Descriptor instead.
 func (*UpdateForwardReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *UpdateForwardReq) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *UpdateForwardReq) GetIps() []string {
-	if x != nil {
-		return x.Ips
-	}
-	return nil
+	return file_dns_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UpdateForwardReq) GetForwardZones() []*ForwardZone {
@@ -1911,7 +1832,7 @@ type ForwardZone struct {
 func (x *ForwardZone) Reset() {
 	*x = ForwardZone{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[25]
+		mi := &file_dns_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1924,7 +1845,7 @@ func (x *ForwardZone) String() string {
 func (*ForwardZone) ProtoMessage() {}
 
 func (x *ForwardZone) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[25]
+	mi := &file_dns_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1937,7 +1858,7 @@ func (x *ForwardZone) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForwardZone.ProtoReflect.Descriptor instead.
 func (*ForwardZone) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{25}
+	return file_dns_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ForwardZone) GetId() string {
@@ -1952,53 +1873,6 @@ func (x *ForwardZone) GetForwardIps() []string {
 		return x.ForwardIps
 	}
 	return nil
-}
-
-type DeleteForwardReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-}
-
-func (x *DeleteForwardReq) Reset() {
-	*x = DeleteForwardReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[26]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *DeleteForwardReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteForwardReq) ProtoMessage() {}
-
-func (x *DeleteForwardReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[26]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteForwardReq.ProtoReflect.Descriptor instead.
-func (*DeleteForwardReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *DeleteForwardReq) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
 }
 
 type CreateForwardZoneReq struct {
@@ -2017,7 +1891,7 @@ type CreateForwardZoneReq struct {
 func (x *CreateForwardZoneReq) Reset() {
 	*x = CreateForwardZoneReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[27]
+		mi := &file_dns_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2030,7 +1904,7 @@ func (x *CreateForwardZoneReq) String() string {
 func (*CreateForwardZoneReq) ProtoMessage() {}
 
 func (x *CreateForwardZoneReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[27]
+	mi := &file_dns_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2043,7 +1917,7 @@ func (x *CreateForwardZoneReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateForwardZoneReq.ProtoReflect.Descriptor instead.
 func (*CreateForwardZoneReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{27}
+	return file_dns_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CreateForwardZoneReq) GetId() string {
@@ -2103,7 +1977,7 @@ type UpdateForwardZoneReq struct {
 func (x *UpdateForwardZoneReq) Reset() {
 	*x = UpdateForwardZoneReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[28]
+		mi := &file_dns_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2116,7 +1990,7 @@ func (x *UpdateForwardZoneReq) String() string {
 func (*UpdateForwardZoneReq) ProtoMessage() {}
 
 func (x *UpdateForwardZoneReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[28]
+	mi := &file_dns_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2129,7 +2003,7 @@ func (x *UpdateForwardZoneReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateForwardZoneReq.ProtoReflect.Descriptor instead.
 func (*UpdateForwardZoneReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{28}
+	return file_dns_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *UpdateForwardZoneReq) GetId() string {
@@ -2178,7 +2052,7 @@ type DeleteForwardZoneReq struct {
 func (x *DeleteForwardZoneReq) Reset() {
 	*x = DeleteForwardZoneReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[29]
+		mi := &file_dns_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2191,7 +2065,7 @@ func (x *DeleteForwardZoneReq) String() string {
 func (*DeleteForwardZoneReq) ProtoMessage() {}
 
 func (x *DeleteForwardZoneReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[29]
+	mi := &file_dns_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2204,7 +2078,7 @@ func (x *DeleteForwardZoneReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteForwardZoneReq.ProtoReflect.Descriptor instead.
 func (*DeleteForwardZoneReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{29}
+	return file_dns_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *DeleteForwardZoneReq) GetId() string {
@@ -2226,7 +2100,7 @@ type CreateIPBlackHoleReq struct {
 func (x *CreateIPBlackHoleReq) Reset() {
 	*x = CreateIPBlackHoleReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[30]
+		mi := &file_dns_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2239,7 +2113,7 @@ func (x *CreateIPBlackHoleReq) String() string {
 func (*CreateIPBlackHoleReq) ProtoMessage() {}
 
 func (x *CreateIPBlackHoleReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[30]
+	mi := &file_dns_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2252,7 +2126,7 @@ func (x *CreateIPBlackHoleReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateIPBlackHoleReq.ProtoReflect.Descriptor instead.
 func (*CreateIPBlackHoleReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{30}
+	return file_dns_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CreateIPBlackHoleReq) GetId() string {
@@ -2281,7 +2155,7 @@ type UpdateIPBlackHoleReq struct {
 func (x *UpdateIPBlackHoleReq) Reset() {
 	*x = UpdateIPBlackHoleReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[31]
+		mi := &file_dns_proto_msgTypes[29]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2294,7 +2168,7 @@ func (x *UpdateIPBlackHoleReq) String() string {
 func (*UpdateIPBlackHoleReq) ProtoMessage() {}
 
 func (x *UpdateIPBlackHoleReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[31]
+	mi := &file_dns_proto_msgTypes[29]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2307,7 +2181,7 @@ func (x *UpdateIPBlackHoleReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateIPBlackHoleReq.ProtoReflect.Descriptor instead.
 func (*UpdateIPBlackHoleReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{31}
+	return file_dns_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *UpdateIPBlackHoleReq) GetId() string {
@@ -2335,7 +2209,7 @@ type DeleteIPBlackHoleReq struct {
 func (x *DeleteIPBlackHoleReq) Reset() {
 	*x = DeleteIPBlackHoleReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[32]
+		mi := &file_dns_proto_msgTypes[30]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2348,7 +2222,7 @@ func (x *DeleteIPBlackHoleReq) String() string {
 func (*DeleteIPBlackHoleReq) ProtoMessage() {}
 
 func (x *DeleteIPBlackHoleReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[32]
+	mi := &file_dns_proto_msgTypes[30]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2361,7 +2235,7 @@ func (x *DeleteIPBlackHoleReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteIPBlackHoleReq.ProtoReflect.Descriptor instead.
 func (*DeleteIPBlackHoleReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{32}
+	return file_dns_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *DeleteIPBlackHoleReq) GetId() string {
@@ -2385,7 +2259,7 @@ type UpdateRecurConcuReq struct {
 func (x *UpdateRecurConcuReq) Reset() {
 	*x = UpdateRecurConcuReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dns_proto_msgTypes[33]
+		mi := &file_dns_proto_msgTypes[31]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2398,7 +2272,7 @@ func (x *UpdateRecurConcuReq) String() string {
 func (*UpdateRecurConcuReq) ProtoMessage() {}
 
 func (x *UpdateRecurConcuReq) ProtoReflect() protoreflect.Message {
-	mi := &file_dns_proto_msgTypes[33]
+	mi := &file_dns_proto_msgTypes[31]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2411,7 +2285,7 @@ func (x *UpdateRecurConcuReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRecurConcuReq.ProtoReflect.Descriptor instead.
 func (*UpdateRecurConcuReq) Descriptor() ([]byte, []int) {
-	return file_dns_proto_rawDescGZIP(), []int{33}
+	return file_dns_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *UpdateRecurConcuReq) GetId() string {
@@ -2641,25 +2515,16 @@ var file_dns_proto_rawDesc = []byte{
 	0x64, 0x12, 0x23, 0x0a, 0x0d, 0x72, 0x65, 0x64, 0x69, 0x72, 0x65, 0x63, 0x74, 0x5f, 0x74, 0x79,
 	0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x72, 0x65, 0x64, 0x69, 0x72, 0x65,
 	0x63, 0x74, 0x54, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x76, 0x69, 0x65, 0x77, 0x18, 0x03,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x76, 0x69, 0x65, 0x77, 0x22, 0x48, 0x0a, 0x10, 0x43, 0x72,
-	0x65, 0x61, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x12, 0x0e,
-	0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x12,
-	0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61,
-	0x6d, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x69, 0x70, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x09, 0x52,
-	0x03, 0x69, 0x70, 0x73, 0x22, 0x6c, 0x0a, 0x10, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x46, 0x6f,
-	0x72, 0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x69, 0x70, 0x73, 0x18,
-	0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x03, 0x69, 0x70, 0x73, 0x12, 0x36, 0x0a, 0x0c, 0x66, 0x6f,
-	0x72, 0x77, 0x61, 0x72, 0x64, 0x5a, 0x6f, 0x6e, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b,
-	0x32, 0x12, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64,
-	0x5a, 0x6f, 0x6e, 0x65, 0x52, 0x0c, 0x66, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x5a, 0x6f, 0x6e,
-	0x65, 0x73, 0x22, 0x3e, 0x0a, 0x0b, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x5a, 0x6f, 0x6e,
-	0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69,
-	0x64, 0x12, 0x1f, 0x0a, 0x0b, 0x66, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x5f, 0x69, 0x70, 0x73,
-	0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0a, 0x66, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x49,
-	0x70, 0x73, 0x22, 0x22, 0x0a, 0x10, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x77,
-	0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0xb8, 0x01, 0x0a, 0x14, 0x43, 0x72, 0x65, 0x61, 0x74,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x76, 0x69, 0x65, 0x77, 0x22, 0x4a, 0x0a, 0x10, 0x55, 0x70,
+	0x64, 0x61, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x12, 0x36,
+	0x0a, 0x0c, 0x66, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x5a, 0x6f, 0x6e, 0x65, 0x73, 0x18, 0x01,
+	0x20, 0x03, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x46, 0x6f, 0x72,
+	0x77, 0x61, 0x72, 0x64, 0x5a, 0x6f, 0x6e, 0x65, 0x52, 0x0c, 0x66, 0x6f, 0x72, 0x77, 0x61, 0x72,
+	0x64, 0x5a, 0x6f, 0x6e, 0x65, 0x73, 0x22, 0x3e, 0x0a, 0x0b, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72,
+	0x64, 0x5a, 0x6f, 0x6e, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x1f, 0x0a, 0x0b, 0x66, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64,
+	0x5f, 0x69, 0x70, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0a, 0x66, 0x6f, 0x72, 0x77,
+	0x61, 0x72, 0x64, 0x49, 0x70, 0x73, 0x22, 0xb8, 0x01, 0x0a, 0x14, 0x43, 0x72, 0x65, 0x61, 0x74,
 	0x65, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x5a, 0x6f, 0x6e, 0x65, 0x52, 0x65, 0x71, 0x12,
 	0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12,
 	0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e,
@@ -2704,7 +2569,7 @@ var file_dns_proto_rawDesc = []byte{
 	0x6c, 0x69, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x28, 0x0a, 0x10, 0x66, 0x65, 0x74, 0x63, 0x68, 0x65,
 	0x73, 0x5f, 0x70, 0x65, 0x72, 0x5f, 0x7a, 0x6f, 0x6e, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0d,
 	0x52, 0x0e, 0x66, 0x65, 0x74, 0x63, 0x68, 0x65, 0x73, 0x50, 0x65, 0x72, 0x5a, 0x6f, 0x6e, 0x65,
-	0x32, 0x9b, 0x10, 0x0a, 0x0c, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x4d, 0x61, 0x6e, 0x61, 0x67, 0x65,
+	0x32, 0x9b, 0x0f, 0x0a, 0x0c, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x4d, 0x61, 0x6e, 0x61, 0x67, 0x65,
 	0x72, 0x12, 0x34, 0x0a, 0x08, 0x53, 0x74, 0x61, 0x72, 0x74, 0x44, 0x4e, 0x53, 0x12, 0x12, 0x2e,
 	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x4e, 0x53, 0x53, 0x74, 0x61, 0x72, 0x74, 0x52, 0x65,
 	0x71, 0x1a, 0x12, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x44, 0x49, 0x52, 0x65, 0x73,
@@ -2772,16 +2637,8 @@ var file_dns_proto_rawDesc = []byte{
 	0x65, 0x52, 0x52, 0x12, 0x12, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x65, 0x6c, 0x65,
 	0x74, 0x65, 0x52, 0x52, 0x52, 0x65, 0x71, 0x1a, 0x12, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
 	0x44, 0x44, 0x49, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x3e, 0x0a,
-	0x0d, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x12, 0x17,
-	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x46, 0x6f, 0x72,
-	0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x1a, 0x12, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
-	0x44, 0x44, 0x49, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x3e, 0x0a,
 	0x0d, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x12, 0x17,
 	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x46, 0x6f, 0x72,
-	0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x1a, 0x12, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
-	0x44, 0x44, 0x49, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x3e, 0x0a,
-	0x0d, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x12, 0x17,
-	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x46, 0x6f, 0x72,
 	0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x1a, 0x12, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
 	0x44, 0x44, 0x49, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x46, 0x0a,
 	0x11, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x52, 0x65, 0x64, 0x69, 0x72, 0x65, 0x63, 0x74, 0x69,
@@ -2849,7 +2706,7 @@ func file_dns_proto_rawDescGZIP() []byte {
 	return file_dns_proto_rawDescData
 }
 
-var file_dns_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_dns_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_dns_proto_goTypes = []interface{}{
 	(*DNSStartReq)(nil),           // 0: proto.DNSStartReq
 	(*DNSStopReq)(nil),            // 1: proto.DNSStopReq
@@ -2874,24 +2731,22 @@ var file_dns_proto_goTypes = []interface{}{
 	(*CreateRedirectionReq)(nil),  // 20: proto.CreateRedirectionReq
 	(*UpdateRedirectionReq)(nil),  // 21: proto.UpdateRedirectionReq
 	(*DeleteRedirectionReq)(nil),  // 22: proto.DeleteRedirectionReq
-	(*CreateForwardReq)(nil),      // 23: proto.CreateForwardReq
-	(*UpdateForwardReq)(nil),      // 24: proto.UpdateForwardReq
-	(*ForwardZone)(nil),           // 25: proto.ForwardZone
-	(*DeleteForwardReq)(nil),      // 26: proto.DeleteForwardReq
-	(*CreateForwardZoneReq)(nil),  // 27: proto.CreateForwardZoneReq
-	(*UpdateForwardZoneReq)(nil),  // 28: proto.UpdateForwardZoneReq
-	(*DeleteForwardZoneReq)(nil),  // 29: proto.DeleteForwardZoneReq
-	(*CreateIPBlackHoleReq)(nil),  // 30: proto.CreateIPBlackHoleReq
-	(*UpdateIPBlackHoleReq)(nil),  // 31: proto.UpdateIPBlackHoleReq
-	(*DeleteIPBlackHoleReq)(nil),  // 32: proto.DeleteIPBlackHoleReq
-	(*UpdateRecurConcuReq)(nil),   // 33: proto.UpdateRecurConcuReq
-	(*DDIResponse)(nil),           // 34: proto.DDIResponse
+	(*UpdateForwardReq)(nil),      // 23: proto.UpdateForwardReq
+	(*ForwardZone)(nil),           // 24: proto.ForwardZone
+	(*CreateForwardZoneReq)(nil),  // 25: proto.CreateForwardZoneReq
+	(*UpdateForwardZoneReq)(nil),  // 26: proto.UpdateForwardZoneReq
+	(*DeleteForwardZoneReq)(nil),  // 27: proto.DeleteForwardZoneReq
+	(*CreateIPBlackHoleReq)(nil),  // 28: proto.CreateIPBlackHoleReq
+	(*UpdateIPBlackHoleReq)(nil),  // 29: proto.UpdateIPBlackHoleReq
+	(*DeleteIPBlackHoleReq)(nil),  // 30: proto.DeleteIPBlackHoleReq
+	(*UpdateRecurConcuReq)(nil),   // 31: proto.UpdateRecurConcuReq
+	(*DDIResponse)(nil),           // 32: proto.DDIResponse
 }
 var file_dns_proto_depIdxs = []int32{
 	14, // 0: proto.CreateViewReq.view_priority:type_name -> proto.ViewPriority
 	14, // 1: proto.UpdateViewReq.view_priority:type_name -> proto.ViewPriority
 	14, // 2: proto.DeleteViewReq.view_priority:type_name -> proto.ViewPriority
-	25, // 3: proto.UpdateForwardReq.forwardZones:type_name -> proto.ForwardZone
+	24, // 3: proto.UpdateForwardReq.forwardZones:type_name -> proto.ForwardZone
 	0,  // 4: proto.AgentManager.StartDNS:input_type -> proto.DNSStartReq
 	1,  // 5: proto.AgentManager.StopDNS:input_type -> proto.DNSStopReq
 	3,  // 6: proto.AgentManager.CreateACL:input_type -> proto.CreateACLReq
@@ -2904,60 +2759,56 @@ var file_dns_proto_depIdxs = []int32{
 	7,  // 13: proto.AgentManager.UpdateZone:input_type -> proto.UpdateZoneReq
 	8,  // 14: proto.AgentManager.DeleteZone:input_type -> proto.DeleteZoneReq
 	9,  // 15: proto.AgentManager.UpdateRRsByZone:input_type -> proto.UpdateRRsByZoneReq
-	27, // 16: proto.AgentManager.CreateForwardZone:input_type -> proto.CreateForwardZoneReq
-	28, // 17: proto.AgentManager.UpdateForwardZone:input_type -> proto.UpdateForwardZoneReq
-	29, // 18: proto.AgentManager.DeleteForwardZone:input_type -> proto.DeleteForwardZoneReq
+	25, // 16: proto.AgentManager.CreateForwardZone:input_type -> proto.CreateForwardZoneReq
+	26, // 17: proto.AgentManager.UpdateForwardZone:input_type -> proto.UpdateForwardZoneReq
+	27, // 18: proto.AgentManager.DeleteForwardZone:input_type -> proto.DeleteForwardZoneReq
 	10, // 19: proto.AgentManager.CreateRR:input_type -> proto.CreateRRReq
 	11, // 20: proto.AgentManager.UpdateRR:input_type -> proto.UpdateRRReq
 	12, // 21: proto.AgentManager.DeleteRR:input_type -> proto.DeleteRRReq
-	23, // 22: proto.AgentManager.CreateForward:input_type -> proto.CreateForwardReq
-	24, // 23: proto.AgentManager.UpdateForward:input_type -> proto.UpdateForwardReq
-	26, // 24: proto.AgentManager.DeleteForward:input_type -> proto.DeleteForwardReq
-	20, // 25: proto.AgentManager.CreateRedirection:input_type -> proto.CreateRedirectionReq
-	21, // 26: proto.AgentManager.UpdateRedirection:input_type -> proto.UpdateRedirectionReq
-	22, // 27: proto.AgentManager.DeleteRedirection:input_type -> proto.DeleteRedirectionReq
-	30, // 28: proto.AgentManager.CreateIPBlackHole:input_type -> proto.CreateIPBlackHoleReq
-	31, // 29: proto.AgentManager.UpdateIPBlackHole:input_type -> proto.UpdateIPBlackHoleReq
-	32, // 30: proto.AgentManager.DeleteIPBlackHole:input_type -> proto.DeleteIPBlackHoleReq
-	33, // 31: proto.AgentManager.UpdateRecursiveConcurrent:input_type -> proto.UpdateRecurConcuReq
-	17, // 32: proto.AgentManager.CreateUrlRedirect:input_type -> proto.CreateUrlRedirectReq
-	18, // 33: proto.AgentManager.UpdateUrlRedirect:input_type -> proto.UpdateUrlRedirectReq
-	19, // 34: proto.AgentManager.DeleteUrlRedirect:input_type -> proto.DeleteUrlRedirectReq
-	2,  // 35: proto.AgentManager.UpdateGlobalConfig:input_type -> proto.UpdateGlobalConfigReq
-	34, // 36: proto.AgentManager.StartDNS:output_type -> proto.DDIResponse
-	34, // 37: proto.AgentManager.StopDNS:output_type -> proto.DDIResponse
-	34, // 38: proto.AgentManager.CreateACL:output_type -> proto.DDIResponse
-	34, // 39: proto.AgentManager.UpdateACL:output_type -> proto.DDIResponse
-	34, // 40: proto.AgentManager.DeleteACL:output_type -> proto.DDIResponse
-	34, // 41: proto.AgentManager.CreateView:output_type -> proto.DDIResponse
-	34, // 42: proto.AgentManager.UpdateView:output_type -> proto.DDIResponse
-	34, // 43: proto.AgentManager.DeleteView:output_type -> proto.DDIResponse
-	34, // 44: proto.AgentManager.CreateZone:output_type -> proto.DDIResponse
-	34, // 45: proto.AgentManager.UpdateZone:output_type -> proto.DDIResponse
-	34, // 46: proto.AgentManager.DeleteZone:output_type -> proto.DDIResponse
-	34, // 47: proto.AgentManager.UpdateRRsByZone:output_type -> proto.DDIResponse
-	34, // 48: proto.AgentManager.CreateForwardZone:output_type -> proto.DDIResponse
-	34, // 49: proto.AgentManager.UpdateForwardZone:output_type -> proto.DDIResponse
-	34, // 50: proto.AgentManager.DeleteForwardZone:output_type -> proto.DDIResponse
-	34, // 51: proto.AgentManager.CreateRR:output_type -> proto.DDIResponse
-	34, // 52: proto.AgentManager.UpdateRR:output_type -> proto.DDIResponse
-	34, // 53: proto.AgentManager.DeleteRR:output_type -> proto.DDIResponse
-	34, // 54: proto.AgentManager.CreateForward:output_type -> proto.DDIResponse
-	34, // 55: proto.AgentManager.UpdateForward:output_type -> proto.DDIResponse
-	34, // 56: proto.AgentManager.DeleteForward:output_type -> proto.DDIResponse
-	34, // 57: proto.AgentManager.CreateRedirection:output_type -> proto.DDIResponse
-	34, // 58: proto.AgentManager.UpdateRedirection:output_type -> proto.DDIResponse
-	34, // 59: proto.AgentManager.DeleteRedirection:output_type -> proto.DDIResponse
-	34, // 60: proto.AgentManager.CreateIPBlackHole:output_type -> proto.DDIResponse
-	34, // 61: proto.AgentManager.UpdateIPBlackHole:output_type -> proto.DDIResponse
-	34, // 62: proto.AgentManager.DeleteIPBlackHole:output_type -> proto.DDIResponse
-	34, // 63: proto.AgentManager.UpdateRecursiveConcurrent:output_type -> proto.DDIResponse
-	34, // 64: proto.AgentManager.CreateUrlRedirect:output_type -> proto.DDIResponse
-	34, // 65: proto.AgentManager.UpdateUrlRedirect:output_type -> proto.DDIResponse
-	34, // 66: proto.AgentManager.DeleteUrlRedirect:output_type -> proto.DDIResponse
-	34, // 67: proto.AgentManager.UpdateGlobalConfig:output_type -> proto.DDIResponse
-	36, // [36:68] is the sub-list for method output_type
-	4,  // [4:36] is the sub-list for method input_type
+	23, // 22: proto.AgentManager.UpdateForward:input_type -> proto.UpdateForwardReq
+	20, // 23: proto.AgentManager.CreateRedirection:input_type -> proto.CreateRedirectionReq
+	21, // 24: proto.AgentManager.UpdateRedirection:input_type -> proto.UpdateRedirectionReq
+	22, // 25: proto.AgentManager.DeleteRedirection:input_type -> proto.DeleteRedirectionReq
+	28, // 26: proto.AgentManager.CreateIPBlackHole:input_type -> proto.CreateIPBlackHoleReq
+	29, // 27: proto.AgentManager.UpdateIPBlackHole:input_type -> proto.UpdateIPBlackHoleReq
+	30, // 28: proto.AgentManager.DeleteIPBlackHole:input_type -> proto.DeleteIPBlackHoleReq
+	31, // 29: proto.AgentManager.UpdateRecursiveConcurrent:input_type -> proto.UpdateRecurConcuReq
+	17, // 30: proto.AgentManager.CreateUrlRedirect:input_type -> proto.CreateUrlRedirectReq
+	18, // 31: proto.AgentManager.UpdateUrlRedirect:input_type -> proto.UpdateUrlRedirectReq
+	19, // 32: proto.AgentManager.DeleteUrlRedirect:input_type -> proto.DeleteUrlRedirectReq
+	2,  // 33: proto.AgentManager.UpdateGlobalConfig:input_type -> proto.UpdateGlobalConfigReq
+	32, // 34: proto.AgentManager.StartDNS:output_type -> proto.DDIResponse
+	32, // 35: proto.AgentManager.StopDNS:output_type -> proto.DDIResponse
+	32, // 36: proto.AgentManager.CreateACL:output_type -> proto.DDIResponse
+	32, // 37: proto.AgentManager.UpdateACL:output_type -> proto.DDIResponse
+	32, // 38: proto.AgentManager.DeleteACL:output_type -> proto.DDIResponse
+	32, // 39: proto.AgentManager.CreateView:output_type -> proto.DDIResponse
+	32, // 40: proto.AgentManager.UpdateView:output_type -> proto.DDIResponse
+	32, // 41: proto.AgentManager.DeleteView:output_type -> proto.DDIResponse
+	32, // 42: proto.AgentManager.CreateZone:output_type -> proto.DDIResponse
+	32, // 43: proto.AgentManager.UpdateZone:output_type -> proto.DDIResponse
+	32, // 44: proto.AgentManager.DeleteZone:output_type -> proto.DDIResponse
+	32, // 45: proto.AgentManager.UpdateRRsByZone:output_type -> proto.DDIResponse
+	32, // 46: proto.AgentManager.CreateForwardZone:output_type -> proto.DDIResponse
+	32, // 47: proto.AgentManager.UpdateForwardZone:output_type -> proto.DDIResponse
+	32, // 48: proto.AgentManager.DeleteForwardZone:output_type -> proto.DDIResponse
+	32, // 49: proto.AgentManager.CreateRR:output_type -> proto.DDIResponse
+	32, // 50: proto.AgentManager.UpdateRR:output_type -> proto.DDIResponse
+	32, // 51: proto.AgentManager.DeleteRR:output_type -> proto.DDIResponse
+	32, // 52: proto.AgentManager.UpdateForward:output_type -> proto.DDIResponse
+	32, // 53: proto.AgentManager.CreateRedirection:output_type -> proto.DDIResponse
+	32, // 54: proto.AgentManager.UpdateRedirection:output_type -> proto.DDIResponse
+	32, // 55: proto.AgentManager.DeleteRedirection:output_type -> proto.DDIResponse
+	32, // 56: proto.AgentManager.CreateIPBlackHole:output_type -> proto.DDIResponse
+	32, // 57: proto.AgentManager.UpdateIPBlackHole:output_type -> proto.DDIResponse
+	32, // 58: proto.AgentManager.DeleteIPBlackHole:output_type -> proto.DDIResponse
+	32, // 59: proto.AgentManager.UpdateRecursiveConcurrent:output_type -> proto.DDIResponse
+	32, // 60: proto.AgentManager.CreateUrlRedirect:output_type -> proto.DDIResponse
+	32, // 61: proto.AgentManager.UpdateUrlRedirect:output_type -> proto.DDIResponse
+	32, // 62: proto.AgentManager.DeleteUrlRedirect:output_type -> proto.DDIResponse
+	32, // 63: proto.AgentManager.UpdateGlobalConfig:output_type -> proto.DDIResponse
+	34, // [34:64] is the sub-list for method output_type
+	4,  // [4:34] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -3247,18 +3098,6 @@ func file_dns_proto_init() {
 			}
 		}
 		file_dns_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CreateForwardReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_dns_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UpdateForwardReq); i {
 			case 0:
 				return &v.state
@@ -3270,7 +3109,7 @@ func file_dns_proto_init() {
 				return nil
 			}
 		}
-		file_dns_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+		file_dns_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ForwardZone); i {
 			case 0:
 				return &v.state
@@ -3282,19 +3121,7 @@ func file_dns_proto_init() {
 				return nil
 			}
 		}
-		file_dns_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DeleteForwardReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_dns_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
+		file_dns_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*CreateForwardZoneReq); i {
 			case 0:
 				return &v.state
@@ -3306,7 +3133,7 @@ func file_dns_proto_init() {
 				return nil
 			}
 		}
-		file_dns_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
+		file_dns_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UpdateForwardZoneReq); i {
 			case 0:
 				return &v.state
@@ -3318,7 +3145,7 @@ func file_dns_proto_init() {
 				return nil
 			}
 		}
-		file_dns_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
+		file_dns_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeleteForwardZoneReq); i {
 			case 0:
 				return &v.state
@@ -3330,7 +3157,7 @@ func file_dns_proto_init() {
 				return nil
 			}
 		}
-		file_dns_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
+		file_dns_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*CreateIPBlackHoleReq); i {
 			case 0:
 				return &v.state
@@ -3342,7 +3169,7 @@ func file_dns_proto_init() {
 				return nil
 			}
 		}
-		file_dns_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
+		file_dns_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UpdateIPBlackHoleReq); i {
 			case 0:
 				return &v.state
@@ -3354,7 +3181,7 @@ func file_dns_proto_init() {
 				return nil
 			}
 		}
-		file_dns_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
+		file_dns_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeleteIPBlackHoleReq); i {
 			case 0:
 				return &v.state
@@ -3366,7 +3193,7 @@ func file_dns_proto_init() {
 				return nil
 			}
 		}
-		file_dns_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
+		file_dns_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UpdateRecurConcuReq); i {
 			case 0:
 				return &v.state
@@ -3385,7 +3212,7 @@ func file_dns_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_dns_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   34,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -3429,9 +3256,7 @@ type AgentManagerClient interface {
 	CreateRR(ctx context.Context, in *CreateRRReq, opts ...grpc.CallOption) (*DDIResponse, error)
 	UpdateRR(ctx context.Context, in *UpdateRRReq, opts ...grpc.CallOption) (*DDIResponse, error)
 	DeleteRR(ctx context.Context, in *DeleteRRReq, opts ...grpc.CallOption) (*DDIResponse, error)
-	CreateForward(ctx context.Context, in *CreateForwardReq, opts ...grpc.CallOption) (*DDIResponse, error)
 	UpdateForward(ctx context.Context, in *UpdateForwardReq, opts ...grpc.CallOption) (*DDIResponse, error)
-	DeleteForward(ctx context.Context, in *DeleteForwardReq, opts ...grpc.CallOption) (*DDIResponse, error)
 	CreateRedirection(ctx context.Context, in *CreateRedirectionReq, opts ...grpc.CallOption) (*DDIResponse, error)
 	UpdateRedirection(ctx context.Context, in *UpdateRedirectionReq, opts ...grpc.CallOption) (*DDIResponse, error)
 	DeleteRedirection(ctx context.Context, in *DeleteRedirectionReq, opts ...grpc.CallOption) (*DDIResponse, error)
@@ -3615,27 +3440,9 @@ func (c *agentManagerClient) DeleteRR(ctx context.Context, in *DeleteRRReq, opts
 	return out, nil
 }
 
-func (c *agentManagerClient) CreateForward(ctx context.Context, in *CreateForwardReq, opts ...grpc.CallOption) (*DDIResponse, error) {
-	out := new(DDIResponse)
-	err := c.cc.Invoke(ctx, "/proto.AgentManager/CreateForward", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *agentManagerClient) UpdateForward(ctx context.Context, in *UpdateForwardReq, opts ...grpc.CallOption) (*DDIResponse, error) {
 	out := new(DDIResponse)
 	err := c.cc.Invoke(ctx, "/proto.AgentManager/UpdateForward", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *agentManagerClient) DeleteForward(ctx context.Context, in *DeleteForwardReq, opts ...grpc.CallOption) (*DDIResponse, error) {
-	out := new(DDIResponse)
-	err := c.cc.Invoke(ctx, "/proto.AgentManager/DeleteForward", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -3761,9 +3568,7 @@ type AgentManagerServer interface {
 	CreateRR(context.Context, *CreateRRReq) (*DDIResponse, error)
 	UpdateRR(context.Context, *UpdateRRReq) (*DDIResponse, error)
 	DeleteRR(context.Context, *DeleteRRReq) (*DDIResponse, error)
-	CreateForward(context.Context, *CreateForwardReq) (*DDIResponse, error)
 	UpdateForward(context.Context, *UpdateForwardReq) (*DDIResponse, error)
-	DeleteForward(context.Context, *DeleteForwardReq) (*DDIResponse, error)
 	CreateRedirection(context.Context, *CreateRedirectionReq) (*DDIResponse, error)
 	UpdateRedirection(context.Context, *UpdateRedirectionReq) (*DDIResponse, error)
 	DeleteRedirection(context.Context, *DeleteRedirectionReq) (*DDIResponse, error)
@@ -3835,14 +3640,8 @@ func (*UnimplementedAgentManagerServer) UpdateRR(context.Context, *UpdateRRReq) 
 func (*UnimplementedAgentManagerServer) DeleteRR(context.Context, *DeleteRRReq) (*DDIResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRR not implemented")
 }
-func (*UnimplementedAgentManagerServer) CreateForward(context.Context, *CreateForwardReq) (*DDIResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateForward not implemented")
-}
 func (*UnimplementedAgentManagerServer) UpdateForward(context.Context, *UpdateForwardReq) (*DDIResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateForward not implemented")
-}
-func (*UnimplementedAgentManagerServer) DeleteForward(context.Context, *DeleteForwardReq) (*DDIResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteForward not implemented")
 }
 func (*UnimplementedAgentManagerServer) CreateRedirection(context.Context, *CreateRedirectionReq) (*DDIResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateRedirection not implemented")
@@ -4206,24 +4005,6 @@ func _AgentManager_DeleteRR_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AgentManager_CreateForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateForwardReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentManagerServer).CreateForward(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.AgentManager/CreateForward",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentManagerServer).CreateForward(ctx, req.(*CreateForwardReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _AgentManager_UpdateForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateForwardReq)
 	if err := dec(in); err != nil {
@@ -4238,24 +4019,6 @@ func _AgentManager_UpdateForward_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentManagerServer).UpdateForward(ctx, req.(*UpdateForwardReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AgentManager_DeleteForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteForwardReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentManagerServer).DeleteForward(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.AgentManager/DeleteForward",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentManagerServer).DeleteForward(ctx, req.(*DeleteForwardReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -4535,16 +4298,8 @@ var _AgentManager_serviceDesc = grpc.ServiceDesc{
 			Handler:    _AgentManager_DeleteRR_Handler,
 		},
 		{
-			MethodName: "CreateForward",
-			Handler:    _AgentManager_CreateForward_Handler,
-		},
-		{
 			MethodName: "UpdateForward",
 			Handler:    _AgentManager_UpdateForward_Handler,
-		},
-		{
-			MethodName: "DeleteForward",
-			Handler:    _AgentManager_DeleteForward_Handler,
 		},
 		{
 			MethodName: "CreateRedirection",

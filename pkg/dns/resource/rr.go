@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"strconv"
+
 	restdb "github.com/zdnscloud/gorest/db"
 	"github.com/zdnscloud/gorest/resource"
 )
@@ -17,4 +19,13 @@ type AgentRr struct {
 	ActiveRdata           string `json:"activeRdata"`
 	Zone                  string `json:"-" db:"uk"`
 	AgentView             string `json:"-" db:"ownby,uk"`
+}
+
+func (rr AgentRr) ToRRData() RRData {
+	return RRData{
+		Name:  rr.Name,
+		Type:  rr.DataType,
+		Value: rr.Rdata,
+		TTL:   strconv.FormatUint(uint64(rr.Ttl), 10),
+	}
 }
