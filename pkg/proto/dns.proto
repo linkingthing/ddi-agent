@@ -214,6 +214,7 @@ message UpdateRedirectionReq{
 	uint32 ttl = 5;
 	bool redirect_type_changed = 6;
 	string view = 7;
+	string name = 8;
 }
 
 message DeleteRedirectionReq{

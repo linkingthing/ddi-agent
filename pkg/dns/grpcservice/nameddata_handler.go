@@ -296,8 +296,8 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 	}
 
 	var forwardZoneList []*resource.AgentForwardZone
-	if err := dbhandler.ListByCondition(&forwardZoneList,
-		map[string]interface{}{}); err != nil {
+	if err := dbhandler.ListByConditionWithTx(&forwardZoneList,
+		map[string]interface{}{}, tx); err != nil {
 		return fmt.Errorf("rewriteViewFile failed:%s", err.Error())
 	}
 
@@ -530,8 +530,8 @@ func (handler *DNSHandler) initZoneFiles(tx restdb.Transaction) error {
 	}
 
 	var rrList []*resource.AgentRr
-	if err := dbhandler.ListByCondition(&rrList,
-		map[string]interface{}{"orderby": "name"}); err != nil {
+	if err := dbhandler.ListByConditionWithTx(&rrList,
+		map[string]interface{}{"orderby": "name"}, tx); err != nil {
 		return err
 	}
 
@@ -633,7 +633,7 @@ func (handler *DNSHandler) rewriteOneRedirectFile(viewID string, tx restdb.Trans
 	}
 
 	if err := handler.rewriteNamedViewFile(false, tx); err != nil {
-		return fmt.Errorf("rewriteRedirectFile rewriteRedirectFile failed:%s", err.Error())
+		return fmt.Errorf("rewriteRedirectFile rewriteNamedViewFile failed:%s", err.Error())
 	}
 
 	return nil
@@ -694,11 +694,20 @@ func (handler *DNSHandler) getAllRedirectData(redirectType string, tx restdb.Tra
 		}
 
 		if len(oneRedirectionData.RRs) > 0 {
-			if err := handler.rewriteFiles(redirectTpl,
-				filepath.Join(handler.dnsConfPath,
-					"redirection", "redirect_"+oneRedirectionData.ViewName),
-				oneRedirectionData, buf); err != nil {
-				return err
+			if redirectType == localZoneType {
+				if err := handler.flushTemplateFiles(rpzTpl,
+					filepath.Join(handler.dnsConfPath,
+						"redirection", "rpz_"+oneRedirectionData.ViewName),
+					oneRedirectionData); err != nil {
+					return err
+				}
+			} else {
+				if err := handler.rewriteFiles(redirectTpl,
+					filepath.Join(handler.dnsConfPath,
+						"redirection", "redirect_"+oneRedirectionData.ViewName),
+					oneRedirectionData, buf); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -729,8 +738,14 @@ func (handler *DNSHandler) getOneRedirectData(viewID, redirectType string, tx re
 		oneRedirectionData.RRs = append(oneRedirectionData.RRs, redirection.ToRRData())
 	}
 
-	return handler.flushTemplateFiles(rpzTpl,
-		filepath.Join(handler.dnsConfPath, "redirection", "rpz_"+oneRedirectionData.ViewName),
+	if redirectType == localZoneType {
+		return handler.flushTemplateFiles(rpzTpl,
+			filepath.Join(handler.dnsConfPath, "redirection", "rpz_"+oneRedirectionData.ViewName),
+			oneRedirectionData)
+	}
+
+	return handler.flushTemplateFiles(redirectTpl,
+		filepath.Join(handler.dnsConfPath, "redirection", "redirect_"+oneRedirectionData.ViewName),
 		oneRedirectionData)
 }
 

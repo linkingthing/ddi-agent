@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -166,7 +167,7 @@ func initDefaultDbData() error {
 			}
 		}
 
-		if exist, err := dbhandler.Exist(resource.TableAcl, anyACL); err != nil {
+		if exist, err := dbhandler.ExistWithTx(resource.TableAcl, anyACL, tx); err != nil {
 			return fmt.Errorf("check agent_acl anyACL exist from db failed:%s", err.Error())
 		} else if !exist {
 			acl := &resource.AgentAcl{Name: anyACL}
@@ -176,7 +177,7 @@ func initDefaultDbData() error {
 			}
 		}
 
-		if exist, err := dbhandler.Exist(resource.TableView, defaultView); err != nil {
+		if exist, err := dbhandler.ExistWithTx(resource.TableView, defaultView, tx); err != nil {
 			return fmt.Errorf("check agent_view defaultView exist from db failed:%s", err.Error())
 		} else if !exist {
 			view := &resource.AgentView{Name: defaultView, Priority: 1}
@@ -189,7 +190,7 @@ func initDefaultDbData() error {
 			}
 		}
 
-		if exist, err := dbhandler.Exist(resource.TableDnsGlobalConfig, defaultGlobalConfigID); err != nil {
+		if exist, err := dbhandler.ExistWithTx(resource.TableDnsGlobalConfig, defaultGlobalConfigID, tx); err != nil {
 			return fmt.Errorf("check agent_dns_global_config exist from db failed:%s", err.Error())
 		} else if !exist {
 			dnsGlobalConfig := &resource.AgentDnsGlobalConfig{
@@ -407,15 +408,9 @@ func (handler *DNSHandler) CreateRedirection(req *pb.CreateRedirectionReq) error
 		AgentView:    req.ViewId,
 	}
 	redirect.SetID(req.Id)
-	if err := formatRdata(&redirect.Rdata, redirect.DataType); err != nil {
+	if err := formatRdata(&redirect.Rdata, &redirect.Name,
+		redirect.RedirectType, redirect.DataType); err != nil {
 		return fmt.Errorf("formatRdata id:%s failed:%s", req.Id, err.Error())
-	}
-	if redirect.DataType != ptrType && redirect.RedirectType != localZoneType {
-		name, err := g53.NameFromString(redirect.Name)
-		if err != nil {
-			return fmt.Errorf("formatDomain failed:%s", err.Error())
-		}
-		redirect.Name = name.String(false)
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -430,8 +425,10 @@ func (handler *DNSHandler) CreateRedirection(req *pb.CreateRedirectionReq) error
 }
 
 func (handler *DNSHandler) UpdateRedirection(req *pb.UpdateRedirectionReq) error {
-	if err := formatRdata(&req.RData, req.DataType); err != nil {
-		return err
+	if err := formatRdata(&req.RData, &req.Name,
+		req.RedirectType, req.DataType); err != nil {
+		return fmt.Errorf("UpdateRedirection formatRdata id:%s failed:%s",
+			req.Id, err.Error())
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -441,6 +438,7 @@ func (handler *DNSHandler) UpdateRedirection(req *pb.UpdateRedirectionReq) error
 				"data_type":     req.DataType,
 				"rdata":         req.RData,
 				"ttl":           req.Ttl,
+				"name":          req.Name,
 				"redirect_type": req.RedirectType,
 			},
 			map[string]interface{}{restdb.IDField: req.Id}); err != nil {
@@ -620,7 +618,7 @@ func (handler *DNSHandler) DeleteForwardZone(req *pb.DeleteForwardZoneReq) error
 	})
 }
 
-func formatRdata(rr *string, datatype string) error {
+func formatRdata(rr, name *string, redirectType, datatype string) error {
 	rrType, err := g53.TypeFromString(datatype)
 	if err != nil {
 		return fmt.Errorf("formatRdata datatype error:%s", err.Error())
@@ -630,8 +628,16 @@ func formatRdata(rr *string, datatype string) error {
 	if err != nil {
 		return fmt.Errorf("formatRdata rdata error:%s", err.Error())
 	}
-
 	*rr = rdata.String()
+
+	if datatype == ptrType || redirectType == localZoneType {
+		return nil
+	}
+
+	if ret := strings.HasSuffix(*name, "."); !ret {
+		*name += "."
+	}
+
 	return nil
 }
 
