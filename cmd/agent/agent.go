@@ -3,16 +3,13 @@ package main
 import (
 	"flag"
 
-	"github.com/linkingthing/ddi-agent/pkg/dns"
-
-	"github.com/linkingthing/ddi-agent/pkg/db"
-
-	"github.com/linkingthing/ddi-agent/config"
-
 	"github.com/zdnscloud/cement/log"
 	"google.golang.org/grpc"
 
+	"github.com/linkingthing/ddi-agent/config"
+	"github.com/linkingthing/ddi-agent/pkg/db"
 	dhcpconsumer "github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
+	"github.com/linkingthing/ddi-agent/pkg/dns"
 	dnsconsumer "github.com/linkingthing/ddi-agent/pkg/dns/kafkaconsumer"
 	"github.com/linkingthing/ddi-agent/pkg/grpcserver"
 	"github.com/linkingthing/ddi-agent/pkg/metric"

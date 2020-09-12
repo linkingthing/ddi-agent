@@ -46,6 +46,7 @@ service AgentManager{
 	rpc DeleteUrlRedirect(DeleteUrlRedirectReq) returns (DDIResponse){}
 
 	rpc UpdateGlobalConfig(UpdateGlobalConfigReq) returns (DDIResponse){}
+
 }
 
 message DNSStartReq{
@@ -273,3 +274,4 @@ message UpdateRecurConcuReq{
 	uint32 recursive_clients = 3;
 	uint32 fetches_per_zone = 4;
 }
+

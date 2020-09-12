@@ -5,9 +5,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	kg "github.com/segmentio/kafka-go"
-	"google.golang.org/grpc"
-
 	"github.com/zdnscloud/cement/log"
+	"google.golang.org/grpc"
 
 	"github.com/linkingthing/ddi-agent/config"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"

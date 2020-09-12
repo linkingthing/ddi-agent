@@ -1,6 +1,7 @@
 package grpcservice
 
 import (
+	"net"
 	"path"
 
 	"github.com/linkingthing/ddi-agent/config"
@@ -15,18 +16,61 @@ const (
 	DHCP6LogFileName = "kea-dhcp6.log"
 )
 
+var AllInterfaces = []string{"*"}
+
 func genDefaultDHCP4Config(logDir string, conf *config.AgentConfig) DHCP4Config {
 	return DHCP4Config{
 		DHCP4: DHCP4{
-			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir, DHCP4LogFileName, conf),
+			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir, DHCP4LogFileName, getInterfaces(true), conf),
 		},
 	}
 }
 
-func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, conf *config.AgentConfig) GenenalConfig {
+func getInterfaces(isv4 bool) []string {
+	interfaces := AllInterfaces
+	its, err := net.Interfaces()
+	if err != nil {
+		return AllInterfaces
+	}
+
+	for _, it := range its {
+		addrs, err := it.Addrs()
+		if err != nil {
+			return AllInterfaces
+		}
+
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if ok == false {
+				continue
+			}
+
+			ip := ipnet.IP
+			if isv4 {
+				if ip.To4() == nil || ip.IsLoopback() {
+					continue
+				}
+			} else {
+				if ip.To4() != nil || ip.IsGlobalUnicast() == false || ip.IsLoopback() {
+					continue
+				}
+			}
+
+			interfaces = append(interfaces, it.Name+"/"+ip.String())
+		}
+	}
+
+	if len(interfaces) == 0 {
+		return AllInterfaces
+	} else {
+		return interfaces
+	}
+}
+
+func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, interfaces []string, conf *config.AgentConfig) GenenalConfig {
 	return GenenalConfig{
 		InterfacesConfig: InterfacesConfig{
-			Interfaces: []string{"*"},
+			Interfaces: interfaces,
 		},
 		ControlSocket: ControlSocket{
 			SocketType: "unix",
@@ -37,7 +81,7 @@ func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, co
 			Name:     conf.DB.Name,
 			User:     conf.DB.User,
 			Password: conf.DB.Password,
-			Port:     uint32(conf.DB.Port),
+			Port:     conf.DB.Port,
 			Host:     conf.DB.Host,
 		},
 		Loggers: []Logger{
@@ -47,7 +91,7 @@ func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, co
 				Severity:   "INFO",
 				OutputOptions: []OutputOption{
 					OutputOption{
-						Output: path.Join(logDir, logFileName),
+						Output: path.Join(conf.DHCP.ConfigDir, logFileName),
 					},
 				},
 			},
@@ -152,7 +196,7 @@ type RelayAgent struct {
 func genDefaultDHCP6Config(logDir string, conf *config.AgentConfig) DHCP6Config {
 	return DHCP6Config{
 		DHCP6: DHCP6{
-			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir, DHCP6LogFileName, conf),
+			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir, DHCP6LogFileName, getInterfaces(false), conf),
 		},
 	}
 }

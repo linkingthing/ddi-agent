@@ -70,7 +70,7 @@ type DBConf struct {
 	Name     string `yaml:"name"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
-	Port     int    `yaml:"port"`
+	Port     uint32 `yaml:"port"`
 	Host     string `json:"host"`
 }
 
