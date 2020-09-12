@@ -21,7 +21,7 @@ key key{{$view.Name}} {
 };
 {{end}}
 
-{{if .IsLogOpen}}logging{
+{{if .LogEnable}}logging{
 	channel query_log{
 	buffered true;
 	file "query.log" versions 5 size 20m;
@@ -45,7 +45,6 @@ view "{{$view.Name}}" {
         dns64 {{$dns64.Prefix}} {
         clients { {{$dns64.ClientACLName}}; };
         mapped { {{$dns64.AAddressACLName}}; };
-        exclude { {{$dns64.Prefix}}; };
         suffix ::;
         };{{end}}{{if $view.Redirect}}
 	zone "." {

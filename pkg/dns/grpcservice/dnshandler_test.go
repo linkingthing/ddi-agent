@@ -13,8 +13,8 @@ var (
 )
 
 func init() {
-	p := newDNSHandler("/root/bindtest/", "/root/bindtest/", "/home/lx/nginx/conf.d/", "10.0.0.19")
-	handler = p
+	//p := newDNSHandler("/root/bindtest/", "/root/bindtest/", "/home/lx/nginx/conf.d/", "10.0.0.19")
+	//handler = p
 }
 
 func TestStartDNS(t *testing.T) {

@@ -7,8 +7,9 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/linkingthing/ddi-agent/config"
-	"github.com/linkingthing/ddi-agent/pkg/boltdb"
+	"github.com/linkingthing/ddi-agent/pkg/db"
 	dhcpconsumer "github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
+	"github.com/linkingthing/ddi-agent/pkg/dns"
 	dnsconsumer "github.com/linkingthing/ddi-agent/pkg/dns/kafkaconsumer"
 	"github.com/linkingthing/ddi-agent/pkg/grpcclient"
 	"github.com/linkingthing/ddi-agent/pkg/grpcserver"
@@ -29,7 +30,8 @@ func main() {
 		log.Fatalf("load config file failed: %s", err.Error())
 	}
 
-	if err := boltdb.New(conf.DB.Dir); err != nil {
+	db.RegisterResources(dns.PersistentResources()...)
+	if err := db.Init(conf); err != nil {
 		log.Fatalf("new db failed: %s", err.Error())
 	}
 

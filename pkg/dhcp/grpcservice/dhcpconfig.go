@@ -36,11 +36,11 @@ func genDefaultGeneralConfig(socketName, logName, logDir, logFileName string, in
 		},
 		LeaseDatabase: LeaseDatabase{
 			Type:     "postgresql",
-			Name:     conf.DHCP.DB.Name,
-			User:     conf.DHCP.DB.User,
-			Password: conf.DHCP.DB.Password,
-			Port:     conf.DHCP.DB.Port,
-			Host:     conf.DHCP.DB.Host,
+			Name:     conf.DB.Name,
+			User:     conf.DB.User,
+			Password: conf.DB.Password,
+			Port:     conf.DB.Port,
+			Host:     conf.DB.Host,
 		},
 		Loggers: []Logger{
 			{

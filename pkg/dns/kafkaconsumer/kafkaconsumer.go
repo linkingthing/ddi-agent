@@ -5,9 +5,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	kg "github.com/segmentio/kafka-go"
-	"google.golang.org/grpc"
-
 	"github.com/zdnscloud/cement/log"
+	"google.golang.org/grpc"
 
 	"github.com/linkingthing/ddi-agent/config"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
@@ -31,22 +30,15 @@ const (
 	CreateRR                  = "CreateRR"
 	UpdateRR                  = "UpdateRR"
 	DeleteRR                  = "DeleteRR"
-	CreateForward             = "CreateForward"
+	UpdateRRsByZone           = "UpdateRRsByZone"
 	UpdateForward             = "UpdateForward"
-	DeleteForward             = "DeleteForward"
 	CreateRedirection         = "CreateRedirection"
 	UpdateRedirection         = "UpdateRedirection"
 	DeleteRedirection         = "DeleteRedirection"
-	CreateDNS64               = "CreateDNS64"
-	UpdateDNS64               = "UpdateDNS64"
-	DeleteDNS64               = "DeleteDNS64"
 	CreateIPBlackHole         = "CreateIPBlackHole"
 	UpdateIPBlackHole         = "UpdateIPBlackHole"
 	DeleteIPBlackHole         = "DeleteIPBlackHole"
 	UpdateRecursiveConcurrent = "UpdateRecursiveConcurrent"
-	CreateSortList            = "CreateSortList"
-	UpdateSortList            = "UpdateSortList"
-	DeleteSortList            = "DeleteSortList"
 	CreateUrlRedirect         = "CreateUrlRedirect"
 	UpdateUrlRedirect         = "UpdateUrlRedirect"
 	DeleteUrlRedirect         = "DeleteUrlRedirect"
@@ -64,9 +56,11 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 
 	cli := pb.NewAgentManagerClient(conn)
 	kafkaReader := kg.NewReader(kg.ReaderConfig{
-		Brokers: []string{conf.Kafka.Addr},
-		Topic:   DNSTopic,
-		GroupID: conf.DNS.GroupID,
+		Brokers:  []string{conf.Kafka.Addr},
+		Topic:    DNSTopic,
+		GroupID:  conf.DNS.GroupID,
+		MinBytes: 10,
+		MaxBytes: 10e6,
 	})
 
 	for {
@@ -196,12 +190,12 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			if _, err := cli.DeleteRR(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec DeleteRR failed: %s", err.Error())
 			}
-		case CreateForward:
-			var target pb.CreateForwardReq
+		case UpdateRRsByZone:
+			var target pb.UpdateRRsByZoneReq
 			if err := proto.Unmarshal(message.Value, &target); err != nil {
 			}
-			if _, err := cli.CreateForward(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec CreateForward failed: %s", err.Error())
+			if _, err := cli.UpdateRRsByZone(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec UpdateRRsByZone failed: %s", err.Error())
 			}
 		case UpdateForward:
 			var target pb.UpdateForwardReq
@@ -209,13 +203,6 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			}
 			if _, err := cli.UpdateForward(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec UpdateForward failed: %s", err.Error())
-			}
-		case DeleteForward:
-			var target pb.DeleteForwardReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.DeleteForward(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec DeleteForward failed: %s", err.Error())
 			}
 		case CreateRedirection:
 			var target pb.CreateRedirectionReq
@@ -237,27 +224,6 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			}
 			if _, err := cli.DeleteRedirection(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec DeleteRedirection failed: %s", err.Error())
-			}
-		case CreateDNS64:
-			var target pb.CreateDNS64Req
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.CreateDNS64(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec CreateDNS64 failed: %s", err.Error())
-			}
-		case UpdateDNS64:
-			var target pb.UpdateDNS64Req
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.UpdateDNS64(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec UpdateDNS64 failed: %s", err.Error())
-			}
-		case DeleteDNS64:
-			var target pb.DeleteDNS64Req
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.DeleteDNS64(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec DeleteDNS64 failed: %s", err.Error())
 			}
 		case CreateIPBlackHole:
 			var target pb.CreateIPBlackHoleReq
@@ -286,27 +252,6 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			}
 			if _, err := cli.UpdateRecursiveConcurrent(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec UpdateRecursiveConcurrent failed: %s", err.Error())
-			}
-		case CreateSortList:
-			var target pb.CreateSortListReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.CreateSortList(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec CreateSortList failed: %s", err.Error())
-			}
-		case UpdateSortList:
-			var target pb.UpdateSortListReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.UpdateSortList(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec UpdateSortList failed: %s", err.Error())
-			}
-		case DeleteSortList:
-			var target pb.DeleteSortListReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.DeleteSortList(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec DeleteSortList failed: %s", err.Error())
 			}
 		case CreateUrlRedirect:
 			var target pb.CreateUrlRedirectReq

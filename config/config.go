@@ -13,7 +13,7 @@ type AgentConfig struct {
 	Kafka           KafkaConf      `yaml:"kafka"`
 	Prometheus      PrometheusConf `yaml:"prometheus"`
 	Metric          MetricConf     `yaml:"metric"`
-	DB              BoltDBConf     `yaml:"db"`
+	DB              DBConf         `yaml:"db"`
 	NginxDefaultDir string         `yaml:"nginx_default_dir"`
 	Monitor         MonitorConf    `yaml:"monitor"`
 }
@@ -30,27 +30,19 @@ type ControllerConf struct {
 }
 
 type DNSConf struct {
-	Enabled   bool   `yaml:"enabled"`
-	ConfDir   string `yaml:"conf_dir"`
-	DBDir     string `yaml:"db_dir"`
-	StatsAddr string `yaml:"stats_addr"`
-	GroupID   string `yaml:"group_id"`
+	Enabled    bool   `yaml:"enabled"`
+	ConfDir    string `yaml:"conf_dir"`
+	DBDir      string `yaml:"db_dir"`
+	StatsAddr  string `yaml:"stats_addr"`
+	GroupID    string `yaml:"group_id"`
+	ServerAddr string `yaml:"server_addr"`
 }
 
 type DHCPConf struct {
-	Enabled   bool       `yaml:"enabled"`
-	CmdAddr   string     `yaml:"cmd_addr"`
-	ConfigDir string     `yaml:"config_dir"`
-	DB        DHCPDBConf `yaml:"db"`
-	GroupID   string     `yaml:"group_id"`
-}
-
-type DHCPDBConf struct {
-	Name     string `json:"name"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Port     uint32 `json:"port"`
-	Host     string `json:"host"`
+	Enabled   bool   `yaml:"enabled"`
+	CmdAddr   string `yaml:"cmd_addr"`
+	ConfigDir string `yaml:"config_dir"`
+	GroupID   string `yaml:"group_id"`
 }
 
 type KafkaConf struct {
@@ -67,12 +59,16 @@ type MetricConf struct {
 	Port uint32 `yaml:"port"`
 }
 
-type BoltDBConf struct {
-	Dir string `yaml:"dir"`
-}
-
 type MonitorConf struct {
 	GrpcAddr string `yaml:"grpc_addr"`
+}
+
+type DBConf struct {
+	Name     string `yaml:"name"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Port     uint32 `yaml:"port"`
+	Host     string `json:"host"`
 }
 
 func LoadConfig(path string) (*AgentConfig, error) {
