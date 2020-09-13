@@ -41,7 +41,6 @@ const (
 	zoneSuffix                   = ".zone"
 	nzfTpl                       = "nzf.tpl"
 	nzfSuffix                    = ".nzf"
-	rndcPort                     = "953"
 	checkPeriod                  = 5
 	anyACL                       = "any"
 	noneACL                      = "none"
@@ -63,7 +62,6 @@ const (
 type DNSHandler struct {
 	tpl                 *template.Template
 	dnsConfPath         string
-	dBPath              string
 	tplPath             string
 	ticker              *time.Ticker
 	quit                chan int
@@ -81,7 +79,6 @@ type DNSHandler struct {
 func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 	instance := &DNSHandler{
 		dnsConfPath:         filepath.Join(conf.DNS.ConfDir),
-		dBPath:              filepath.Join(conf.DNS.DBDir),
 		tplPath:             TemplateDir,
 		nginxDefaultConfDir: conf.NginxDefaultDir,
 		localip:             conf.Server.IP,

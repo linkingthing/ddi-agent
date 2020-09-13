@@ -2,18 +2,20 @@ package grpcservice
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/zdnscloud/cement/shell"
 	restdb "github.com/zdnscloud/gorest/db"
 
 	"github.com/linkingthing/ddi-agent/pkg/db"
 	"github.com/linkingthing/ddi-agent/pkg/dns/dbhandler"
 	"github.com/linkingthing/ddi-agent/pkg/dns/resource"
+	"github.com/linkingthing/ddi-agent/pkg/grpcclient"
+	monitorpb "github.com/linkingthing/ddi-monitor/pkg/proto"
 )
 
 type NamedData struct {
@@ -101,14 +103,11 @@ type urlRedirect struct {
 }
 
 func (handler *DNSHandler) initFiles() error {
-	handler.rndcConfPath = filepath.Join(handler.dnsConfPath, "rndc.conf")
-	handler.rndcPath = filepath.Join(handler.dnsConfPath, "rndc")
 	handler.nginxConfPath = filepath.Join(handler.nginxDefaultConfDir, nginxDefaultConfFile)
 	handler.namedViewPath = filepath.Join(handler.dnsConfPath, namedViewConfName)
 	handler.namedOptionPath = filepath.Join(handler.dnsConfPath, namedOptionsConfName)
 	handler.namedAclPath = filepath.Join(handler.dnsConfPath, namedAclConfName)
-	if handler.rndcConfPath == "" && handler.rndcPath == "" && handler.nginxConfPath == "" &&
-		handler.namedViewPath == "" && handler.namedOptionPath == "" && handler.namedAclPath == "" {
+	if handler.nginxConfPath == "" && handler.namedViewPath == "" && handler.namedOptionPath == "" && handler.namedAclPath == "" {
 		return fmt.Errorf("init path failed path is empty")
 	}
 
@@ -159,102 +158,52 @@ func (handler *DNSHandler) initNamedConf() error {
 }
 
 func (handler *DNSHandler) rndcReconfig() error {
-	paras := []string{
-		"-c" + handler.rndcConfPath,
-		"-s" + "localhost",
-		"-p" + rndcPort,
-		"reconfig",
-	}
-
-	if _, err := shell.Shell(handler.rndcPath, paras...); err != nil {
-		return fmt.Errorf("rndc reconfig error, %w", err)
-	}
-	return nil
+	_, err := grpcclient.GetDDIMonitorGrpcClient().ReconfigDNS(context.Background(), &monitorpb.ReconfigDNSRequest{})
+	return err
 }
 
 func (handler *DNSHandler) rndcReload() error {
-	paras := []string{
-		"-c" + handler.rndcConfPath,
-		"-s" + "localhost",
-		"-p" + rndcPort,
-		"reload",
-	}
-
-	if _, err := shell.Shell(handler.rndcPath, paras...); err != nil {
-		return fmt.Errorf("rndc reconfig error, %w", err)
-	}
-	return nil
+	_, err := grpcclient.GetDDIMonitorGrpcClient().ReloadDNSConfig(context.Background(), &monitorpb.ReloadDNSConfigRequest{})
+	return err
 }
 
-func (handler *DNSHandler) rndcAddZone(name string, zoneFile string, viewName string) error {
-	paras := []string{
-		"-c" + handler.rndcConfPath,
-		"-s" + "localhost",
-		"-p" + rndcPort,
-		"addzone " + name + " in " + viewName + " { type master; file \"" + zoneFile + "\";};",
-	}
-	if out, err := shell.Shell(handler.rndcPath, paras...); err != nil {
-		return fmt.Errorf("rndcAddZone error:%s paras:%s error:%s", out, paras, err.Error())
-	}
-	return nil
+func (handler *DNSHandler) rndcAddZone(zoneName string, zoneFile string, viewName string) error {
+	_, err := grpcclient.GetDDIMonitorGrpcClient().AddDNSZone(context.Background(), &monitorpb.AddDNSZoneRequest{
+		ZoneName: zoneName,
+		ViewName: viewName,
+		ZoneFile: zoneFile,
+	})
+	return err
 }
 
-func (handler *DNSHandler) rndcModifyZone(name string, zoneFile string, viewName string) error {
-	paras := []string{
-		"-c" + handler.rndcConfPath,
-		"-s" + "localhost",
-		"-p" + rndcPort,
-		"modzone " + name + " in " + viewName + " { type master; file \"" + zoneFile + "\";};",
-	}
-	if out, err := shell.Shell(handler.rndcPath, paras...); err != nil {
-		return fmt.Errorf("rndcModifyZone error:%s paras:%s error:%s", out, paras, err.Error())
-	}
-	return nil
+func (handler *DNSHandler) rndcModifyZone(zoneName string, zoneFile string, viewName string) error {
+	_, err := grpcclient.GetDDIMonitorGrpcClient().UpdateDNSZone(context.Background(), &monitorpb.UpdateDNSZoneRequest{
+		ZoneName: zoneName,
+		ViewName: viewName,
+		ZoneFile: zoneFile,
+	})
+	return err
 }
 
-func (handler *DNSHandler) rndcDeleteZone(name string, viewName string) error {
-	paras := []string{
-		"-c" + handler.rndcConfPath,
-		"-s" + "localhost",
-		"-p" + rndcPort,
-		"delzone",
-		"-clean",
-		name + " in " + viewName,
-	}
-	if out, err := shell.Shell(handler.rndcPath, paras...); err != nil {
-		return fmt.Errorf("rndcDeleteZone error:%s paras:%s error:%s", out, paras, err.Error())
-	}
-	return nil
+func (handler *DNSHandler) rndcDeleteZone(zoneName string, viewName string) error {
+	_, err := grpcclient.GetDDIMonitorGrpcClient().DeleteDNSZone(context.Background(), &monitorpb.DeleteDNSZoneRequest{
+		ZoneName: zoneName,
+		ViewName: viewName,
+	})
+	return err
 }
 
 func (handler *DNSHandler) rndcDumpJNLFile() error {
-	paras := []string{
-		"-c" + handler.rndcConfPath,
-		"-s" + "localhost",
-		"-p" + rndcPort,
-		"sync",
-		"-clean",
-	}
-	if _, err := shell.Shell(handler.rndcPath, paras...); err != nil {
-		return fmt.Errorf("exec rndc sync -clean paras:%s err:%s", paras, err.Error())
-	}
-	return nil
+	_, err := grpcclient.GetDDIMonitorGrpcClient().DumpDNSAllZonesConfig(context.Background(), &monitorpb.DumpDNSAllZonesConfigRequest{})
+	return err
 }
 
 func (handler *DNSHandler) rndcZoneDumpJNLFile(zoneName string, viewName string) error {
-	paras := []string{
-		"-c" + handler.rndcConfPath,
-		"-s" + "localhost",
-		"-p" + rndcPort,
-		"sync",
-		"-clean",
-		zoneName + " in " + viewName,
-	}
-
-	if _, err := shell.Shell(handler.rndcPath, paras...); err != nil {
-		return fmt.Errorf("exec rndc sync -clean paras:%s err:%s", paras, err.Error())
-	}
-	return nil
+	_, err := grpcclient.GetDDIMonitorGrpcClient().DumpDNSZoneConfig(context.Background(), &monitorpb.DumpDNSZoneConfigRequest{
+		ZoneName: zoneName,
+		ViewName: viewName,
+	})
+	return err
 }
 
 func (handler *DNSHandler) rewriteNginxFile(tx restdb.Transaction) error {
@@ -273,12 +222,8 @@ func (handler *DNSHandler) rewriteNginxFile(tx restdb.Transaction) error {
 }
 
 func (handler *DNSHandler) nginxReload() error {
-	command := "docker exec -i ddi-nginx nginx -s reload"
-
-	if _, err := shell.Shell("/bin/bash", "-c", command); err != nil {
-		return fmt.Errorf("exec docker nginx reload error: %s", err.Error())
-	}
-	return nil
+	_, err := grpcclient.GetDDIMonitorGrpcClient().ReloadNginxConfig(context.Background(), &monitorpb.ReloadNginxConfigRequest{})
+	return err
 }
 
 func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
