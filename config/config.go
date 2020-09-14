@@ -30,12 +30,12 @@ type ControllerConf struct {
 }
 
 type DNSConf struct {
-	Enabled    bool   `yaml:"enabled"`
-	ConfDir    string `yaml:"conf_dir"`
-	DBDir      string `yaml:"db_dir"`
-	StatsAddr  string `yaml:"stats_addr"`
-	GroupID    string `yaml:"group_id"`
-	ServerAddr string `yaml:"server_addr"`
+	Enabled   bool   `yaml:"enabled"`
+	ConfDir   string `yaml:"conf_dir"`
+	DBDir     string `yaml:"db_dir"`
+	StatsAddr string `yaml:"stats_addr"`
+	GroupID   string `yaml:"group_id"`
+	ServerIp  string `yaml:"server_ip"`
 }
 
 type DHCPConf struct {

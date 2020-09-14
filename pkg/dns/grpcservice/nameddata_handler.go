@@ -107,7 +107,7 @@ func (handler *DNSHandler) initFiles() error {
 	handler.namedViewPath = filepath.Join(handler.dnsConfPath, namedViewConfName)
 	handler.namedOptionPath = filepath.Join(handler.dnsConfPath, namedOptionsConfName)
 	handler.namedAclPath = filepath.Join(handler.dnsConfPath, namedAclConfName)
-	if handler.nginxConfPath == "" && handler.namedViewPath == "" && handler.namedOptionPath == "" && handler.namedAclPath == "" {
+	if handler.nginxConfPath == "" || handler.namedViewPath == "" || handler.namedOptionPath == "" || handler.namedAclPath == "" {
 		return fmt.Errorf("init path failed path is empty")
 	}
 
@@ -535,7 +535,7 @@ func (handler *DNSHandler) rewriteNzfsFile(tx restdb.Transaction) error {
 	}
 
 	if err := removeFiles(handler.dnsConfPath, "", nzfSuffix); err != nil {
-		return fmt.Errorf("remvoe files for %s*.zone fail", handler.dnsConfPath)
+		return fmt.Errorf("remove files for %s*.zone fail", handler.dnsConfPath)
 	}
 
 	oneNzfMap := make(map[string][]resource.ZoneData)

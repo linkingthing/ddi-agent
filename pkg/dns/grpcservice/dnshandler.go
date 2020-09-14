@@ -82,7 +82,7 @@ func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 		tplPath:             TemplateDir,
 		nginxDefaultConfDir: conf.NginxDefaultDir,
 		localip:             conf.Server.IP,
-		dnsServer:           conf.DNS.ServerAddr,
+		dnsServer:           conf.DNS.ServerIp + ":53",
 	}
 
 	instance.tpl = template.Must(template.ParseGlob(filepath.Join(instance.tplPath, "*.tpl")))
