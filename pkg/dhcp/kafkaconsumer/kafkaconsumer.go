@@ -18,7 +18,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 	}
 
 	run(pb.NewDHCPManagerClient(conn), kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{conf.Kafka.Addr},
+		Brokers:  conf.Kafka.Addr,
 		Topic:    Topic,
 		GroupID:  conf.DHCP.GroupID,
 		MinBytes: 10,

@@ -20,6 +20,7 @@ type AgentConfig struct {
 
 type ServerConf struct {
 	IP       string `yaml:"ip"`
+	IPV6     string `yaml:"ipv6"`
 	Hostname string `yaml:"hostname"`
 }
 
@@ -49,8 +50,8 @@ type GrpcConf struct {
 }
 
 type KafkaConf struct {
-	Addr  string `yaml:"addr"`
-	Topic string `yaml:"topic"`
+	Addr  []string `yaml:"addr"`
+	Topic string   `yaml:"topic"`
 }
 
 type PrometheusConf struct {

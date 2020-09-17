@@ -67,6 +67,7 @@ type DNSHandler struct {
 	quit                chan int
 	nginxDefaultConfDir string
 	localip             string
+	localipv6           string
 	dnsServer           string
 	rndcConfPath        string
 	rndcPath            string
@@ -83,6 +84,7 @@ func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 		tplPath:             filepath.Join(conf.DNS.ConfDir, "templates"),
 		nginxDefaultConfDir: conf.NginxDefaultDir,
 		localip:             conf.Server.IP,
+		localipv6:           conf.Server.IPV6,
 		dnsServer:           conf.DNS.ServerAddr,
 	}
 
@@ -1033,6 +1035,7 @@ func (handler *DNSHandler) CreateUrlRedirect(req *pb.CreateUrlRedirectReq) error
 		AgentView:    urlRedirect.AgentView,
 	}
 	redirection.SetID(req.Id)
+
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		exist, _ := tx.Exists(resource.TableRedirection,
 			map[string]interface{}{"name": urlRedirect.Domain})
@@ -1049,6 +1052,23 @@ func (handler *DNSHandler) CreateUrlRedirect(req *pb.CreateUrlRedirectReq) error
 		if _, err := tx.Insert(redirection); err != nil {
 			return fmt.Errorf("CreateUrlRedirect insert redirect id:%s to db failed:%s",
 				req.Id, err.Error())
+		}
+
+		if handler.localipv6 != "" {
+			redirectionIpv6 := &resource.AgentRedirection{
+				Name:         urlRedirect.Domain,
+				Ttl:          3600,
+				DataType:     "AAAA",
+				Rdata:        handler.localipv6,
+				RedirectType: localZoneType,
+				AgentView:    urlRedirect.AgentView,
+			}
+			redirectionIpv6.SetID(req.Id + "_v6")
+
+			if _, err := tx.Insert(redirectionIpv6); err != nil {
+				return fmt.Errorf("CreateUrlRedirect insert redirectionIpv6 id:%s to db failed:%s",
+					req.Id, err.Error())
+			}
 		}
 
 		if err := handler.rewriteOneRPZFile(urlRedirect.AgentView, tx); err != nil {
@@ -1082,6 +1102,13 @@ func (handler *DNSHandler) UpdateUrlRedirect(req *pb.UpdateUrlRedirectReq) error
 				req.Id, err.Error())
 		}
 
+		if _, err := tx.Update(resource.TableRedirection,
+			map[string]interface{}{"name": req.Domain},
+			map[string]interface{}{restdb.IDField: req.Id + "_v6"}); err != nil {
+			return fmt.Errorf("update redirectionIpv6 id:%s to db failed:%s",
+				req.Id, err.Error())
+		}
+
 		if err := handler.rewriteOneRPZFile(req.View, tx); err != nil {
 			return fmt.Errorf("UpdateUrlRedirect id:%s rewriteRPZFile failed:%s",
 				req.Id, err.Error())
@@ -1111,6 +1138,13 @@ func (handler *DNSHandler) DeleteUrlRedirect(req *pb.DeleteUrlRedirectReq) error
 			return fmt.Errorf("delete Redirecttion id:%s from db failed:%s",
 				req.Id, err.Error())
 		}
+
+		if _, err := tx.Delete(resource.TableRedirection,
+			map[string]interface{}{restdb.IDField: req.Id + "_v6"}); err != nil {
+			return fmt.Errorf("delete RedirecttionIpv6 id:%s from db failed:%s",
+				req.Id, err.Error())
+		}
+
 		if err := handler.rewriteOneRPZFile(req.View, tx); err != nil {
 			return fmt.Errorf("DeleteUrlRedirect id:%s rewriteNamedViewFile failed:%s",
 				req.Id, err.Error())
