@@ -233,6 +233,8 @@ github.com/linkingthing/ddi-monitor v0.0.0-20200829130053-d54fdd593535 h1:9n6VLT
 github.com/linkingthing/ddi-monitor v0.0.0-20200829130053-d54fdd593535/go.mod h1:DNZHQejag76u/1BVbOLJOD1FHGQ+YI71cxibu1EShdI=
 github.com/linkingthing/ddi-monitor v0.0.0-20200913143701-1dbe8dc185b6 h1:aNi5sYyC+PGMyHvGfEuEy4tuRxXugObARDFxMvEb8lc=
 github.com/linkingthing/ddi-monitor v0.0.0-20200913143701-1dbe8dc185b6/go.mod h1:DNZHQejag76u/1BVbOLJOD1FHGQ+YI71cxibu1EShdI=
+github.com/linkingthing/ddi-monitor v0.0.0-20200914073842-84fc179b265d h1:bfErC6J3yBHsokLJHwVmI3mQJC7jKjNl/lwpt1HcRV8=
+github.com/linkingthing/ddi-monitor v0.0.0-20200914073842-84fc179b265d/go.mod h1:DNZHQejag76u/1BVbOLJOD1FHGQ+YI71cxibu1EShdI=
 github.com/lufia/iostat v0.0.0-20170605150913-9f7362b77ad3/go.mod h1:lRgtFVamD7L7GaXOSwBiuXMwU3Aicfn5h66LVs4u2SA=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
