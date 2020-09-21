@@ -28,6 +28,8 @@ const (
 	UpdateForwardZone         = "UpdateForwardZone"
 	DeleteForwardZone         = "DeleteForwardZone"
 	BatchCreateForwardZone    = "BatchCreateForwardZone"
+	BatchUpdateForwardZone    = "BatchUpdateForwardZone"
+	BatchDeleteForwardZone    = "BatchDeleteForwardZone"
 	FlushForwardZone          = "FlushForwardZone"
 	CreateRR                  = "CreateRR"
 	UpdateRR                  = "UpdateRR"
@@ -176,6 +178,20 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			if err := proto.Unmarshal(message.Value, &target); err != nil {
 			}
 			if _, err := cli.BatchCreateForwardZone(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec BatchCreateForwardZone failed: %s", err.Error())
+			}
+		case BatchUpdateForwardZone:
+			var target pb.BatchUpdateForwardZoneReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.BatchUpdateForwardZone(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec BatchCreateForwardZone failed: %s", err.Error())
+			}
+		case BatchDeleteForwardZone:
+			var target pb.BatchDeleteForwardZoneReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.BatchDeleteForwardZone(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec BatchCreateForwardZone failed: %s", err.Error())
 			}
 		case FlushForwardZone:
