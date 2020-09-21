@@ -24,7 +24,11 @@ const (
 	CreateZone                = "CreateZone"
 	UpdateZone                = "UpdateZone"
 	DeleteZone                = "DeleteZone"
+	CreateForwardZone         = "CreateForwardZone"
 	UpdateForwardZone         = "UpdateForwardZone"
+	DeleteForwardZone         = "DeleteForwardZone"
+	BatchCreateForwardZone    = "BatchCreateForwardZone"
+	FlushForwardZone          = "FlushForwardZone"
 	CreateRR                  = "CreateRR"
 	UpdateRR                  = "UpdateRR"
 	DeleteRR                  = "DeleteRR"
@@ -146,12 +150,40 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			if _, err := cli.DeleteZone(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec DeleteZone failed: %s", err.Error())
 			}
+		case CreateForwardZone:
+			var target pb.CreateForwardZoneReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.CreateForwardZone(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec CreateForwardZone failed: %s", err.Error())
+			}
 		case UpdateForwardZone:
 			var target pb.UpdateForwardZoneReq
 			if err := proto.Unmarshal(message.Value, &target); err != nil {
 			}
 			if _, err := cli.UpdateForwardZone(context.Background(), &target); err != nil {
 				log.Errorf("grpc service exec UpdateForwardZone failed: %s", err.Error())
+			}
+		case DeleteForwardZone:
+			var target pb.DeleteForwardZoneReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.DeleteForwardZone(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec DeleteForwardZone failed: %s", err.Error())
+			}
+		case BatchCreateForwardZone:
+			var target pb.BatchCreateForwardZoneReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.BatchCreateForwardZone(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec BatchCreateForwardZone failed: %s", err.Error())
+			}
+		case FlushForwardZone:
+			var target pb.FlushForwardZoneReq
+			if err := proto.Unmarshal(message.Value, &target); err != nil {
+			}
+			if _, err := cli.FlushForwardZone(context.Background(), &target); err != nil {
+				log.Errorf("grpc service exec FlushForwardZone failed: %s", err.Error())
 			}
 		case CreateRR:
 			var target pb.CreateRRReq

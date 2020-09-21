@@ -21,7 +21,13 @@ service AgentManager{
 
 	rpc UpdateRRsByZone(UpdateRRsByZoneReq) returns (DDIResponse){}
 
+	rpc CreateForwardZone(CreateForwardZoneReq) returns (DDIResponse){}
 	rpc UpdateForwardZone(UpdateForwardZoneReq) returns (DDIResponse){}
+	rpc DeleteForwardZone(DeleteForwardZoneReq) returns (DDIResponse){}
+
+	rpc BatchCreateForwardZone(BatchCreateForwardZoneReq) returns (DDIResponse){}
+	rpc FlushForwardZone(FlushForwardZoneReq) returns (DDIResponse){}
+
 	rpc UpdateForward(UpdateForwardReq) returns (DDIResponse){}
 
 	rpc CreateRR(CreateRRReq) returns (DDIResponse){}
@@ -228,13 +234,40 @@ message UpdateForwardReq{
 message ForwardZone{
 	string id = 1;
 	string domain = 2;
-	repeated string forward_ips = 3;
-	string forward_type = 4;
+	string forward_type = 3;
+	repeated string forward_ips = 4;
+}
+
+message ForwardView{
+	string view = 1;
+	repeated ForwardZone forward_zones = 2;
+}
+
+message CreateForwardZoneReq{
+	string id = 1;
+	string name = 2;
+	string forward_type = 3;
+	repeated string forward_ips = 5;
+	string view_id = 6;
 }
 
 message UpdateForwardZoneReq{
-	string view = 1;
-	repeated ForwardZone forwardZones = 2;
+	string id = 1;
+	string forward_type = 2;
+	bool ips_changed = 3;
+	repeated string forward_ips = 4;
+}
+
+message DeleteForwardZoneReq{
+	string id = 1;
+}
+
+message BatchCreateForwardZoneReq{
+	repeated ForwardView forward_views = 1;
+}
+
+message FlushForwardZoneReq{
+	repeated ForwardZone forwardZones = 1;
 }
 
 message CreateIPBlackHoleReq{
