@@ -18,9 +18,9 @@ type GRPCServer struct {
 }
 
 func New(conf *config.AgentConfig) (*GRPCServer, error) {
-	listener, err := net.Listen("tcp", conf.Grpc.Addr)
+	listener, err := net.Listen("tcp", conf.Server.GrpcAddr)
 	if err != nil {
-		return nil, fmt.Errorf("create listener with addr %s failed: %s", conf.Grpc.Addr, err.Error())
+		return nil, fmt.Errorf("create listener with addr %s failed: %s", conf.Server.GrpcAddr, err.Error())
 	}
 
 	grpcServer := &GRPCServer{

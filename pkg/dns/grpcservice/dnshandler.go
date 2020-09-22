@@ -1,10 +1,10 @@
 package grpcservice
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -12,8 +12,7 @@ import (
 	"time"
 
 	"github.com/zdnscloud/cement/log"
-	"github.com/zdnscloud/cement/shell"
-	uuid2 "github.com/zdnscloud/cement/uuid"
+	"github.com/zdnscloud/cement/uuid"
 	"github.com/zdnscloud/g53"
 	restdb "github.com/zdnscloud/gorest/db"
 
@@ -21,7 +20,9 @@ import (
 	"github.com/linkingthing/ddi-agent/pkg/db"
 	"github.com/linkingthing/ddi-agent/pkg/dns/dbhandler"
 	"github.com/linkingthing/ddi-agent/pkg/dns/resource"
+	"github.com/linkingthing/ddi-agent/pkg/grpcclient"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
+	monitorpb "github.com/linkingthing/ddi-monitor/pkg/proto"
 )
 
 const (
@@ -40,7 +41,6 @@ const (
 	zoneSuffix                   = ".zone"
 	nzfTpl                       = "nzf.tpl"
 	nzfSuffix                    = ".nzf"
-	rndcPort                     = "953"
 	checkPeriod                  = 5
 	anyACL                       = "any"
 	noneACL                      = "none"
@@ -52,6 +52,7 @@ const (
 	nginxDefaultConfFile         = "default.conf"
 	defaultGlobalConfigID        = "globalConfig"
 	defaultRecursiveConcurrentId = "1"
+	TemplateDir                  = "/etc/dns/templates"
 
 	updateZonesTTLSQL       = "update gr_agent_zone set ttl = $1"
 	updateRRsTTLSQL         = "update gr_agent_rr set ttl = $1"
@@ -61,7 +62,6 @@ const (
 type DNSHandler struct {
 	tpl                 *template.Template
 	dnsConfPath         string
-	dBPath              string
 	tplPath             string
 	ticker              *time.Ticker
 	quit                chan int
@@ -79,11 +79,10 @@ type DNSHandler struct {
 func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 	instance := &DNSHandler{
 		dnsConfPath:         filepath.Join(conf.DNS.ConfDir),
-		dBPath:              filepath.Join(conf.DNS.DBDir),
-		tplPath:             filepath.Join(conf.DNS.ConfDir, "templates"),
+		tplPath:             TemplateDir,
 		nginxDefaultConfDir: conf.NginxDefaultDir,
 		localip:             conf.Server.IP,
-		dnsServer:           conf.DNS.ServerAddr,
+		dnsServer:           conf.DNS.ServerIp + ":53",
 	}
 
 	instance.tpl = template.Must(template.ParseGlob(filepath.Join(instance.tplPath, "*.tpl")))
@@ -106,10 +105,6 @@ func (handler *DNSHandler) StartDNS(req *pb.DNSStartReq) error {
 }
 
 func (handler *DNSHandler) Start() error {
-	if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err == nil {
-		return nil
-	}
-
 	if err := initDefaultDbData(); err != nil {
 		return fmt.Errorf("initDefaultDbData failed:%s", err.Error())
 	}
@@ -118,22 +113,16 @@ func (handler *DNSHandler) Start() error {
 		return err
 	}
 
-	var param = "-c" + filepath.Join(handler.dnsConfPath, mainConfName)
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "named"), param); err != nil {
-		return fmt.Errorf("exec named -c  failed:%s", err.Error())
-	}
-
-	return nil
+	grpcclient.GetDDIMonitorGrpcClient().StopDNS(context.Background(), &monitorpb.StopDNSRequest{})
+	_, err := grpcclient.GetDDIMonitorGrpcClient().StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
+	return err
 }
 
 func (handler *DNSHandler) StopDNS() error {
-	if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err != nil {
-		return nil
-	}
-	var err error
-	if _, err = shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), "stop"); err != nil {
+	if _, err := grpcclient.GetDDIMonitorGrpcClient().StopDNS(context.Background(), &monitorpb.StopDNSRequest{}); err != nil {
 		return err
 	}
+
 	handler.quit <- 1
 	return nil
 }
@@ -145,10 +134,11 @@ func (handler *DNSHandler) keepDNSAlive() {
 	for {
 		select {
 		case <-handler.ticker.C:
-			if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err == nil {
+			if resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDNSState(context.Background(), &monitorpb.GetDNSStateRequest{}); err != nil {
 				continue
+			} else if resp.GetIsRunning() == false {
+				handler.Start()
 			}
-			handler.Start()
 		case <-handler.quit:
 			return
 		}
@@ -183,7 +173,7 @@ func initDefaultDbData() error {
 			view := &resource.AgentView{Name: defaultView, Priority: 1}
 			view.SetID(defaultView)
 			view.Acls = append(view.Acls, anyACL)
-			key, _ := uuid2.Gen()
+			key, _ := uuid.Gen()
 			view.Key = base64.StdEncoding.EncodeToString([]byte(key))
 			if _, err = tx.Insert(view); err != nil {
 				return fmt.Errorf("Insert agent_view defaultView into db failed:%s ", err.Error())
@@ -1168,6 +1158,7 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 			return fmt.Errorf("UpdateGlobalConfig rewriteNamedOptionsFile failed:%s",
 				err.Error())
 		}
+
 		return nil
 	})
 }

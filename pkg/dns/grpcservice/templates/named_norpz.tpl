@@ -67,4 +67,3 @@ include "{{$.ConfigPath}}/ctcc.conf";
 include "{{$.ConfigPath}}/cucc.conf";
 {{range $k, $acl := .ACLNames}}
 include "{{$.ConfigPath}}/{{$acl}}.acl";{{end}}
-
