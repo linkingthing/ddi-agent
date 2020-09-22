@@ -10,18 +10,19 @@ type AgentConfig struct {
 	Controller      ControllerConf `yaml:"controller"`
 	DNS             DNSConf        `yaml:"dns"`
 	DHCP            DHCPConf       `yaml:"dhcp"`
-	Grpc            GrpcConf       `yaml:"grpc"`
 	Kafka           KafkaConf      `yaml:"kafka"`
 	Prometheus      PrometheusConf `yaml:"prometheus"`
 	Metric          MetricConf     `yaml:"metric"`
 	DB              DBConf         `yaml:"db"`
 	NginxDefaultDir string         `yaml:"nginx_default_dir"`
+	Monitor         MonitorConf    `yaml:"monitor"`
 }
 
 type ServerConf struct {
 	IP       string `yaml:"ip"`
 	IPV6     string `yaml:"ipv6"`
 	Hostname string `yaml:"hostname"`
+	GrpcAddr string `yaml:"grpc_addr"`
 }
 
 type ControllerConf struct {
@@ -30,12 +31,12 @@ type ControllerConf struct {
 }
 
 type DNSConf struct {
-	Enabled    bool   `yaml:"enabled"`
-	ConfDir    string `yaml:"conf_dir"`
-	DBDir      string `yaml:"db_dir"`
-	StatsAddr  string `yaml:"stats_addr"`
-	GroupID    string `yaml:"group_id"`
-	ServerAddr string `yaml:"server_addr"`
+	Enabled   bool   `yaml:"enabled"`
+	ConfDir   string `yaml:"conf_dir"`
+	DBDir     string `yaml:"db_dir"`
+	StatsAddr string `yaml:"stats_addr"`
+	GroupID   string `yaml:"group_id"`
+	ServerIp  string `yaml:"server_ip"`
 }
 
 type DHCPConf struct {
@@ -43,10 +44,6 @@ type DHCPConf struct {
 	CmdAddr   string `yaml:"cmd_addr"`
 	ConfigDir string `yaml:"config_dir"`
 	GroupID   string `yaml:"group_id"`
-}
-
-type GrpcConf struct {
-	Addr string `yaml:"addr"`
 }
 
 type KafkaConf struct {
@@ -63,8 +60,8 @@ type MetricConf struct {
 	Port uint32 `yaml:"port"`
 }
 
-type BoltDBConf struct {
-	Dir string `yaml:"dir"`
+type MonitorConf struct {
+	GrpcAddr string `yaml:"grpc_addr"`
 }
 
 type DBConf struct {

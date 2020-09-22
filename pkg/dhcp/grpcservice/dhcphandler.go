@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"sync"
@@ -20,14 +19,14 @@ import (
 
 	"github.com/linkingthing/ddi-agent/config"
 	"github.com/linkingthing/ddi-agent/pkg/dhcp/util"
+	"github.com/linkingthing/ddi-agent/pkg/grpcclient"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
+	monitorpb "github.com/linkingthing/ddi-monitor/pkg/proto"
 )
 
 const (
 	DHCP4ConfigFileName    = "kea-dhcp4.conf"
 	DHCP6ConfigFileName    = "kea-dhcp6.conf"
-	StartDHCPCmd           = "keactrl start"
-	StopDHCPCmd            = "keactrl stop"
 	DHCP4Name              = "dhcp4"
 	DHCP6Name              = "dhcp6"
 	DHCPAgentName          = "ctrl-agent"
@@ -36,7 +35,7 @@ const (
 	Option4Routers         = "routers"
 	DHCPCommandConfigSet   = "config-set"
 	DHCPCommandConfigWrite = "config-write"
-	PostgresqlConnStr      = "user=%s password=%s host=localhost port=%d database=%s sslmode=disable pool_max_conns=10"
+	PostgresqlConnStr      = "user=%s password=%s host=%s port=%d database=%s sslmode=disable pool_max_conns=10"
 	TableLease4            = "lease4"
 	TableLease6            = "lease6"
 	HttpClientTimeout      = 10
@@ -63,16 +62,20 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 	}
 
 	db, err := pgxpool.Connect(context.Background(), fmt.Sprintf(PostgresqlConnStr, conf.DB.User, conf.DB.Password,
-		conf.DB.Port, conf.DB.Name))
+		conf.DB.Host, conf.DB.Port, conf.DB.Name))
 	if err != nil {
 		return nil, err
 	}
 
-	handler := &DHCPHandler{cmdUrl: cmdUrl.String(), db: db, httpClient: &http.Client{Timeout: HttpClientTimeout * time.Second}}
+	handler := &DHCPHandler{
+		cmdUrl:     cmdUrl.String(),
+		db:         db,
+		httpClient: &http.Client{Timeout: HttpClientTimeout * time.Second}}
 	if err := handler.loadDHCPConfig(conf); err != nil {
 		return nil, err
 	}
 
+	handler.stopDHCP()
 	if err := handler.startDHCP(); err != nil {
 		return nil, err
 	}
@@ -88,17 +91,22 @@ func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
 		}
 	}
 
+	resp, err := grpcclient.GetDDIMonitorGrpcClient().GetInterfaces(context.Background(), &monitorpb.GetInterfacesRequest{})
+	if err != nil {
+		return err
+	}
+
 	genDHCP4ConfFile := false
 	var dhcp4Conf DHCP4Config
 	dhcp4ConfPath := path.Join(conf.DHCP.ConfigDir, DHCP4ConfigFileName)
 	if _, err := os.Stat(dhcp4ConfPath); os.IsNotExist(err) {
-		dhcp4Conf = genDefaultDHCP4Config(conf.DHCP.ConfigDir, conf)
+		dhcp4Conf = genDefaultDHCP4Config(conf.DHCP.ConfigDir, resp.GetInterfaces4(), conf)
 		genDHCP4ConfFile = true
 	} else {
 		if err := parseJsonConfig(&dhcp4Conf, dhcp4ConfPath); err != nil {
 			return fmt.Errorf("load dhcp4 config failed: %s", err.Error())
 		} else {
-			if interfaces := getInterfaces(true); isDiffStrSlice(dhcp4Conf.DHCP4.InterfacesConfig.Interfaces, interfaces) {
+			if interfaces := resp.GetInterfaces4(); isDiffStrSlice(dhcp4Conf.DHCP4.InterfacesConfig.Interfaces, interfaces) {
 				dhcp4Conf.DHCP4.InterfacesConfig.Interfaces = interfaces
 				genDHCP4ConfFile = true
 			}
@@ -115,13 +123,13 @@ func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
 	var dhcp6Conf DHCP6Config
 	dhcp6ConfPath := path.Join(conf.DHCP.ConfigDir, DHCP6ConfigFileName)
 	if _, err := os.Stat(dhcp6ConfPath); os.IsNotExist(err) {
-		dhcp6Conf = genDefaultDHCP6Config(conf.DHCP.ConfigDir, conf)
+		dhcp6Conf = genDefaultDHCP6Config(conf.DHCP.ConfigDir, resp.GetInterfaces6(), conf)
 		genDHCP6ConfFile = true
 	} else {
 		if err := parseJsonConfig(&dhcp6Conf, dhcp6ConfPath); err != nil {
 			return fmt.Errorf("load dhcp6 config failed: %s", err.Error())
 		} else {
-			if interfaces := getInterfaces(false); isDiffStrSlice(dhcp6Conf.DHCP6.InterfacesConfig.Interfaces, interfaces) {
+			if interfaces := resp.GetInterfaces6(); isDiffStrSlice(dhcp6Conf.DHCP6.InterfacesConfig.Interfaces, interfaces) {
 				dhcp6Conf.DHCP6.InterfacesConfig.Interfaces = interfaces
 				genDHCP6ConfFile = true
 			}
@@ -184,23 +192,19 @@ func getStrSliceIntersection(s1s, s2s []string) []string {
 }
 
 func (h *DHCPHandler) startDHCP() error {
-	return runCommand(StartDHCPCmd)
+	_, err := grpcclient.GetDDIMonitorGrpcClient().StartDHCP(context.Background(), &monitorpb.StartDHCPRequest{})
+	return err
 }
 
 func (h *DHCPHandler) stopDHCP() error {
-	return runCommand(StopDHCPCmd)
-}
-
-func runCommand(cmdline string) error {
-	cmd := exec.Command("bash", "-c", cmdline)
-	return cmd.Run()
+	_, err := grpcclient.GetDDIMonitorGrpcClient().StopDHCP(context.Background(), &monitorpb.StopDHCPRequest{})
+	return err
 }
 
 func (h *DHCPHandler) monitor() {
 	for {
-		if checkProcessExists(DHCP4Name) == false ||
-			checkProcessExists(DHCP6Name) == false ||
-			checkProcessExists(DHCPAgentName) == false {
+		resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDHCPState(context.Background(), &monitorpb.GetDHCPStateRequest{})
+		if err == nil && resp.GetIsRunning() == false {
 			h.stopDHCP()
 			if err := h.startDHCP(); err != nil {
 				log.Warnf("start dhcp failed: %s", err.Error())
@@ -209,11 +213,6 @@ func (h *DHCPHandler) monitor() {
 
 		time.Sleep(10 * time.Second)
 	}
-}
-
-func checkProcessExists(processName string) bool {
-	out, _ := exec.Command("bash", "-c", "ps -ef | grep "+processName+" | grep -v grep").Output()
-	return len(out) > 0
 }
 
 func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {

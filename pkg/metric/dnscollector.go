@@ -47,6 +47,8 @@ const (
 	Uint32Max = 4294967295
 )
 
+var SupportTypes = []string{"A", "AAAA", "CNAME", "HINFO", "MX", "NS", "NAPTR", "PTR", "SRV", "TXT"}
+
 type DNSCollector struct {
 	enabled        bool
 	nodeIP         string
@@ -149,7 +151,7 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 		case ServerCounterTypeNSStat:
 			dns.collectNSStat(ch, totalQueries, cs.Counters)
 		case ServerCounterTypeQType:
-			dns.collectQTypeRatio(ch, totalQueries, cs.Counters)
+			dns.collectQTypeRatio(ch, cs.Counters)
 		}
 	}
 }
@@ -199,9 +201,18 @@ func (dns *DNSCollector) collectNSStat(ch chan<- prometheus.Metric, totalQueries
 	}
 }
 
-func (dns *DNSCollector) collectQTypeRatio(ch chan<- prometheus.Metric, totalQueries float64, counters []Counter) {
+func (dns *DNSCollector) collectQTypeRatio(ch chan<- prometheus.Metric, counters []Counter) {
+	var newTotalQueries float64
+	var newCounters []Counter
 	for _, c := range counters {
-		ch <- prometheus.MustNewConstMetric(DNSQueryTypeRatios, prometheus.CounterValue, float64(c.Counter)/totalQueries, dns.nodeIP, c.Name)
+		if isTypeSupport(c.Name) {
+			newCounters = append(newCounters, c)
+			newTotalQueries += float64(c.Counter)
+		}
+	}
+
+	for _, c := range newCounters {
+		ch <- prometheus.MustNewConstMetric(DNSQueryTypeRatios, prometheus.CounterValue, float64(c.Counter)/newTotalQueries, dns.nodeIP, c.Name)
 	}
 }
 
@@ -235,4 +246,14 @@ func (dns *DNSCollector) get(resp interface{}) error {
 	}
 
 	return nil
+}
+
+func isTypeSupport(queryType string) bool {
+	support := false
+	for _, supportType := range SupportTypes {
+		if supportType == queryType {
+			support = true
+		}
+	}
+	return support
 }
