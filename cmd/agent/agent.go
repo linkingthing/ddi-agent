@@ -13,6 +13,7 @@ import (
 	dnsconsumer "github.com/linkingthing/ddi-agent/pkg/dns/kafkaconsumer"
 	"github.com/linkingthing/ddi-agent/pkg/grpcclient"
 	"github.com/linkingthing/ddi-agent/pkg/grpcserver"
+	"github.com/linkingthing/ddi-agent/pkg/kafkaproducer"
 	"github.com/linkingthing/ddi-agent/pkg/metric"
 )
 
@@ -59,6 +60,7 @@ func main() {
 	}
 	defer conn.Close()
 
+	kafkaproducer.Init(conf)
 	go dnsconsumer.Run(conn, conf)
 	go dhcpconsumer.Run(conn, conf)
 	s.Run()

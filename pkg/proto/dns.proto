@@ -47,6 +47,7 @@ service AgentManager{
 
 	rpc UpdateGlobalConfig(UpdateGlobalConfigReq) returns (DDIResponse){}
 
+	rpc UploadLog(UploadLogReq) returns (DDIResponse){}
 }
 
 message DNSStartReq{
@@ -56,176 +57,197 @@ message DNSStartReq{
 message DNSStopReq{}
 
 message UpdateGlobalConfigReq{
-	bool log_enable = 1;
-	bool dnssec_enable = 2;
-	bool ttl_changed = 3;
-	uint32 ttl = 4;
+	DDIRequestHead header = 1;
+	bool log_enable = 2;
+	bool dnssec_enable = 3;
+	bool ttl_changed = 4;
+	uint32 ttl = 5;
 }
 
 message CreateACLReq{
-	string id = 1;
-	string name = 2;
-	repeated string ips = 3;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string name = 3;
+	repeated string ips = 4;
 }
 
 message UpdateACLReq{
-	string id = 1;
-	string name = 2;
-	repeated string ips = 3;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string name = 3;
+	repeated string ips = 4;
 }
 
 message DeleteACLReq{
-	string id = 1;
+	DDIRequestHead header = 1;
+	string id = 2;
 }
 
 message CreateZoneReq{
-	string view_id = 1;
-	string zone_id = 2;
-	string zone_name = 3;
-	string zone_file_name = 4;
-	uint32 ttl = 5;
-	string rrs_role = 6;
+	DDIRequestHead header = 1;
+	string view_id = 2;
+	string zone_id = 3;
+	string zone_name = 4;
+	string zone_file_name = 5;
+	uint32 ttl = 6;
+	string rrs_role = 7;
 }
 
 message UpdateZoneReq{
-	string id = 1;
-	uint32 ttl = 2;
-	string name = 3;
-	string zone_file_name = 4;
-	string view = 5;
+	DDIRequestHead header = 1;
+	string id = 2;
+	uint32 ttl = 3;
+	string name = 4;
+	string zone_file_name = 5;
+	string view = 6;
 }
 
 message DeleteZoneReq{
-	string id = 1;
-	string name = 2;
-	string view = 3;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string name = 3;
+	string view = 4;
 }
 
 message UpdateRRsByZoneReq{
-	string zone_id = 1;
-	string new_rrs_role = 2;
-	string view_name = 3;
-	string view_key = 4;
-	string zone_name = 5;
-	string old_rrs_role = 6;
+	DDIRequestHead header = 1;
+	string zone_id = 2;
+	string new_rrs_role = 3;
+	string view_name = 4;
+	string view_key = 5;
+	string zone_name = 6;
+	string old_rrs_role = 7;
 }
 
 message CreateRRReq{
-	string id = 1;
-	string name = 2;
-	string zone_id = 3;
-	string view_id = 4;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string name = 3;
+	string zone_id = 4;
+	string view_id = 5;
+	string data_type = 6;
+	string r_data = 7;
+	string backup_r_data = 8;
+	uint32 ttl = 9;
+	string view_key = 10;
+	string zone_name = 11;
+	string zone_rrs_role = 12;
+}
+
+message UpdateRRReq{
+	DDIRequestHead header = 1;
+	string id = 2;
+	string data_type = 3;
+	string r_data = 4;
+	string backup_r_data = 5;
+	uint32 ttl = 6;
+	string view_name = 7;
+	string view_key = 8;
+	string zone_name = 9;
+	string zone_rrs_role = 10;
+}
+
+message DeleteRRReq{
+	DDIRequestHead header = 1;
+	string id = 2;
+	string name = 3;
+	string zone_id = 4;
 	string data_type = 5;
 	string r_data = 6;
 	string backup_r_data = 7;
 	uint32 ttl = 8;
-	string view_key = 9;
-	string zone_name = 10;
-	string zone_rrs_role = 11;
-}
-
-message UpdateRRReq{
-	string id = 1;
-	string data_type = 2;
-	string r_data = 3;
-	string backup_r_data = 4;
-	uint32 ttl = 5;
-	string view_name = 6;
-	string view_key = 7;
-	string zone_name = 8;
-	string zone_rrs_role = 9;
-}
-
-message DeleteRRReq{
-	string id = 1;
-	string name = 2;
-	string zone_id = 3;
-	string data_type = 4;
-	string r_data = 5;
-	string backup_r_data = 6;
-	uint32 ttl = 7;
-	string view_name = 8;
-	string view_key = 9;
-	string zone_name = 10;
-	string zone_rrs_role = 11;
+	string view_name = 9;
+	string view_key = 10;
+	string zone_name = 11;
+	string zone_rrs_role = 12;
 }
 
 message CreateViewReq{
-	string id = 1;
-	string name = 2;
-	uint32 priority = 3;
-	string dns64 = 4;
-	string key = 5;
-	repeated string acls = 6;
-	repeated ViewPriority view_priority = 7;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string name = 3;
+	uint32 priority = 4;
+	string dns64 = 5;
+	string key = 6;
+	repeated string acls = 7;
+	repeated ViewPriority view_priority = 8;
 }
 
 message ViewPriority{
 	string id = 1;
-	uint32 priority = 3;
+	uint32 priority = 2;
 }
 
 message UpdateViewReq{
-	string id = 1;
-	uint32 priority = 2;
-	string dns64 = 3;
-	repeated string acls = 4;
-	repeated ViewPriority view_priority = 5;
+	DDIRequestHead header = 1;
+	string id = 2;
+	uint32 priority = 3;
+	string dns64 = 4;
+	repeated string acls = 5;
+	repeated ViewPriority view_priority = 6;
 }
 
 message DeleteViewReq{
-	string id = 1;
-	repeated ViewPriority view_priority = 2;
+	DDIRequestHead header = 1;
+	string id = 2;
+	repeated ViewPriority view_priority = 3;
 }
 
 message CreateUrlRedirectReq{
-	string id = 1;
-	string domain = 2;
-	string url = 3;
-	string view_id = 4;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string domain = 3;
+	string url = 4;
+	string view_id = 5;
 }
 
 message UpdateUrlRedirectReq{
-	string id = 1;
-	string domain = 2;
-	string url = 3;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string domain = 3;
+	string url = 4;
 	string view = 5;
 }
 
 message DeleteUrlRedirectReq{
-	string id = 1;
-	string view = 2;
-}
-
-message CreateRedirectionReq{
-	string id = 1;
-	string name = 2;
-	uint32 ttl = 3;
-	string data_type = 4;
-	string redirect_type = 5;
-	string r_data = 6;
-	string view_id = 7;
-}
-
-message UpdateRedirectionReq{
-	string id = 1;
-	string data_type = 2;
-	string redirect_type = 3;
-	string r_data = 4;
-	uint32 ttl = 5;
-	bool redirect_type_changed = 6;
-	string view = 7;
-	string name = 8;
-}
-
-message DeleteRedirectionReq{
-	string id = 1;
-	string redirect_type = 2;
+	DDIRequestHead header = 1;
+	string id = 2;
 	string view = 3;
 }
 
+message CreateRedirectionReq{
+	DDIRequestHead header = 1;
+	string id = 2;
+	string name = 3;
+	uint32 ttl = 4;
+	string data_type = 5;
+	string redirect_type = 6;
+	string r_data = 7;
+	string view_id = 8;
+}
+
+message UpdateRedirectionReq{
+	DDIRequestHead header = 1;
+	string id = 2;
+	string data_type = 3;
+	string redirect_type = 4;
+	string r_data = 5;
+	uint32 ttl = 6;
+	bool redirect_type_changed = 7;
+	string view = 8;
+	string name = 9;
+}
+
+message DeleteRedirectionReq{
+	DDIRequestHead header = 1;
+	string id = 2;
+	string redirect_type = 3;
+	string view = 4;
+}
+
 message UpdateForwardReq{
-	repeated ForwardZone forwardZones = 1;
+	DDIRequestHead header = 1;
+	repeated ForwardZone forwardZones = 2;
 }
 
 message ForwardZone{
@@ -234,44 +256,58 @@ message ForwardZone{
 }
 
 message CreateForwardZoneReq{
-	string id = 1;
-	string name = 2;
-	string forward_type = 3;
-	repeated string forward_ids = 4;
-	repeated string forward_ips = 5;
-	string view_id = 6;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string name = 3;
+	string forward_type = 4;
+	repeated string forward_ids = 5;
+	repeated string forward_ips = 6;
+	string view_id = 7;
 }
 
 message UpdateForwardZoneReq{
-	string id = 1;
-	repeated string forward_ids = 2;
-	string forward_type = 3;
-	bool ips_changed = 4;
-	repeated string forward_ips = 5;
+	DDIRequestHead header = 1;
+	string id = 2;
+	repeated string forward_ids = 3;
+	string forward_type = 4;
+	bool ips_changed = 5;
+	repeated string forward_ips = 6;
 }
 
 message DeleteForwardZoneReq{
-	string id = 1;
+	DDIRequestHead header = 1;
+	string id = 2;
 }
 
 message CreateIPBlackHoleReq{
-	string id = 1;
-	string acl = 2;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string acl = 3;
 }
 
 message UpdateIPBlackHoleReq{
-	string id = 1;
-	string acl = 2;
+	DDIRequestHead header = 1;
+	string id = 2;
+	string acl = 3;
 }
 
 message DeleteIPBlackHoleReq{
-	string id = 1;
+	DDIRequestHead header = 1;
+	string id = 2;
 }
 
 message UpdateRecurConcuReq{
-	string id = 1;
-	bool is_create = 2;
-	uint32 recursive_clients = 3;
-	uint32 fetches_per_zone = 4;
+	DDIRequestHead header = 1;
+	string id = 2;
+	bool is_create = 3;
+	uint32 recursive_clients = 4;
+	uint32 fetches_per_zone = 5;
 }
 
+message UploadLogReq{
+	string id = 1;
+	string user = 2;
+	string password = 3;
+	string address = 4;
+	string master_node_ip = 5;
+}

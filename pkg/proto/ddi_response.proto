@@ -3,5 +3,30 @@ syntax = "proto3";
 package proto;
 
 message DDIResponse {
-    bool succeed = 1;
+    DDIRequestHead header = 1;
+    string node = 2;
+    string node_type = 3;
+    bool succeed = 4;
+    string error_message = 5;
+    string cmd_message = 6;
+    string operation_time = 7;
+}
+
+message DDIRequestHead {
+    string resource = 1;
+    string method = 2;
+}
+
+message UploadLogResponse {
+    enum UploadStatus {
+        STATUS_CONN_FAILED = 0;
+        STATUS_TRANSPORTING = 1;
+        STATUS_TRANSPORT_FAILED = 2;
+        STATUS_TRANSPORT_DONE = 3;
+    }
+    string id = 1;
+    UploadStatus status = 2;
+    string message = 3;
+    string file_name = 4;
+    string finish_time = 5;
 }
