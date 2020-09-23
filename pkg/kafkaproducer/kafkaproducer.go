@@ -40,8 +40,6 @@ func Init(conf *config.AgentConfig) {
 			Topic:     AgentEventTopic,
 			BatchSize: 1,
 		}),
-	}
-	globalKafkaProducer = &KafkaProducer{
 		uploadWriter: kg.NewWriter(kg.WriterConfig{
 			Brokers:   conf.Kafka.Addr,
 			Topic:     UploadLogTopic,
