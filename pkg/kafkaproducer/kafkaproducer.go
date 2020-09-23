@@ -17,12 +17,14 @@ import (
 
 const (
 	AgentEventTopic = "AgentEventTopic"
+	UploadLogTopic  = "AgentEventTopic"
 	AgentEvent      = "AgentEvent"
 	UploadLogEvent  = "UploadLogEvent"
 )
 
 type KafkaProducer struct {
-	agentWriter *kg.Writer
+	agentWriter  *kg.Writer
+	uploadWriter *kg.Writer
 }
 
 var globalKafkaProducer *KafkaProducer
@@ -34,6 +36,13 @@ func GetKafkaProducer() *KafkaProducer {
 func Init(conf *config.AgentConfig) {
 	globalKafkaProducer = &KafkaProducer{
 		agentWriter: kg.NewWriter(kg.WriterConfig{
+			Brokers:   conf.Kafka.Addr,
+			Topic:     AgentEventTopic,
+			BatchSize: 1,
+		}),
+	}
+	globalKafkaProducer = &KafkaProducer{
+		uploadWriter: kg.NewWriter(kg.WriterConfig{
 			Brokers:   conf.Kafka.Addr,
 			Topic:     AgentEventTopic,
 			BatchSize: 1,
@@ -74,5 +83,5 @@ func (producer *KafkaProducer) SendUploadMessage(m proto.Message) error {
 		return fmt.Errorf("kafka SendUploadMessage Marshal failed: %s", err.Error())
 	}
 
-	return producer.agentWriter.WriteMessages(context.Background(), kg.Message{Key: []byte(UploadLogEvent), Value: data})
+	return producer.uploadWriter.WriteMessages(context.Background(), kg.Message{Key: []byte(UploadLogEvent), Value: data})
 }
