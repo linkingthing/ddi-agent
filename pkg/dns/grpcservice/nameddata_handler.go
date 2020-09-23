@@ -706,7 +706,7 @@ func (handler *DNSHandler) rewriteFiles(tplName, tplConfName string, data interf
 			tplName, tplConfName, err.Error())
 	}
 
-	if err := ioutil.WriteFile(tplConfName, buffer.Bytes(), 0644); err != nil {
+	if err := ioutil.WriteFile(tplConfName, buffer.Bytes(), 0777); err != nil {
 		return fmt.Errorf("flushTemplateFiles tplName:%s tplConfName:%s  WriteFile failed:%s",
 			tplName, tplConfName, err.Error())
 	}
@@ -754,7 +754,7 @@ func removeOneFile(path string) error {
 func createOneFile(path string) error {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		if err := os.Mkdir(path, 0644); err != nil {
+		if err := os.Mkdir(path, 0777); err != nil {
 			return fmt.Errorf("create %s fail:%s", path, err.Error())
 		}
 	}
