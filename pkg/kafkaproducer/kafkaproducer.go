@@ -17,7 +17,7 @@ import (
 
 const (
 	AgentEventTopic = "AgentEventTopic"
-	UploadLogTopic  = "AgentEventTopic"
+	UploadLogTopic  = "UploadLogTopic"
 	AgentEvent      = "AgentEvent"
 	UploadLogEvent  = "UploadLogEvent"
 )
@@ -44,7 +44,7 @@ func Init(conf *config.AgentConfig) {
 	globalKafkaProducer = &KafkaProducer{
 		uploadWriter: kg.NewWriter(kg.WriterConfig{
 			Brokers:   conf.Kafka.Addr,
-			Topic:     AgentEventTopic,
+			Topic:     UploadLogTopic,
 			BatchSize: 1,
 		}),
 	}
