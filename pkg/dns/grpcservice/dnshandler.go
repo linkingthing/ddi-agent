@@ -542,6 +542,12 @@ func (handler *DNSHandler) DeleteZone(req *pb.DeleteZoneReq) error {
 			return fmt.Errorf("DeleteZone zone id:%s from db failed:%s", req.Id, err.Error())
 		}
 
+		if _, err := tx.Delete(
+			resource.TableRR,
+			map[string]interface{}{"zone": req.Id, "agent_view": req.View}); err != nil {
+			return fmt.Errorf("DeleteZone delete rrs in zone id:%s from db failed:%s", req.Id, err.Error())
+		}
+
 		if err := handler.rndcDeleteZone(req.Name, req.View); err != nil {
 			return fmt.Errorf("DeleteZone id:%s rndcDeleteZone view:%s failed:%s",
 				req.Id, req.View, err.Error())
@@ -895,8 +901,9 @@ func (handler *DNSHandler) DeleteRR(req *pb.DeleteRRReq) error {
 		}
 
 		if _, err := tx.Delete(resource.TableRR, map[string]interface{}{restdb.IDField: rr.ID}); err != nil {
-			return fmt.Errorf("delete rr id:%s from db failed:%s", rr.ID, err.Error())
+			return fmt.Errorf("DeleteRR rr id:%s from db failed:%s", rr.ID, err.Error())
 		}
+
 		rrset, err := generateRRset(rr, req.ZoneName, req.ZoneRrsRole)
 		if err != nil {
 			return fmt.Errorf("DeleteRR generateRRset failed:%s", err.Error())
