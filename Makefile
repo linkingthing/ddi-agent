@@ -1,6 +1,6 @@
 GOSRC = $(shell find . -type f -name '*.go')
 
-VERSION=v1.0.1
+VERSION=v1.1.0
 
 build: ddi_agent
 

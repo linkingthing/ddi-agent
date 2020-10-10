@@ -29,7 +29,7 @@ func Init(conf *config.AgentConfig) error {
 		return err
 	}
 
-	globalDB, err = restdb.NewRStore(fmt.Sprintf(ConnStr, conf.DB.User, conf.DB.Password, conf.DB.Host, conf.DB.Port, conf.DB.Name), meta)
+	globalDB, err = restdb.NewRStore(fmt.Sprintf(ConnStr, conf.DB.User, conf.DB.Password, conf.DB.Host, conf.DNS.Dbport, conf.DB.Name), meta)
 	return err
 }
 

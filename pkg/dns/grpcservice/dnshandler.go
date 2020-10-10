@@ -11,7 +11,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/zdnscloud/cement/log"
 	"github.com/zdnscloud/cement/uuid"
 	"github.com/zdnscloud/g53"
 	restdb "github.com/zdnscloud/gorest/db"
@@ -92,8 +91,9 @@ func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 	instance.quit = make(chan int)
 
 	if err := instance.StartDNS(&pb.DNSStartReq{}); err != nil {
-		log.Errorf("start dns fail:%s", err.Error())
+		return nil, err
 	}
+
 	return instance, nil
 }
 
@@ -219,7 +219,7 @@ func (handler *DNSHandler) updateRR(key string, secret string, rrset *g53.RRset,
 	if isAdd {
 		msg.UpdateAddRRset(rrset)
 	} else {
-		msg.UpdateRemoveRRset(rrset)
+		msg.UpdateRemoveRdata(rrset)
 	}
 	msg.Header.Id = 1200
 
