@@ -7,7 +7,6 @@ import (
 type AgentConfig struct {
 	Path            string         `yaml:"-"`
 	Server          ServerConf     `yaml:"server"`
-	Controller      ControllerConf `yaml:"controller"`
 	DNS             DNSConf        `yaml:"dns"`
 	DHCP            DHCPConf       `yaml:"dhcp"`
 	Kafka           KafkaConf      `yaml:"kafka"`
@@ -23,11 +22,6 @@ type ServerConf struct {
 	IPV6     string `yaml:"ipv6"`
 	Hostname string `yaml:"hostname"`
 	GrpcAddr string `yaml:"grpc_addr"`
-}
-
-type ControllerConf struct {
-	IP            string `yaml:"ip"`
-	IsCurrentNode bool   `yaml:"is_current_node"`
 }
 
 type DNSConf struct {

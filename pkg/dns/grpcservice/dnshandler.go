@@ -747,22 +747,28 @@ func (handler *DNSHandler) UpdateRRsByZone(req *pb.UpdateRRsByZoneReq) error {
 		}
 
 		for _, rr := range rrList {
-			rrset, err := generateRRset(rr, req.ZoneName, req.OldRrsRole)
-			if err != nil {
-				return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
-			}
-			if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, false); err != nil {
-				return fmt.Errorf("UpdateRRsByZone updateRR delete rrset:%s error:%s",
-					rrset.String(), err.Error())
+			if rr.DataType != "A" && rr.DataType != "AAAA" {
+				continue
 			}
 
-			rrset, err = generateRRset(rr, req.ZoneName, req.NewRrsRole)
-			if err != nil {
-				return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
-			}
-			if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, true); err != nil {
-				return fmt.Errorf("UpdateRRsByZone updateRR add rrset:%s error:%s",
-					rrset.String(), err.Error())
+			if rr.Zone == req.ZoneId {
+				rrset, err := generateRRset(rr, req.ZoneName, req.OldRrsRole)
+				if err != nil {
+					return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
+				}
+				if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, false); err != nil {
+					return fmt.Errorf("UpdateRRsByZone updateRR delete rrset:%s error:%s",
+						rrset.String(), err.Error())
+				}
+
+				rrset, err = generateRRset(rr, req.ZoneName, req.NewRrsRole)
+				if err != nil {
+					return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
+				}
+				if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, true); err != nil {
+					return fmt.Errorf("UpdateRRsByZone updateRR add rrset:%s error:%s",
+						rrset.String(), err.Error())
+				}
 			}
 		}
 
