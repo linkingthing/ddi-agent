@@ -24,6 +24,10 @@ func GetDB() restdb.ResourceStore {
 }
 
 func Init(conf *config.AgentConfig) error {
+	if !conf.DNS.Enabled {
+		return nil
+	}
+
 	meta, err := restdb.NewResourceMeta(globalResources)
 	if err != nil {
 		return err
