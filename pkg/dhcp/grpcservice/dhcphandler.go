@@ -45,6 +45,7 @@ const (
 type DHCPHandler struct {
 	cmdUrl     string
 	conf       *DHCPConfig
+	agentConf  *config.AgentConfig
 	lock       sync.RWMutex
 	db         *pgxpool.Pool
 	httpClient *http.Client
@@ -68,20 +69,27 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 	}
 
 	handler := &DHCPHandler{
+		agentConf:  conf,
 		cmdUrl:     cmdUrl.String(),
 		db:         db,
-		httpClient: &http.Client{Timeout: HttpClientTimeout * time.Second}}
-	if err := handler.loadDHCPConfig(conf); err != nil {
-		return nil, err
+		httpClient: &http.Client{Timeout: HttpClientTimeout * time.Second},
 	}
 
-	handler.stopDHCP()
-	if err := handler.startDHCP(); err != nil {
+	if err := handler.restartDHCP(); err != nil {
 		return nil, err
 	}
 
 	go handler.monitor()
 	return handler, nil
+}
+
+func (h *DHCPHandler) restartDHCP() error {
+	if err := h.loadDHCPConfig(h.agentConf); err != nil {
+		return err
+	}
+
+	h.stopDHCP()
+	return h.startDHCP()
 }
 
 func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
@@ -205,8 +213,7 @@ func (h *DHCPHandler) monitor() {
 	for {
 		resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDHCPState(context.Background(), &monitorpb.GetDHCPStateRequest{})
 		if err == nil && resp.GetIsRunning() == false {
-			h.stopDHCP()
-			if err := h.startDHCP(); err != nil {
+			if err := h.restartDHCP(); err != nil {
 				log.Warnf("start dhcp failed: %s", err.Error())
 			}
 		}
