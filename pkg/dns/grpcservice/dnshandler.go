@@ -98,7 +98,7 @@ func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 }
 
 func (handler *DNSHandler) StartDNS(req *pb.DNSStartReq) error {
-	if err := handler.Start(); err != nil {
+	if err := handler.reconfigOrStartDNS(true); err != nil {
 		return err
 	}
 
@@ -106,8 +106,9 @@ func (handler *DNSHandler) StartDNS(req *pb.DNSStartReq) error {
 	return nil
 }
 
-func (handler *DNSHandler) Start() error {
-	if err := initDefaultDbData(); err != nil {
+func (handler *DNSHandler) reconfigOrStartDNS(init bool) error {
+	err := initDefaultDbData()
+	if err != nil {
 		return fmt.Errorf("initDefaultDbData failed:%s", err.Error())
 	}
 
@@ -115,8 +116,19 @@ func (handler *DNSHandler) Start() error {
 		return err
 	}
 
-	grpcclient.GetDDIMonitorGrpcClient().StopDNS(context.Background(), &monitorpb.StopDNSRequest{})
-	_, err := grpcclient.GetDDIMonitorGrpcClient().StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
+	if init {
+		if resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDNSState(context.Background(),
+			&monitorpb.GetDNSStateRequest{}); err != nil {
+			return err
+		} else if resp.GetIsRunning() {
+			err = handler.rndcReconfig()
+		} else {
+			_, err = grpcclient.GetDDIMonitorGrpcClient().StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
+		}
+	} else {
+		_, err = grpcclient.GetDDIMonitorGrpcClient().StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
+	}
+
 	return err
 }
 
@@ -136,10 +148,11 @@ func (handler *DNSHandler) keepDNSAlive() {
 	for {
 		select {
 		case <-handler.ticker.C:
-			if resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDNSState(context.Background(), &monitorpb.GetDNSStateRequest{}); err != nil {
+			if resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDNSState(context.Background(),
+				&monitorpb.GetDNSStateRequest{}); err != nil {
 				continue
 			} else if resp.GetIsRunning() == false {
-				handler.Start()
+				handler.reconfigOrStartDNS(false)
 			}
 		case <-handler.quit:
 			return
