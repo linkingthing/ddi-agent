@@ -249,9 +249,14 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 	for _, value := range viewList {
 		var acls []ACL
 		for _, aclValue := range value.Acls {
-			acls = append(acls, ACL{Name: aclValue})
+			if aclValue != "none" {
+				acls = append(acls, ACL{Name: aclValue})
+			}
 		}
-		view := View{Name: value.Name, ACLs: acls, Key: value.Key}
+		view := View{Name: value.Name, Key: value.Key}
+		if len(acls) > 0 {
+			view.ACLs = acls
+		}
 
 		for _, reValue := range redirectionList {
 			if reValue.AgentView == value.ID {
@@ -311,9 +316,14 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 	for _, value := range viewList {
 		var acls []ACL
 		for _, aclValue := range value.Acls {
-			acls = append(acls, ACL{Name: aclValue})
+			if aclValue != "none" {
+				acls = append(acls, ACL{Name: aclValue})
+			}
 		}
-		view := View{Name: value.Name, ACLs: acls, Key: value.Key}
+		view := View{Name: value.Name, Key: value.Key}
+		if len(acls) > 0 {
+			view.ACLs = acls
+		}
 
 		for _, reValue := range redirectionList {
 			if reValue.AgentView == value.ID {
