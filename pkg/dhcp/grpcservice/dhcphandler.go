@@ -75,7 +75,7 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 		httpClient: &http.Client{Timeout: HttpClientTimeout * time.Second},
 	}
 
-	if err := handler.restartDHCP(); err != nil {
+	if err := handler.reconfigOrStartDHCP(true); err != nil {
 		return nil, err
 	}
 
@@ -83,13 +83,36 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 	return handler, nil
 }
 
-func (h *DHCPHandler) restartDHCP() error {
-	if err := h.loadDHCPConfig(h.agentConf); err != nil {
+func (h *DHCPHandler) reconfigOrStartDHCP(init bool) error {
+	err := h.loadDHCPConfig(h.agentConf)
+	if err != nil {
 		return err
 	}
 
-	h.stopDHCP()
-	return h.startDHCP()
+	if init {
+		if resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDHCPState(context.Background(),
+			&monitorpb.GetDHCPStateRequest{}); err != nil {
+			return err
+		} else if resp.GetIsRunning() {
+			err = h.reconfigDHCP()
+		} else {
+			h.stopDHCP()
+			err = h.startDHCP()
+		}
+	} else {
+		h.stopDHCP()
+		err = h.startDHCP()
+	}
+
+	return err
+}
+
+func (h *DHCPHandler) reconfigDHCP() error {
+	if err := h.reconfig(DHCP4Name, h.conf.dhcp4Conf.Path, h.conf.dhcp4Conf); err != nil {
+		return err
+	}
+
+	return h.reconfig(DHCP6Name, h.conf.dhcp6Conf.Path, h.conf.dhcp6Conf)
 }
 
 func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
@@ -213,7 +236,7 @@ func (h *DHCPHandler) monitor() {
 	for {
 		resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDHCPState(context.Background(), &monitorpb.GetDHCPStateRequest{})
 		if err == nil && resp.GetIsRunning() == false {
-			if err := h.restartDHCP(); err != nil {
+			if err := h.reconfigOrStartDHCP(false); err != nil {
 				log.Warnf("start dhcp failed: %s", err.Error())
 			}
 		}
