@@ -495,7 +495,11 @@ func (handler *DNSHandler) initZoneFiles(tx restdb.Transaction) error {
 		oneZone := zone.ToZoneFileData()
 		for _, rr := range rrList {
 			if rr.Zone == zone.ID {
-				oneZone.RRs = append(oneZone.RRs, rr.ToRRData())
+				rdata, err := rr.ToRRData(zone.Name)
+				if err != nil {
+					return err
+				}
+				oneZone.RRs = append(oneZone.RRs, rdata)
 			}
 		}
 
@@ -526,7 +530,11 @@ func (handler *DNSHandler) rewriteOneZoneFile(zoneId, zoneFile string, tx restdb
 	zone := zoneRes.(*resource.AgentZone)
 	oneZone := zone.ToZoneFileData()
 	for _, rr := range rrList {
-		oneZone.RRs = append(oneZone.RRs, rr.ToRRData())
+		rdata, err := rr.ToRRData(zone.Name)
+		if err != nil {
+			return err
+		}
+		oneZone.RRs = append(oneZone.RRs, rdata)
 	}
 
 	if err := removeOneFile(filepath.Join(handler.dnsConfPath, zoneFile)); err != nil {
