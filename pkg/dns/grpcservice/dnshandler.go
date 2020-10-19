@@ -121,7 +121,7 @@ func (handler *DNSHandler) reconfigOrStartDNS(init bool) error {
 			&monitorpb.GetDNSStateRequest{}); err != nil {
 			return err
 		} else if resp.GetIsRunning() {
-			err = handler.rndcReconfig()
+			err = handler.rndcReload()
 		} else {
 			_, err = grpcclient.GetDDIMonitorGrpcClient().StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
 		}
