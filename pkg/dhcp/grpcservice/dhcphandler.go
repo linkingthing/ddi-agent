@@ -1112,7 +1112,8 @@ func (h *DHCPHandler) GetPool4LeasesCount(req *pb.GetPool4LeasesCountRequest) (u
 }
 
 func ipv4StrToUint32(ipv4 string) uint32 {
-	return util.Ipv4ToUint32(net.ParseIP(ipv4))
+	ipv4Uint32, _ := util.Ipv4StringToUint32(ipv4)
+	return ipv4Uint32
 }
 
 func (h *DHCPHandler) GetReservation4LeasesCount(req *pb.GetReservation4LeasesCountRequest) (uint64, error) {
@@ -1195,12 +1196,7 @@ func (h *DHCPHandler) GetPool6LeasesCount(req *pb.GetPool6LeasesCountRequest) (u
 }
 
 func ipV6InPool(ip, begin, end string) bool {
-	if util.Ipv6ToBigInt(net.ParseIP(end)).Cmp(util.Ipv6ToBigInt(net.ParseIP(ip))) == -1 ||
-		util.Ipv6ToBigInt(net.ParseIP(ip)).Cmp(util.Ipv6ToBigInt(net.ParseIP(begin))) == -1 {
-		return false
-	}
-
-	return true
+	return util.OneIpLessThanAnother(begin, ip) && util.OneIpLessThanAnother(ip, end)
 }
 
 func (h *DHCPHandler) GetReservation6LeasesCount(req *pb.GetReservation6LeasesCountRequest) (uint64, error) {
