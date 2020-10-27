@@ -34,7 +34,7 @@ func Ipv6ToBigInt(ipv6 net.IP) (*big.Int, bool) {
 
 func OneIpLessThanAnother(one, another string) bool {
 	oneIP := net.ParseIP(one)
-	anotherIP := net.ParseIP(one)
+	anotherIP := net.ParseIP(another)
 	if oneIP.To4() != nil && anotherIP.To4() == nil {
 		return true
 	}
