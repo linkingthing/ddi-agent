@@ -8,8 +8,7 @@ key key{{$view.Name}} {
 {{range $k, $view := .Views}}
 view "{{$view.Name}}" {
 	match-clients {
-	{{range $kk, $acl := $view.ACLs}}{{$acl.Name}};{{end}}
-	key key{{$view.Name}};
+	{{range $kk, $acl := $view.ACLs}}{{$acl.Name}};{{end}}key key{{$view.Name}};
 	};
 	allow-update {key key{{$view.Name}};};{{range $i, $zone := $view.Zones}}
 	zone "{{$zone.Name}}" { type forward; forward {{$zone.ForwardType}}; forwarders { {{range $ii,$ip := $zone.IPs}}{{$ip}}; {{end}}}; };{{end}}{{range $k, $dns64:= .DNS64s}}

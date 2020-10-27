@@ -11,7 +11,9 @@ import (
 	dhcpconsumer "github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
 	"github.com/linkingthing/ddi-agent/pkg/dns"
 	dnsconsumer "github.com/linkingthing/ddi-agent/pkg/dns/kafkaconsumer"
+	"github.com/linkingthing/ddi-agent/pkg/grpcclient"
 	"github.com/linkingthing/ddi-agent/pkg/grpcserver"
+	"github.com/linkingthing/ddi-agent/pkg/kafkaproducer"
 	"github.com/linkingthing/ddi-agent/pkg/metric"
 )
 
@@ -40,17 +42,25 @@ func main() {
 	}
 	go m.Run()
 
+	monitorConn, err := grpc.Dial(conf.Monitor.GrpcAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("dial monitor grpc server failed: %s", err.Error())
+	}
+	defer monitorConn.Close()
+	grpcclient.New(monitorConn)
+
 	s, err := grpcserver.New(conf)
 	if err != nil {
 		log.Fatalf("new grpc server failed: %s", err.Error())
 	}
 
-	conn, err := grpc.Dial(conf.Grpc.Addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(conf.Server.GrpcAddr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("dial grpc server failed: %s", err.Error())
 	}
 	defer conn.Close()
 
+	kafkaproducer.Init(conf)
 	go dnsconsumer.Run(conn, conf)
 	go dhcpconsumer.Run(conn, conf)
 	s.Run()

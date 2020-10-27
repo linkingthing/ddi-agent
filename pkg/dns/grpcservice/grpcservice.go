@@ -295,3 +295,11 @@ func (service *DNSService) UpdateRecursiveConcurrent(context context.Context, re
 
 	return &pb.DDIResponse{Succeed: true}, nil
 }
+
+func (service *DNSService) UploadLog(context context.Context, req *pb.UploadLogReq) (*pb.DDIResponse, error) {
+	if err := service.handler.UploadLog(*req); err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+
+	return &pb.DDIResponse{Succeed: true}, nil
+}

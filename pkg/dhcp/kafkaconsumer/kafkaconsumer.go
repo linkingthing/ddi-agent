@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/linkingthing/ddi-agent/config"
+	"github.com/linkingthing/ddi-agent/pkg/kafkaproducer"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
@@ -17,8 +18,8 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 		return
 	}
 
-	run(pb.NewDHCPManagerClient(conn), kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{conf.Kafka.Addr},
+	run(conf.Server.IP, pb.NewDHCPManagerClient(conn), kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  conf.Kafka.Addr,
 		Topic:    Topic,
 		GroupID:  conf.DHCP.GroupID,
 		MinBytes: 10,
@@ -26,7 +27,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 	}))
 }
 
-func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
+func run(node string, cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 	for {
 		message, err := kafkaConsumer.ReadMessage(context.Background())
 		if err != nil {
@@ -40,8 +41,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal create subnet4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.CreateSubnet4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.CreateSubnet4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("create subnet4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case UpdateSubnet4:
@@ -49,8 +55,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal update subnet4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.UpdateSubnet4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.UpdateSubnet4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("update subnet4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case DeleteSubnet4:
@@ -58,8 +69,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal delete subnet4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.DeleteSubnet4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.DeleteSubnet4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("delete subnet4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case CreateSubnet6:
@@ -67,8 +83,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal create subnet6 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.CreateSubnet6(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.CreateSubnet6(context.Background(), &req)
+				if err != nil {
 					log.Warnf("create subnet6 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case UpdateSubnet6:
@@ -76,8 +97,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal update subnet6 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.UpdateSubnet6(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.UpdateSubnet6(context.Background(), &req)
+				if err != nil {
 					log.Warnf("update subnet6 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case DeleteSubnet6:
@@ -85,8 +111,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal delete subnet6 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.DeleteSubnet6(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.DeleteSubnet6(context.Background(), &req)
+				if err != nil {
 					log.Warnf("delete subnet6 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case CreatePool4:
@@ -94,8 +125,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal create pool4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.CreatePool4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.CreatePool4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("create pool4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case UpdatePool4:
@@ -103,8 +139,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal update pool4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.UpdatePool4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.UpdatePool4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("update pool4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case DeletePool4:
@@ -112,8 +153,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal delete pool4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.DeletePool4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.DeletePool4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("delete pool4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case CreatePool6:
@@ -121,8 +167,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal create pool6 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.CreatePool6(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.CreatePool6(context.Background(), &req)
+				if err != nil {
 					log.Warnf("create pool6 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case UpdatePool6:
@@ -130,8 +181,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal update pool6 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.UpdatePool6(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.UpdatePool6(context.Background(), &req)
+				if err != nil {
 					log.Warnf("update pool6 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case DeletePool6:
@@ -139,8 +195,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal delete pool6 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.DeletePool6(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.DeletePool6(context.Background(), &req)
+				if err != nil {
 					log.Warnf("delete pool6 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case CreatePDPool:
@@ -148,8 +209,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal create pd-pool request failed: %s", err.Error())
 			} else {
-				if _, err := cli.CreatePDPool(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.CreatePDPool(context.Background(), &req)
+				if err != nil {
 					log.Warnf("create pd-pool with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case UpdatePDPool:
@@ -157,8 +223,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal update pd-pool request failed: %s", err.Error())
 			} else {
-				if _, err := cli.UpdatePDPool(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.UpdatePDPool(context.Background(), &req)
+				if err != nil {
 					log.Warnf("update pd-pool with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case DeletePDPool:
@@ -166,8 +237,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal delete pd-pool request failed: %s", err.Error())
 			} else {
-				if _, err := cli.DeletePDPool(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.DeletePDPool(context.Background(), &req)
+				if err != nil {
 					log.Warnf("delete pd-pool with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case CreateReservation4:
@@ -175,8 +251,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal create reservation4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.CreateReservation4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.CreateReservation4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("create reservation4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case UpdateReservation4:
@@ -184,8 +265,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal update reservation4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.UpdateReservation4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.UpdateReservation4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("update reservation4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case DeleteReservation4:
@@ -193,8 +279,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal delete reservation4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.DeleteReservation4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.DeleteReservation4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("delete reservation4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case CreateReservation6:
@@ -202,8 +293,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal create reservation6 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.CreateReservation6(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.CreateReservation6(context.Background(), &req)
+				if err != nil {
 					log.Warnf("create reservation6 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case UpdateReservation6:
@@ -211,8 +307,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal update reservation6 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.UpdateReservation6(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.UpdateReservation6(context.Background(), &req)
+				if err != nil {
 					log.Warnf("update reservation4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case DeleteReservation6:
@@ -220,8 +321,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal delete reservation4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.DeleteReservation6(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.DeleteReservation6(context.Background(), &req)
+				if err != nil {
 					log.Warnf("delete reservation4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case CreateClientClass4:
@@ -229,8 +335,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal create clientclass4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.CreateClientClass4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.CreateClientClass4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("create clientclass4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case UpdateClientClass4:
@@ -238,8 +349,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal update clientclass4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.UpdateClientClass4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.UpdateClientClass4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("update clientclass4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		case DeleteClientClass4:
@@ -247,8 +363,13 @@ func run(cli pb.DHCPManagerClient, kafkaConsumer *kafka.Reader) {
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("unmarshal delete clientclass4 request failed: %s", err.Error())
 			} else {
-				if _, err := cli.DeleteClientClass4(context.Background(), &req); err != nil {
+				ddiResponse, err := cli.DeleteClientClass4(context.Background(), &req)
+				if err != nil {
 					log.Warnf("delete clientclass4 with req %s failed: %s", req.String(), err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					node, "dhcp", req.Header, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		}

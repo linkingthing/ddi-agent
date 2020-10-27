@@ -5,6 +5,8 @@ go 1.14
 require (
 	github.com/golang/protobuf v1.4.2
 	github.com/jackc/pgx/v4 v4.8.1
+	github.com/jlaffaye/ftp v0.0.0-20200812143550-39e3779af0db
+	github.com/linkingthing/ddi-monitor v0.0.0-20200914073842-84fc179b265d
 	github.com/prometheus/client_golang v1.7.1
 	github.com/segmentio/kafka-go v0.4.2
 	github.com/zdnscloud/cement v0.0.0-20200612070849-67372f989797

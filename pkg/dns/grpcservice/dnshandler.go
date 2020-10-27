@@ -1,19 +1,17 @@
 package grpcservice
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
-	"github.com/zdnscloud/cement/log"
-	"github.com/zdnscloud/cement/shell"
-	uuid2 "github.com/zdnscloud/cement/uuid"
+	"github.com/zdnscloud/cement/uuid"
 	"github.com/zdnscloud/g53"
 	restdb "github.com/zdnscloud/gorest/db"
 
@@ -21,7 +19,9 @@ import (
 	"github.com/linkingthing/ddi-agent/pkg/db"
 	"github.com/linkingthing/ddi-agent/pkg/dns/dbhandler"
 	"github.com/linkingthing/ddi-agent/pkg/dns/resource"
+	"github.com/linkingthing/ddi-agent/pkg/grpcclient"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
+	monitorpb "github.com/linkingthing/ddi-monitor/pkg/proto"
 )
 
 const (
@@ -40,7 +40,6 @@ const (
 	zoneSuffix                   = ".zone"
 	nzfTpl                       = "nzf.tpl"
 	nzfSuffix                    = ".nzf"
-	rndcPort                     = "953"
 	checkPeriod                  = 5
 	anyACL                       = "any"
 	noneACL                      = "none"
@@ -52,6 +51,7 @@ const (
 	nginxDefaultConfFile         = "default.conf"
 	defaultGlobalConfigID        = "globalConfig"
 	defaultRecursiveConcurrentId = "1"
+	TemplateDir                  = "/etc/dns/templates"
 
 	updateZonesTTLSQL       = "update gr_agent_zone set ttl = $1"
 	updateRRsTTLSQL         = "update gr_agent_rr set ttl = $1"
@@ -61,12 +61,12 @@ const (
 type DNSHandler struct {
 	tpl                 *template.Template
 	dnsConfPath         string
-	dBPath              string
 	tplPath             string
 	ticker              *time.Ticker
 	quit                chan int
 	nginxDefaultConfDir string
 	localip             string
+	localipv6           string
 	dnsServer           string
 	rndcConfPath        string
 	rndcPath            string
@@ -79,11 +79,11 @@ type DNSHandler struct {
 func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 	instance := &DNSHandler{
 		dnsConfPath:         filepath.Join(conf.DNS.ConfDir),
-		dBPath:              filepath.Join(conf.DNS.DBDir),
-		tplPath:             filepath.Join(conf.DNS.ConfDir, "templates"),
+		tplPath:             TemplateDir,
 		nginxDefaultConfDir: conf.NginxDefaultDir,
 		localip:             conf.Server.IP,
-		dnsServer:           conf.DNS.ServerAddr,
+		localipv6:           conf.Server.IPV6,
+		dnsServer:           conf.DNS.ServerIp + ":53",
 	}
 
 	instance.tpl = template.Must(template.ParseGlob(filepath.Join(instance.tplPath, "*.tpl")))
@@ -91,13 +91,14 @@ func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 	instance.quit = make(chan int)
 
 	if err := instance.StartDNS(&pb.DNSStartReq{}); err != nil {
-		log.Errorf("start dns fail:%s", err.Error())
+		return nil, err
 	}
+
 	return instance, nil
 }
 
 func (handler *DNSHandler) StartDNS(req *pb.DNSStartReq) error {
-	if err := handler.Start(); err != nil {
+	if err := handler.reconfigOrStartDNS(true); err != nil {
 		return err
 	}
 
@@ -105,12 +106,9 @@ func (handler *DNSHandler) StartDNS(req *pb.DNSStartReq) error {
 	return nil
 }
 
-func (handler *DNSHandler) Start() error {
-	if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err == nil {
-		return nil
-	}
-
-	if err := initDefaultDbData(); err != nil {
+func (handler *DNSHandler) reconfigOrStartDNS(init bool) error {
+	err := initDefaultDbData()
+	if err != nil {
 		return fmt.Errorf("initDefaultDbData failed:%s", err.Error())
 	}
 
@@ -118,22 +116,27 @@ func (handler *DNSHandler) Start() error {
 		return err
 	}
 
-	var param = "-c" + filepath.Join(handler.dnsConfPath, mainConfName)
-	if _, err := shell.Shell(filepath.Join(handler.dnsConfPath, "named"), param); err != nil {
-		return fmt.Errorf("exec named -c  failed:%s", err.Error())
+	if init {
+		if resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDNSState(context.Background(),
+			&monitorpb.GetDNSStateRequest{}); err != nil {
+			return err
+		} else if resp.GetIsRunning() {
+			err = handler.rndcReload()
+		} else {
+			_, err = grpcclient.GetDDIMonitorGrpcClient().StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
+		}
+	} else {
+		_, err = grpcclient.GetDDIMonitorGrpcClient().StartDNS(context.Background(), &monitorpb.StartDNSRequest{})
 	}
 
-	return nil
+	return err
 }
 
 func (handler *DNSHandler) StopDNS() error {
-	if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err != nil {
-		return nil
-	}
-	var err error
-	if _, err = shell.Shell(filepath.Join(handler.dnsConfPath, "rndc"), "stop"); err != nil {
+	if _, err := grpcclient.GetDDIMonitorGrpcClient().StopDNS(context.Background(), &monitorpb.StopDNSRequest{}); err != nil {
 		return err
 	}
+
 	handler.quit <- 1
 	return nil
 }
@@ -145,10 +148,12 @@ func (handler *DNSHandler) keepDNSAlive() {
 	for {
 		select {
 		case <-handler.ticker.C:
-			if _, err := os.Stat(filepath.Join(handler.dnsConfPath, "named.pid")); err == nil {
+			if resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDNSState(context.Background(),
+				&monitorpb.GetDNSStateRequest{}); err != nil {
 				continue
+			} else if resp.GetIsRunning() == false {
+				handler.reconfigOrStartDNS(false)
 			}
-			handler.Start()
 		case <-handler.quit:
 			return
 		}
@@ -183,7 +188,7 @@ func initDefaultDbData() error {
 			view := &resource.AgentView{Name: defaultView, Priority: 1}
 			view.SetID(defaultView)
 			view.Acls = append(view.Acls, anyACL)
-			key, _ := uuid2.Gen()
+			key, _ := uuid.Gen()
 			view.Key = base64.StdEncoding.EncodeToString([]byte(key))
 			if _, err = tx.Insert(view); err != nil {
 				return fmt.Errorf("Insert agent_view defaultView into db failed:%s ", err.Error())
@@ -227,7 +232,7 @@ func (handler *DNSHandler) updateRR(key string, secret string, rrset *g53.RRset,
 	if isAdd {
 		msg.UpdateAddRRset(rrset)
 	} else {
-		msg.UpdateRemoveRRset(rrset)
+		msg.UpdateRemoveRdata(rrset)
 	}
 	msg.Header.Id = 1200
 
@@ -550,6 +555,12 @@ func (handler *DNSHandler) DeleteZone(req *pb.DeleteZoneReq) error {
 			return fmt.Errorf("DeleteZone zone id:%s from db failed:%s", req.Id, err.Error())
 		}
 
+		if _, err := tx.Delete(
+			resource.TableRR,
+			map[string]interface{}{"zone": req.Id, "agent_view": req.View}); err != nil {
+			return fmt.Errorf("DeleteZone delete rrs in zone id:%s from db failed:%s", req.Id, err.Error())
+		}
+
 		if err := handler.rndcDeleteZone(req.Name, req.View); err != nil {
 			return fmt.Errorf("DeleteZone id:%s rndcDeleteZone view:%s failed:%s",
 				req.Id, req.View, err.Error())
@@ -856,22 +867,28 @@ func (handler *DNSHandler) UpdateRRsByZone(req *pb.UpdateRRsByZoneReq) error {
 		}
 
 		for _, rr := range rrList {
-			rrset, err := generateRRset(rr, req.ZoneName, req.OldRrsRole)
-			if err != nil {
-				return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
-			}
-			if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, false); err != nil {
-				return fmt.Errorf("UpdateRRsByZone updateRR delete rrset:%s error:%s",
-					rrset.String(), err.Error())
+			if rr.DataType != "A" && rr.DataType != "AAAA" {
+				continue
 			}
 
-			rrset, err = generateRRset(rr, req.ZoneName, req.NewRrsRole)
-			if err != nil {
-				return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
-			}
-			if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, true); err != nil {
-				return fmt.Errorf("UpdateRRsByZone updateRR add rrset:%s error:%s",
-					rrset.String(), err.Error())
+			if rr.Zone == req.ZoneId {
+				rrset, err := generateRRset(rr, req.ZoneName, req.OldRrsRole)
+				if err != nil {
+					return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
+				}
+				if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, false); err != nil {
+					return fmt.Errorf("UpdateRRsByZone updateRR delete rrset:%s error:%s",
+						rrset.String(), err.Error())
+				}
+
+				rrset, err = generateRRset(rr, req.ZoneName, req.NewRrsRole)
+				if err != nil {
+					return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
+				}
+				if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, true); err != nil {
+					return fmt.Errorf("UpdateRRsByZone updateRR add rrset:%s error:%s",
+						rrset.String(), err.Error())
+				}
 			}
 		}
 
@@ -1010,8 +1027,9 @@ func (handler *DNSHandler) DeleteRR(req *pb.DeleteRRReq) error {
 		}
 
 		if _, err := tx.Delete(resource.TableRR, map[string]interface{}{restdb.IDField: rr.ID}); err != nil {
-			return fmt.Errorf("delete rr id:%s from db failed:%s", rr.ID, err.Error())
+			return fmt.Errorf("DeleteRR rr id:%s from db failed:%s", rr.ID, err.Error())
 		}
+
 		rrset, err := generateRRset(rr, req.ZoneName, req.ZoneRrsRole)
 		if err != nil {
 			return fmt.Errorf("DeleteRR generateRRset failed:%s", err.Error())
@@ -1122,6 +1140,7 @@ func (handler *DNSHandler) CreateUrlRedirect(req *pb.CreateUrlRedirectReq) error
 		AgentView:    urlRedirect.AgentView,
 	}
 	redirection.SetID(req.Id)
+
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		exist, _ := tx.Exists(resource.TableRedirection,
 			map[string]interface{}{"name": urlRedirect.Domain})
@@ -1138,6 +1157,23 @@ func (handler *DNSHandler) CreateUrlRedirect(req *pb.CreateUrlRedirectReq) error
 		if _, err := tx.Insert(redirection); err != nil {
 			return fmt.Errorf("CreateUrlRedirect insert redirect id:%s to db failed:%s",
 				req.Id, err.Error())
+		}
+
+		if handler.localipv6 != "" {
+			redirectionIpv6 := &resource.AgentRedirection{
+				Name:         urlRedirect.Domain,
+				Ttl:          3600,
+				DataType:     "AAAA",
+				Rdata:        handler.localipv6,
+				RedirectType: localZoneType,
+				AgentView:    urlRedirect.AgentView,
+			}
+			redirectionIpv6.SetID(req.Id + "_v6")
+
+			if _, err := tx.Insert(redirectionIpv6); err != nil {
+				return fmt.Errorf("CreateUrlRedirect insert redirectionIpv6 id:%s to db failed:%s",
+					req.Id, err.Error())
+			}
 		}
 
 		if err := handler.rewriteOneRPZFile(urlRedirect.AgentView, tx); err != nil {
@@ -1171,6 +1207,13 @@ func (handler *DNSHandler) UpdateUrlRedirect(req *pb.UpdateUrlRedirectReq) error
 				req.Id, err.Error())
 		}
 
+		if _, err := tx.Update(resource.TableRedirection,
+			map[string]interface{}{"name": req.Domain},
+			map[string]interface{}{restdb.IDField: req.Id + "_v6"}); err != nil {
+			return fmt.Errorf("update redirectionIpv6 id:%s to db failed:%s",
+				req.Id, err.Error())
+		}
+
 		if err := handler.rewriteOneRPZFile(req.View, tx); err != nil {
 			return fmt.Errorf("UpdateUrlRedirect id:%s rewriteRPZFile failed:%s",
 				req.Id, err.Error())
@@ -1200,6 +1243,13 @@ func (handler *DNSHandler) DeleteUrlRedirect(req *pb.DeleteUrlRedirectReq) error
 			return fmt.Errorf("delete Redirecttion id:%s from db failed:%s",
 				req.Id, err.Error())
 		}
+
+		if _, err := tx.Delete(resource.TableRedirection,
+			map[string]interface{}{restdb.IDField: req.Id + "_v6"}); err != nil {
+			return fmt.Errorf("delete RedirecttionIpv6 id:%s from db failed:%s",
+				req.Id, err.Error())
+		}
+
 		if err := handler.rewriteOneRPZFile(req.View, tx); err != nil {
 			return fmt.Errorf("DeleteUrlRedirect id:%s rewriteNamedViewFile failed:%s",
 				req.Id, err.Error())
@@ -1257,6 +1307,7 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 			return fmt.Errorf("UpdateGlobalConfig rewriteNamedOptionsFile failed:%s",
 				err.Error())
 		}
+
 		return nil
 	})
 }
