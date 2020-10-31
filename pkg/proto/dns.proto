@@ -35,12 +35,6 @@ service AgentManager{
 	rpc UpdateRedirection(UpdateRedirectionReq) returns (DDIResponse){}
 	rpc DeleteRedirection(DeleteRedirectionReq) returns (DDIResponse){}
 
-	rpc CreateIPBlackHole(CreateIPBlackHoleReq) returns (DDIResponse){}
-	rpc UpdateIPBlackHole(UpdateIPBlackHoleReq) returns (DDIResponse){}
-	rpc DeleteIPBlackHole(DeleteIPBlackHoleReq) returns (DDIResponse){}
-
-	rpc UpdateRecursiveConcurrent(UpdateRecurConcuReq) returns (DDIResponse){}
-
 	rpc CreateUrlRedirect(CreateUrlRedirectReq) returns (DDIResponse){}
 	rpc UpdateUrlRedirect(UpdateUrlRedirectReq) returns (DDIResponse){}
 	rpc DeleteUrlRedirect(DeleteUrlRedirectReq) returns (DDIResponse){}
@@ -62,6 +56,10 @@ message UpdateGlobalConfigReq{
 	bool dnssec_enable = 3;
 	bool ttl_changed = 4;
 	uint32 ttl = 5;
+	bool blackhole_enable =6;
+	repeated string blackholes = 7;
+	bool recursion_enable =8;
+	uint32 recursive_clients =9;
 }
 
 message CreateACLReq{
@@ -277,31 +275,6 @@ message UpdateForwardZoneReq{
 message DeleteForwardZoneReq{
 	DDIRequestHead header = 1;
 	string id = 2;
-}
-
-message CreateIPBlackHoleReq{
-	DDIRequestHead header = 1;
-	string id = 2;
-	string acl = 3;
-}
-
-message UpdateIPBlackHoleReq{
-	DDIRequestHead header = 1;
-	string id = 2;
-	string acl = 3;
-}
-
-message DeleteIPBlackHoleReq{
-	DDIRequestHead header = 1;
-	string id = 2;
-}
-
-message UpdateRecurConcuReq{
-	DDIRequestHead header = 1;
-	string id = 2;
-	bool is_create = 3;
-	uint32 recursive_clients = 4;
-	uint32 fetches_per_zone = 5;
 }
 
 message UploadLogReq{

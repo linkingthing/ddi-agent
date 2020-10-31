@@ -232,38 +232,6 @@ func (service *DNSService) DeleteForwardZone(context context.Context, req *pb.De
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) CreateIPBlackHole(context context.Context, req *pb.CreateIPBlackHoleReq) (*pb.DDIResponse, error) {
-	if err := service.handler.CreateIPBlackHole(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
-func (service *DNSService) UpdateIPBlackHole(context context.Context, req *pb.UpdateIPBlackHoleReq) (*pb.DDIResponse, error) {
-	if err := service.handler.UpdateIPBlackHole(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
-func (service *DNSService) DeleteIPBlackHole(context context.Context, req *pb.DeleteIPBlackHoleReq) (*pb.DDIResponse, error) {
-	if err := service.handler.DeleteIPBlackHole(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
-func (service *DNSService) UpdateRecursiveConcurrent(context context.Context, req *pb.UpdateRecurConcuReq) (*pb.DDIResponse, error) {
-	if err := service.handler.UpdateRecursiveConcurrent(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
 func (service *DNSService) UploadLog(context context.Context, req *pb.UploadLogReq) (*pb.DDIResponse, error) {
 	if err := service.handler.UploadLog(*req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err

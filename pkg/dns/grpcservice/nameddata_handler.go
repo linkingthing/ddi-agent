@@ -26,12 +26,13 @@ type NamedData struct {
 }
 
 type NamedOption struct {
-	ConfigPath   string
-	DnssecEnable bool
-	LogEnable    bool
-	IPBlackHole  *ipBlackHole
-	SortList     []string
-	Concu        *recursiveConcurrent
+	ConfigPath       string
+	DnssecEnable     bool
+	LogEnable        bool
+	BlackholeEnable  bool
+	Blackholes       []string
+	RecursionEnable  bool
+	RecursiveClients uint32
 }
 
 type NamedViews struct {
@@ -43,18 +44,15 @@ type NamedAcl struct {
 	Acls       []ACL
 }
 
-type ipBlackHole struct {
-	ACLNames []string
-}
-
 type View struct {
-	Name     string
-	ACLs     []ACL
-	Zones    []resource.ZoneData
-	Redirect *Redirect
-	RPZ      *Rpz
-	DNS64s   []Dns64
-	Key      string
+	Name        string
+	ACLs        []ACL
+	Zones       []resource.ZoneData
+	Redirect    *Redirect
+	RPZ         *Rpz
+	DNS64s      []Dns64
+	Key         string
+	DNSServerIP string
 }
 
 type ACL struct {
@@ -253,7 +251,7 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 				acls = append(acls, ACL{Name: aclValue})
 			}
 		}
-		view := View{Name: value.Name, Key: value.Key}
+		view := View{Name: value.Name, Key: value.Key, DNSServerIP: handler.dnsServerIP}
 		if len(acls) > 0 {
 			view.ACLs = acls
 		}
@@ -320,7 +318,7 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 				acls = append(acls, ACL{Name: aclValue})
 			}
 		}
-		view := View{Name: value.Name, Key: value.Key}
+		view := View{Name: value.Name, Key: value.Key, DNSServerIP: handler.dnsServerIP}
 		if len(acls) > 0 {
 			view.ACLs = acls
 		}
@@ -371,24 +369,10 @@ func (handler *DNSHandler) initNamedOptionsFile(tx restdb.Transaction) error {
 	globalConfig := globalConfigRes.(*resource.AgentDnsGlobalConfig)
 	namedOptionData.LogEnable = globalConfig.LogEnable
 	namedOptionData.DnssecEnable = globalConfig.DnssecEnable
-
-	exist, err := dbhandler.ExistWithTx(resource.TableRecursiveConcurrent,
-		defaultRecursiveConcurrentId, tx)
-	if err != nil {
-		return err
-	}
-	if exist {
-		recursiveConcurrentRes, err := dbhandler.GetWithTx(defaultRecursiveConcurrentId,
-			&[]*resource.AgentRecursiveConcurrent{}, tx)
-		if err != nil {
-			return err
-		}
-		recursiveCon := recursiveConcurrentRes.(*resource.AgentRecursiveConcurrent)
-		namedOptionData.Concu = &recursiveConcurrent{
-			RecursiveClients: &recursiveCon.RecursiveClients,
-			FetchesPerZone:   &recursiveCon.FetchesPerZone,
-		}
-	}
+	namedOptionData.BlackholeEnable = globalConfig.BlackholeEnable
+	namedOptionData.Blackholes = globalConfig.Blackholes
+	namedOptionData.RecursionEnable = globalConfig.RecursionEnable
+	namedOptionData.RecursiveClients = globalConfig.RecursiveClients
 
 	if err := handler.flushTemplateFiles(namedOptionsTpl,
 		handler.namedOptionPath, namedOptionData); err != nil {
@@ -406,27 +390,17 @@ func (handler *DNSHandler) rewriteNamedOptionsFile(tx restdb.Transaction) error 
 	if err != nil {
 		return err
 	}
+
 	globalConfig := globalConfigRes.(*resource.AgentDnsGlobalConfig)
 	namedOptionData.LogEnable = globalConfig.LogEnable
 	namedOptionData.DnssecEnable = globalConfig.DnssecEnable
-
-	exist, err := dbhandler.ExistWithTx(resource.TableRecursiveConcurrent,
-		defaultRecursiveConcurrentId, tx)
-	if err != nil {
-		return err
+	namedOptionData.BlackholeEnable = globalConfig.BlackholeEnable
+	if len(globalConfig.Blackholes) == 0 {
+		namedOptionData.BlackholeEnable = false
 	}
-	if exist {
-		recursiveConcurrentRes, err := dbhandler.GetWithTx(defaultRecursiveConcurrentId,
-			&[]*resource.AgentRecursiveConcurrent{}, tx)
-		if err != nil {
-			return err
-		}
-		recursiveCon := recursiveConcurrentRes.(*resource.AgentRecursiveConcurrent)
-		namedOptionData.Concu = &recursiveConcurrent{
-			RecursiveClients: &recursiveCon.RecursiveClients,
-			FetchesPerZone:   &recursiveCon.FetchesPerZone,
-		}
-	}
+	namedOptionData.Blackholes = globalConfig.Blackholes
+	namedOptionData.RecursionEnable = globalConfig.RecursionEnable
+	namedOptionData.RecursiveClients = globalConfig.RecursiveClients
 
 	if err := handler.flushTemplateFiles(namedOptionsTpl,
 		handler.namedOptionPath, namedOptionData); err != nil {
