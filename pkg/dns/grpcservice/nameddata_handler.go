@@ -45,14 +45,14 @@ type NamedAcl struct {
 }
 
 type View struct {
-	Name        string
-	ACLs        []ACL
-	Zones       []resource.ZoneData
-	Redirect    *Redirect
-	RPZ         *Rpz
-	DNS64s      []Dns64
-	Key         string
-	DNSServerIP string
+	Name      string
+	ACLs      []ACL
+	Zones     []resource.ZoneData
+	Redirect  *Redirect
+	RPZ       *Rpz
+	DNS64s    []Dns64
+	Key       string
+	DeniedIPs []string
 }
 
 type ACL struct {
@@ -84,11 +84,6 @@ type RedirectionData struct {
 type nzfData struct {
 	ViewName string
 	Zones    []resource.ZoneData
-}
-
-type recursiveConcurrent struct {
-	RecursiveClients *uint32
-	FetchesPerZone   *uint32
 }
 
 type nginxDefaultConf struct {
@@ -251,7 +246,10 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 				acls = append(acls, ACL{Name: aclValue})
 			}
 		}
-		view := View{Name: value.Name, Key: value.Key, DNSServerIP: handler.dnsServerIP}
+		view := View{Name: value.Name, Key: value.Key}
+		if len(handler.interfaceIPs) > 0 {
+			view.DeniedIPs = handler.interfaceIPs
+		}
 		if len(acls) > 0 {
 			view.ACLs = acls
 		}
@@ -318,7 +316,10 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 				acls = append(acls, ACL{Name: aclValue})
 			}
 		}
-		view := View{Name: value.Name, Key: value.Key, DNSServerIP: handler.dnsServerIP}
+		view := View{Name: value.Name, Key: value.Key}
+		if len(handler.interfaceIPs) > 0 {
+			view.DeniedIPs = handler.interfaceIPs
+		}
 		if len(acls) > 0 {
 			view.ACLs = acls
 		}

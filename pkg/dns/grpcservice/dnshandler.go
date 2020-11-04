@@ -61,6 +61,7 @@ type DNSHandler struct {
 	quit                chan int
 	nginxDefaultConfDir string
 	localip             string
+	interfaceIPs        []string
 	localipv6           string
 	dnsServerIP         string
 	rndcConfPath        string
@@ -80,7 +81,7 @@ func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 		localipv6:           conf.Server.IPV6,
 		dnsServerIP:         conf.DNS.ServerIp,
 	}
-
+	instance.interfaceIPs, _ = getInterfaceIPs()
 	instance.tpl = template.Must(template.ParseGlob(filepath.Join(instance.tplPath, "*.tpl")))
 	instance.ticker = time.NewTicker(checkPeriod * time.Second)
 	instance.quit = make(chan int)
@@ -1140,4 +1141,35 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 
 		return nil
 	})
+}
+
+func getInterfaceIPs() ([]string, error) {
+	var interfaces4 []string
+	its, err := net.Interfaces()
+	if err != nil {
+		return interfaces4, nil
+	}
+
+	for _, it := range its {
+		addrs, err := it.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if ok == false {
+				continue
+			}
+
+			ip := ipnet.IP
+			if ip.To4() != nil {
+				if ip.IsGlobalUnicast() {
+					interfaces4 = append(interfaces4, ip.String())
+				}
+			}
+		}
+	}
+
+	return interfaces4, nil
 }
