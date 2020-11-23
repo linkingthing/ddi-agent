@@ -24,10 +24,6 @@ service AgentManager{
 	rpc CreateForwardZone(CreateForwardZoneReq) returns (DDIResponse){}
 	rpc UpdateForwardZone(UpdateForwardZoneReq) returns (DDIResponse){}
 	rpc DeleteForwardZone(DeleteForwardZoneReq) returns (DDIResponse){}
-
-	rpc BatchCreateForwardZone(BatchCreateForwardZoneReq) returns (DDIResponse){}
-	rpc BatchUpdateForwardZone(BatchUpdateForwardZoneReq) returns (DDIResponse){}
-	rpc BatchDeleteForwardZone(BatchDeleteForwardZoneReq) returns (DDIResponse){}
 	rpc FlushForwardZone(FlushForwardZoneReq) returns (DDIResponse){}
 
 	rpc UpdateForward(UpdateForwardReq) returns (DDIResponse){}
@@ -285,21 +281,6 @@ message UpdateForwardZoneReq{
 message DeleteForwardZoneReq{
 	DDIRequestHead header = 1;
 	string id = 2;
-}
-
-message BatchCreateForwardZoneReq{
-	DDIRequestHead header = 1;
-	repeated ForwardZone forwardZones = 2;
-}
-
-message BatchUpdateForwardZoneReq{
-	DDIRequestHead header = 1;
-	repeated ForwardZone forwardZones = 2;
-}
-
-message BatchDeleteForwardZoneReq{
-	DDIRequestHead header = 1;
-	repeated ForwardZone forwardZones = 2;
 }
 
 message FlushForwardZoneReq{

@@ -14,37 +14,34 @@ import (
 )
 
 const (
-	StartDNS               = "StartDNS"
-	StopDNS                = "StopDNS"
-	CreateACL              = "CreateACL"
-	UpdateACL              = "UpdateACL"
-	DeleteACL              = "DeleteACL"
-	CreateView             = "CreateView"
-	UpdateView             = "UpdateView"
-	DeleteView             = "DeleteView"
-	CreateZone             = "CreateZone"
-	UpdateZone             = "UpdateZone"
-	DeleteZone             = "DeleteZone"
-	CreateForwardZone      = "CreateForwardZone"
-	UpdateForwardZone      = "UpdateForwardZone"
-	DeleteForwardZone      = "DeleteForwardZone"
-	BatchCreateForwardZone = "BatchCreateForwardZone"
-	BatchUpdateForwardZone = "BatchUpdateForwardZone"
-	BatchDeleteForwardZone = "BatchDeleteForwardZone"
-	FlushForwardZone       = "FlushForwardZone"
-	CreateRR               = "CreateRR"
-	UpdateRR               = "UpdateRR"
-	DeleteRR               = "DeleteRR"
-	UpdateRRsByZone        = "UpdateRRsByZone"
-	UpdateForward          = "UpdateForward"
-	CreateRedirection      = "CreateRedirection"
-	UpdateRedirection      = "UpdateRedirection"
-	DeleteRedirection      = "DeleteRedirection"
-	CreateUrlRedirect      = "CreateUrlRedirect"
-	UpdateUrlRedirect      = "UpdateUrlRedirect"
-	DeleteUrlRedirect      = "DeleteUrlRedirect"
-	UpdateGlobalConfig     = "UpdateGlobalConfig"
-	UploadLog              = "UploadLog"
+	StartDNS           = "StartDNS"
+	StopDNS            = "StopDNS"
+	CreateACL          = "CreateACL"
+	UpdateACL          = "UpdateACL"
+	DeleteACL          = "DeleteACL"
+	CreateView         = "CreateView"
+	UpdateView         = "UpdateView"
+	DeleteView         = "DeleteView"
+	CreateZone         = "CreateZone"
+	UpdateZone         = "UpdateZone"
+	DeleteZone         = "DeleteZone"
+	CreateForwardZone  = "CreateForwardZone"
+	UpdateForwardZone  = "UpdateForwardZone"
+	DeleteForwardZone  = "DeleteForwardZone"
+	FlushForwardZone   = "FlushForwardZone"
+	CreateRR           = "CreateRR"
+	UpdateRR           = "UpdateRR"
+	DeleteRR           = "DeleteRR"
+	UpdateRRsByZone    = "UpdateRRsByZone"
+	UpdateForward      = "UpdateForward"
+	CreateRedirection  = "CreateRedirection"
+	UpdateRedirection  = "UpdateRedirection"
+	DeleteRedirection  = "DeleteRedirection"
+	CreateUrlRedirect  = "CreateUrlRedirect"
+	UpdateUrlRedirect  = "UpdateUrlRedirect"
+	DeleteUrlRedirect  = "DeleteUrlRedirect"
+	UpdateGlobalConfig = "UpdateGlobalConfig"
+	UploadLog          = "UploadLog"
 )
 
 var (
@@ -258,27 +255,6 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
-			}
-		case BatchCreateForwardZone:
-			var target pb.BatchCreateForwardZoneReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.BatchCreateForwardZone(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec BatchCreateForwardZone failed: %s", err.Error())
-			}
-		case BatchUpdateForwardZone:
-			var target pb.BatchUpdateForwardZoneReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.BatchUpdateForwardZone(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec BatchCreateForwardZone failed: %s", err.Error())
-			}
-		case BatchDeleteForwardZone:
-			var target pb.BatchDeleteForwardZoneReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.BatchDeleteForwardZone(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec BatchCreateForwardZone failed: %s", err.Error())
 			}
 		case FlushForwardZone:
 			var target pb.FlushForwardZoneReq

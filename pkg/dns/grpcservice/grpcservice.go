@@ -232,30 +232,6 @@ func (service *DNSService) DeleteForwardZone(context context.Context, req *pb.De
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) BatchCreateForwardZone(context context.Context, req *pb.BatchCreateForwardZoneReq) (*pb.DDIResponse, error) {
-	if err := service.handler.BatchCreateForwardZone(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
-func (service *DNSService) BatchUpdateForwardZone(context context.Context, req *pb.BatchUpdateForwardZoneReq) (*pb.DDIResponse, error) {
-	if err := service.handler.BatchUpdateForwardZone(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
-func (service *DNSService) BatchDeleteForwardZone(context context.Context, req *pb.BatchDeleteForwardZoneReq) (*pb.DDIResponse, error) {
-	if err := service.handler.BatchDeleteForwardZone(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
 func (service *DNSService) FlushForwardZone(context context.Context, req *pb.FlushForwardZoneReq) (*pb.DDIResponse, error) {
 	if err := service.handler.FlushForwardZone(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
