@@ -5,11 +5,10 @@ options {
 	allow-query {any;};
 	{{if .DnssecEnable}}dnssec-enable yes;{{else}}dnssec-enable no;{{end}}
 	dnssec-validation no;
-	{{if .LogEnable}}querylog yes;{{else}}querylog no;{{end}}{{if .IPBlackHole}}
-	BlackHole{ {{range $k,$v := .IPBlackHole.ACLNames}}{{$v}}; {{end}}};{{end}}{{if .Concu}}
-	recursive-clients {{.Concu.RecursiveClients}};
-	fetches-per-zone {{.Concu.FetchesPerZone}};{{end}}{{if .SortList}}
-	sortlist{ {{range $k, $s := .SortList}}{{$s}};{{end}} };{{end}}
+	recursive-clients {{.RecursiveClients}};
+	{{if .LogEnable}}querylog yes;{{else}}querylog no;{{end}}{{if .BlackholeEnable}}
+	blackhole{ {{range $k,$v := .Blackholes}}{{$v}}; {{end}}};{{end}}
+	{{if .RecursionEnable}}recursion yes;{{else}}recursion no;{{end}}
 };
 
 statistics-channels {

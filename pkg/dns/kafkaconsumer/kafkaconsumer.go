@@ -14,41 +14,37 @@ import (
 )
 
 const (
-	StartDNS                  = "StartDNS"
-	StopDNS                   = "StopDNS"
-	CreateACL                 = "CreateACL"
-	UpdateACL                 = "UpdateACL"
-	DeleteACL                 = "DeleteACL"
-	CreateView                = "CreateView"
-	UpdateView                = "UpdateView"
-	DeleteView                = "DeleteView"
-	CreateZone                = "CreateZone"
-	UpdateZone                = "UpdateZone"
-	DeleteZone                = "DeleteZone"
-	CreateForwardZone         = "CreateForwardZone"
-	UpdateForwardZone         = "UpdateForwardZone"
-	DeleteForwardZone         = "DeleteForwardZone"
-	BatchCreateForwardZone    = "BatchCreateForwardZone"
-	BatchUpdateForwardZone    = "BatchUpdateForwardZone"
-	BatchDeleteForwardZone    = "BatchDeleteForwardZone"
-	FlushForwardZone          = "FlushForwardZone"
-	CreateRR                  = "CreateRR"
-	UpdateRR                  = "UpdateRR"
-	DeleteRR                  = "DeleteRR"
-	UpdateRRsByZone           = "UpdateRRsByZone"
-	UpdateForward             = "UpdateForward"
-	CreateRedirection         = "CreateRedirection"
-	UpdateRedirection         = "UpdateRedirection"
-	DeleteRedirection         = "DeleteRedirection"
-	CreateIPBlackHole         = "CreateIPBlackHole"
-	UpdateIPBlackHole         = "UpdateIPBlackHole"
-	DeleteIPBlackHole         = "DeleteIPBlackHole"
-	UpdateRecursiveConcurrent = "UpdateRecursiveConcurrent"
-	CreateUrlRedirect         = "CreateUrlRedirect"
-	UpdateUrlRedirect         = "UpdateUrlRedirect"
-	DeleteUrlRedirect         = "DeleteUrlRedirect"
-	UpdateGlobalConfig        = "UpdateGlobalConfig"
-	UploadLog                 = "UploadLog"
+	StartDNS               = "StartDNS"
+	StopDNS                = "StopDNS"
+	CreateACL              = "CreateACL"
+	UpdateACL              = "UpdateACL"
+	DeleteACL              = "DeleteACL"
+	CreateView             = "CreateView"
+	UpdateView             = "UpdateView"
+	DeleteView             = "DeleteView"
+	CreateZone             = "CreateZone"
+	UpdateZone             = "UpdateZone"
+	DeleteZone             = "DeleteZone"
+	CreateForwardZone      = "CreateForwardZone"
+	UpdateForwardZone      = "UpdateForwardZone"
+	DeleteForwardZone      = "DeleteForwardZone"
+	BatchCreateForwardZone = "BatchCreateForwardZone"
+	BatchUpdateForwardZone = "BatchUpdateForwardZone"
+	BatchDeleteForwardZone = "BatchDeleteForwardZone"
+	FlushForwardZone       = "FlushForwardZone"
+	CreateRR               = "CreateRR"
+	UpdateRR               = "UpdateRR"
+	DeleteRR               = "DeleteRR"
+	UpdateRRsByZone        = "UpdateRRsByZone"
+	UpdateForward          = "UpdateForward"
+	CreateRedirection      = "CreateRedirection"
+	UpdateRedirection      = "UpdateRedirection"
+	DeleteRedirection      = "DeleteRedirection"
+	CreateUrlRedirect      = "CreateUrlRedirect"
+	UpdateUrlRedirect      = "UpdateUrlRedirect"
+	DeleteUrlRedirect      = "DeleteUrlRedirect"
+	UpdateGlobalConfig     = "UpdateGlobalConfig"
+	UploadLog              = "UploadLog"
 )
 
 var (
@@ -397,62 +393,6 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 				ddiResponse, err := cli.DeleteRedirection(context.Background(), &req)
 				if err != nil {
 					log.Errorf("grpc service exec DeleteRedirection failed: %s", err.Error())
-				}
-				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
-					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
-				}
-			}
-		case CreateIPBlackHole:
-			var req pb.CreateIPBlackHoleReq
-			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal CreateIPBlackHole request failed: %s", err.Error())
-			} else {
-				ddiResponse, err := cli.CreateIPBlackHole(context.Background(), &req)
-				if err != nil {
-					log.Errorf("grpc service exec CreateIPBlackHole failed: %s", err.Error())
-				}
-				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
-					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
-				}
-			}
-		case UpdateIPBlackHole:
-			var req pb.UpdateIPBlackHoleReq
-			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal UpdateIPBlackHole request failed: %s", err.Error())
-			} else {
-				ddiResponse, err := cli.UpdateIPBlackHole(context.Background(), &req)
-				if err != nil {
-					log.Errorf("grpc service exec UpdateIPBlackHole failed: %s", err.Error())
-				}
-				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
-					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
-				}
-			}
-		case DeleteIPBlackHole:
-			var req pb.DeleteIPBlackHoleReq
-			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal DeleteIPBlackHole request failed: %s", err.Error())
-			} else {
-				ddiResponse, err := cli.DeleteIPBlackHole(context.Background(), &req)
-				if err != nil {
-					log.Errorf("grpc service exec DeleteIPBlackHole failed: %s", err.Error())
-				}
-				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
-					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
-				}
-			}
-		case UpdateRecursiveConcurrent:
-			var req pb.UpdateRecurConcuReq
-			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal UpdateRecursiveConcurrent request failed: %s", err.Error())
-			} else {
-				ddiResponse, err := cli.UpdateRecursiveConcurrent(context.Background(), &req)
-				if err != nil {
-					log.Errorf("grpc service exec UpdateRecursiveConcurrent failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
 					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {

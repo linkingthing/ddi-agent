@@ -25,37 +25,32 @@ import (
 )
 
 const (
-	mainConfName                 = "named.conf"
-	namedTpl                     = "named.tpl"
-	namedViewTpl                 = "named_view.tpl"
-	namedViewConfName            = "named_view.conf"
-	namedAclTpl                  = "named_acl.tpl"
-	namedAclConfName             = "named_acl.conf"
-	namedOptionsTpl              = "named_options.tpl"
-	namedOptionsConfName         = "named_options.conf"
-	nginxDefaultTpl              = "nginxdefault.tpl"
-	redirectTpl                  = "redirect.tpl"
-	rpzTpl                       = "rpz.tpl"
-	zoneTpl                      = "zone.tpl"
-	zoneSuffix                   = ".zone"
-	nzfTpl                       = "nzf.tpl"
-	nzfSuffix                    = ".nzf"
-	checkPeriod                  = 5
-	anyACL                       = "any"
-	noneACL                      = "none"
-	defaultView                  = "default"
-	localZoneType                = "localzone"
-	nxDomain                     = "nxdomain"
-	ptrType                      = "PTR"
-	RoleBackup                   = "backup"
-	nginxDefaultConfFile         = "default.conf"
-	defaultGlobalConfigID        = "globalConfig"
-	defaultRecursiveConcurrentId = "1"
-	TemplateDir                  = "/etc/dns/templates"
-
-	updateZonesTTLSQL       = "update gr_agent_zone set ttl = $1"
-	updateRRsTTLSQL         = "update gr_agent_rr set ttl = $1"
-	updateRedirectionTtlSQL = "update gr_agent_redirection set ttl = $1"
+	mainConfName          = "named.conf"
+	namedTpl              = "named.tpl"
+	namedViewTpl          = "named_view.tpl"
+	namedViewConfName     = "named_view.conf"
+	namedAclTpl           = "named_acl.tpl"
+	namedAclConfName      = "named_acl.conf"
+	namedOptionsTpl       = "named_options.tpl"
+	namedOptionsConfName  = "named_options.conf"
+	nginxDefaultTpl       = "nginxdefault.tpl"
+	redirectTpl           = "redirect.tpl"
+	rpzTpl                = "rpz.tpl"
+	zoneTpl               = "zone.tpl"
+	zoneSuffix            = ".zone"
+	nzfTpl                = "nzf.tpl"
+	nzfSuffix             = ".nzf"
+	checkPeriod           = 5
+	anyACL                = "any"
+	noneACL               = "none"
+	defaultView           = "default"
+	localZoneType         = "localzone"
+	nxDomain              = "nxdomain"
+	ptrType               = "PTR"
+	RoleBackup            = "backup"
+	nginxDefaultConfFile  = "default.conf"
+	defaultGlobalConfigID = "globalConfig"
+	TemplateDir           = "/etc/dns/templates"
 )
 
 type DNSHandler struct {
@@ -66,8 +61,9 @@ type DNSHandler struct {
 	quit                chan int
 	nginxDefaultConfDir string
 	localip             string
+	interfaceIPs        []string
 	localipv6           string
-	dnsServer           string
+	dnsServerIP         string
 	rndcConfPath        string
 	rndcPath            string
 	nginxConfPath       string
@@ -83,9 +79,9 @@ func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 		nginxDefaultConfDir: conf.NginxDefaultDir,
 		localip:             conf.Server.IP,
 		localipv6:           conf.Server.IPV6,
-		dnsServer:           conf.DNS.ServerIp + ":53",
+		dnsServerIP:         conf.DNS.ServerIp,
 	}
-
+	instance.interfaceIPs, _ = getInterfaceIPs()
 	instance.tpl = template.Must(template.ParseGlob(filepath.Join(instance.tplPath, "*.tpl")))
 	instance.ticker = time.NewTicker(checkPeriod * time.Second)
 	instance.quit = make(chan int)
@@ -198,9 +194,7 @@ func initDefaultDbData() error {
 		if exist, err := dbhandler.ExistWithTx(resource.TableDnsGlobalConfig, defaultGlobalConfigID, tx); err != nil {
 			return fmt.Errorf("check agent_dns_global_config exist from db failed:%s", err.Error())
 		} else if !exist {
-			dnsGlobalConfig := &resource.AgentDnsGlobalConfig{
-				LogEnable: true, Ttl: 3600, DnssecEnable: false,
-			}
+			dnsGlobalConfig := resource.CreateDefaultResource()
 			dnsGlobalConfig.SetID(defaultGlobalConfigID)
 			if _, err = tx.Insert(dnsGlobalConfig); err != nil {
 				return fmt.Errorf("Insert defaultGlobalConfigID into db failed:%s ", err.Error())
@@ -212,7 +206,7 @@ func initDefaultDbData() error {
 }
 
 func (handler *DNSHandler) updateRR(key string, secret string, rrset *g53.RRset, zone string, isAdd bool) error {
-	serverAddr, err := net.ResolveUDPAddr("udp", handler.dnsServer)
+	serverAddr, err := net.ResolveUDPAddr("udp", handler.dnsServerIP+":53")
 	if err != nil {
 		return err
 	}
@@ -918,7 +912,7 @@ func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32, tx restdb.Transaction) err
 		}
 		view := viewRes.(*resource.AgentView)
 		zone := zoneRes.(*resource.AgentZone)
-		if _, err := tx.Exec(updateRRsTTLSQL, ttl); err != nil {
+		if _, err := tx.Exec("update gr_agent_rr set ttl = $1", ttl); err != nil {
 			return fmt.Errorf("update updateRR to db failed:%s", err.Error())
 		}
 
@@ -1041,83 +1035,6 @@ func (handler *DNSHandler) DeleteRR(req *pb.DeleteRRReq) error {
 
 		if err := handler.rndcZoneDumpJNLFile(req.ZoneName, req.ViewName); err != nil {
 			return fmt.Errorf("DeleteRR rndcDumpJNLFile error:%s", err.Error())
-		}
-		return nil
-	})
-}
-
-func (handler *DNSHandler) CreateIPBlackHole(req *pb.CreateIPBlackHoleReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		ipBlackHole := &resource.AgentIpBlackHole{Acl: req.Acl}
-		ipBlackHole.SetID(req.Id)
-		if _, err := tx.Insert(ipBlackHole); err != nil {
-			return fmt.Errorf("insert ipBlackHole to db failed:%s", err.Error())
-		}
-
-		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
-			return fmt.Errorf("CreateIPBlackHole id:%s rewriteNamedOptionsFile failed:%s",
-				req.Id, err.Error())
-		}
-		return nil
-	})
-}
-
-func (handler *DNSHandler) UpdateIPBlackHole(req *pb.UpdateIPBlackHoleReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableIpBlackHole,
-			map[string]interface{}{"acl": req.Acl},
-			map[string]interface{}{restdb.IDField: req.Id}); err != nil {
-			return fmt.Errorf("insert ipBlackHole to db failed:%s", err.Error())
-		}
-		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
-			return fmt.Errorf("UpdateIPBlackHole id:%s rewriteNamedOptionsFile failed:%s",
-				req.Id, err.Error())
-		}
-		return nil
-	})
-}
-
-func (handler *DNSHandler) DeleteIPBlackHole(req *pb.DeleteIPBlackHoleReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Delete(resource.TableIpBlackHole,
-			map[string]interface{}{restdb.IDField: req.Id}); err != nil {
-			return fmt.Errorf("delete ipBlackHole to db failed:%s", err.Error())
-		}
-		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
-			return fmt.Errorf("DeleteIPBlackHole id:%s rewriteNamedOptionsFile failed:%s",
-				req.Id, err.Error())
-		}
-		return nil
-	})
-}
-
-func (handler *DNSHandler) UpdateRecursiveConcurrent(req *pb.UpdateRecurConcuReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if req.IsCreate {
-			recursiveConcurrent := &resource.AgentRecursiveConcurrent{
-				RecursiveClients: req.RecursiveClients,
-				FetchesPerZone:   req.FetchesPerZone,
-			}
-			recursiveConcurrent.SetID(req.Id)
-			if _, err := tx.Insert(recursiveConcurrent); err != nil {
-				return fmt.Errorf("insert RecursiveConcurrent from db failed:%s",
-					err.Error())
-			}
-		} else {
-			if _, err := tx.Update(resource.TableRecursiveConcurrent,
-				map[string]interface{}{
-					"recursive_clients": req.RecursiveClients,
-					"fetches_per_zone":  req.FetchesPerZone,
-				},
-				map[string]interface{}{restdb.IDField: req.Id}); err != nil {
-				return fmt.Errorf("update RecursiveConcurrent from db failed:%s",
-					err.Error())
-			}
-		}
-
-		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
-			return fmt.Errorf("UpdateRecursiveConcurrent id:%s rewriteNamedOptionsFile failed:%s",
-				req.Id, err.Error())
 		}
 		return nil
 	})
@@ -1269,21 +1186,24 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Update(resource.TableDnsGlobalConfig,
 			map[string]interface{}{
-				"log_enable":    req.LogEnable,
-				"ttl":           req.Ttl,
-				"dnssec_enable": req.DnssecEnable,
+				"log_enable":        req.LogEnable,
+				"ttl":               req.Ttl,
+				"dnssec_enable":     req.DnssecEnable,
+				"blackhole_enable":  req.BlackholeEnable,
+				"blackholes":        req.Blackholes,
+				"recursion_enable":  req.RecursionEnable,
+				"recursive_clients": req.RecursiveClients,
 			},
 			map[string]interface{}{restdb.IDField: defaultGlobalConfigID}); err != nil {
 			return fmt.Errorf("update dnsGlobalConfig to db failed:%s", err.Error())
-
 		}
 
 		if req.TtlChanged {
-			if _, err := tx.Exec(updateZonesTTLSQL, req.Ttl); err != nil {
+			if _, err := tx.Exec("update gr_agent_zone set ttl = $1", req.Ttl); err != nil {
 				return fmt.Errorf("update updateZonesTTLSQL to db failed:%s",
 					err.Error())
 			}
-			if _, err := tx.Exec(updateRedirectionTtlSQL, req.Ttl); err != nil {
+			if _, err := tx.Exec("update gr_agent_redirection set ttl = $1", req.Ttl); err != nil {
 				return fmt.Errorf("update updateRedirectionTtlSQL to db failed:%s",
 					err.Error())
 			}
@@ -1293,21 +1213,52 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 			}
 
 			if err := handler.initRPZFile(tx); err != nil {
-				return fmt.Errorf("UpdateGlobalConfig initRPZFile failed:%s", err.Error())
+				return fmt.Errorf("updateGlobalConfig initRPZFile failed:%s", err.Error())
 			}
 			if err := handler.initRedirectFile(tx); err != nil {
-				return fmt.Errorf("UpdateGlobalConfig initRedirectFile failed:%s", err.Error())
+				return fmt.Errorf("updateGlobalConfig initRedirectFile failed:%s", err.Error())
 			}
 			if err := handler.rndcReconfig(); err != nil {
-				return fmt.Errorf("UpdateGlobalConfig rndcReconfig failed:%s", err.Error())
+				return fmt.Errorf("updateGlobalConfig rndcReconfig failed:%s", err.Error())
 			}
 		}
 
 		if err := handler.rewriteNamedOptionsFile(tx); err != nil {
-			return fmt.Errorf("UpdateGlobalConfig rewriteNamedOptionsFile failed:%s",
+			return fmt.Errorf("updateGlobalConfig rewriteNamedOptionsFile failed:%s",
 				err.Error())
 		}
 
 		return nil
 	})
+}
+
+func getInterfaceIPs() ([]string, error) {
+	var interfaces4 []string
+	its, err := net.Interfaces()
+	if err != nil {
+		return interfaces4, nil
+	}
+
+	for _, it := range its {
+		addrs, err := it.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if ok == false {
+				continue
+			}
+
+			ip := ipnet.IP
+			if ip.To4() != nil {
+				if ip.IsGlobalUnicast() {
+					interfaces4 = append(interfaces4, ip.String())
+				}
+			}
+		}
+	}
+
+	return interfaces4, nil
 }
