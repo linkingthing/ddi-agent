@@ -11,5 +11,6 @@ type AgentUrlRedirect struct {
 	resource.ResourceBase `json:",inline"`
 	Domain                string `json:"domain" rest:"required=true" db:"uk"`
 	Url                   string `json:"url" rest:"required=true,minLen=1,maxLen=500"`
+	IsHttps               bool   `json:"isHttps"`
 	AgentView             string `json:"-" db:"ownby"`
 }

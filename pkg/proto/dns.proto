@@ -198,6 +198,9 @@ message CreateUrlRedirectReq{
 	string domain = 3;
 	string url = 4;
 	string view_id = 5;
+	bool is_https = 6;
+	bytes key = 7;
+	bytes crt = 8;
 }
 
 message UpdateUrlRedirectReq{
@@ -206,12 +209,15 @@ message UpdateUrlRedirectReq{
 	string domain = 3;
 	string url = 4;
 	string view = 5;
+	bool is_https = 6;
 }
 
 message DeleteUrlRedirectReq{
 	DDIRequestHead header = 1;
 	string id = 2;
-	string view = 3;
+	string domain = 3;
+	string view = 4;
+	bool is_https = 5;
 }
 
 message CreateRedirectionReq{

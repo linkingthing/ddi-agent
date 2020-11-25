@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -104,7 +105,7 @@ func (handler *DNSHandler) initFiles() error {
 		return fmt.Errorf("init path failed path is empty")
 	}
 
-	if err := createOneFile(filepath.Join(handler.dnsConfPath, "redirection")); err != nil {
+	if err := createOneFolder(filepath.Join(handler.dnsConfPath, "redirection")); err != nil {
 		return err
 	}
 
@@ -133,7 +134,7 @@ func (handler *DNSHandler) initFiles() error {
 		if err := handler.initRedirectFile(tx); err != nil {
 			return fmt.Errorf("init rewriteRedirectFile failed:%s", err.Error())
 		}
-		if err := handler.rewriteNginxFile(tx); err != nil {
+		if err := handler.rewriteNginxHttpFile(tx); err != nil {
 			return fmt.Errorf("rewrite nginx config file error:%s", err.Error())
 		}
 
@@ -199,23 +200,72 @@ func (handler *DNSHandler) rndcZoneDumpJNLFile(zoneName string, viewName string)
 	return err
 }
 
-func (handler *DNSHandler) rewriteNginxFile(tx restdb.Transaction) error {
+func (handler *DNSHandler) rewriteNginxHttpFile(tx restdb.Transaction) error {
 	data := nginxDefaultConf{}
 	var urlRedirectList []*resource.AgentUrlRedirect
 	if err := dbhandler.ListWithTx(&urlRedirectList, tx); err != nil {
 		return err
 	}
+
 	for _, urlValue := range urlRedirectList {
-		data.URLRedirects = append(data.URLRedirects,
-			urlRedirect{Domain: urlValue.Domain, URL: urlValue.Url})
+		if !urlValue.IsHttps {
+			data.URLRedirects = append(data.URLRedirects,
+				urlRedirect{Domain: urlValue.Domain, URL: urlValue.Url})
+		}
 	}
 
-	return handler.flushTemplateFiles(nginxDefaultTpl,
-		handler.nginxConfPath, data)
+	if err := handler.flushTemplateFiles(nginxDefaultTpl,
+		handler.nginxConfPath, data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (handler *DNSHandler) addNginxHttpsFile(key, crt []byte, urlRedirect *resource.AgentUrlRedirect) error {
+	if err := createOneFolder(handler.nginxKeyDir); err != nil {
+		return fmt.Errorf("create folder:%s  failed:%s", handler.nginxKeyDir, err.Error())
+	}
+	if err := ioutil.WriteFile(
+		path.Join(handler.nginxKeyDir, urlRedirect.Domain+".key"), key, FilePermissions); err != nil {
+		return fmt.Errorf("writeNginxSSLFile key failed:%s", err.Error())
+	}
+	if err := ioutil.WriteFile(
+		path.Join(handler.nginxKeyDir, urlRedirect.Domain+".crt"), crt, FilePermissions); err != nil {
+		return fmt.Errorf("writeNginxSSLFile crt failed:%s", err.Error())
+	}
+
+	return handler.flushTemplateFiles(nginxSslTpl,
+		path.Join(handler.nginxDefaultConfDir, urlRedirect.Domain+".conf"), urlRedirect)
+}
+
+func (handler *DNSHandler) updateNginxHttpsFile(urlRedirect *resource.AgentUrlRedirect) error {
+	domainConf := urlRedirect.Domain + ".conf"
+	if err := removeOneFile(path.Join(handler.nginxDefaultConfDir, domainConf)); err != nil {
+		return fmt.Errorf("updateNginxHttpsFile  remove file:%s  failed:%s", domainConf, err.Error())
+	}
+
+	return handler.flushTemplateFiles(nginxSslTpl, path.Join(handler.nginxDefaultConfDir, domainConf), urlRedirect)
+}
+
+func (handler *DNSHandler) removeNginxHttpsFile(domain string) error {
+	domainConf := domain + ".conf"
+	if err := removeOneFile(path.Join(handler.nginxDefaultConfDir, domainConf)); err != nil {
+		return fmt.Errorf("removeNginxHttpsFile file:%s  failed:%s", domainConf, err.Error())
+	}
+	if err := removeOneFile(path.Join(handler.nginxKeyDir, domain+".key")); err != nil {
+		return fmt.Errorf("removeNginxHttpsFile file:%s  failed:%s", handler.nginxKeyDir, err.Error())
+	}
+	if err := removeOneFile(path.Join(handler.nginxKeyDir, domain+".crt")); err != nil {
+		return fmt.Errorf("removeNginxHttpsFile file:%s  failed:%s", handler.nginxKeyDir, err.Error())
+	}
+
+	return nil
 }
 
 func (handler *DNSHandler) nginxReload() error {
-	_, err := grpcclient.GetDDIMonitorGrpcClient().ReloadNginxConfig(context.Background(), &monitorpb.ReloadNginxConfigRequest{})
+	_, err := grpcclient.GetDDIMonitorGrpcClient().ReloadNginxConfig(context.Background(),
+		&monitorpb.ReloadNginxConfigRequest{})
 	return err
 }
 
@@ -699,7 +749,7 @@ func (handler *DNSHandler) rewriteFiles(tplName, tplConfName string, data interf
 			tplName, tplConfName, err.Error())
 	}
 
-	if err := ioutil.WriteFile(tplConfName, buffer.Bytes(), 0777); err != nil {
+	if err := ioutil.WriteFile(tplConfName, buffer.Bytes(), FilePermissions); err != nil {
 		return fmt.Errorf("flushTemplateFiles tplName:%s tplConfName:%s  WriteFile failed:%s",
 			tplName, tplConfName, err.Error())
 	}
@@ -734,20 +784,30 @@ func removeFiles(dir string, prefix string, suffix string) error {
 	return nil
 }
 
-func removeOneFile(path string) error {
+func removeFolder(path string) error {
 	_, err := os.Stat(path)
 	if !os.IsNotExist(err) {
-		if err := os.Remove(path); err != nil {
-			return fmt.Errorf("Remove %s failed:%s ", path, err.Error())
+		if err := os.RemoveAll(path); err != nil {
+			return fmt.Errorf("removeFolder %s failed:%s ", path, err.Error())
 		}
 	}
 	return nil
 }
 
-func createOneFile(path string) error {
+func removeOneFile(path string) error {
+	_, err := os.Stat(path)
+	if !os.IsNotExist(err) {
+		if err := os.Remove(path); err != nil {
+			return fmt.Errorf("removeOneFile %s failed:%s ", path, err.Error())
+		}
+	}
+	return nil
+}
+
+func createOneFolder(path string) error {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		if err := os.Mkdir(path, 0777); err != nil {
+		if err := os.Mkdir(path, FilePermissions); err != nil {
 			return fmt.Errorf("create %s fail:%s", path, err.Error())
 		}
 	}
