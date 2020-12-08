@@ -94,6 +94,7 @@ message CreateSubnet6Request {
     repeated string dns_servers = 7;
     string client_class = 8;
     repeated string relay_agent_addresses = 9;
+    string relay_agent_interface_id = 10;
 }
 
 message DeleteSubnet6Request {
@@ -110,6 +111,7 @@ message UpdateSubnet6Request {
     repeated string dns_servers= 6;
     string client_class = 7;
     repeated string relay_agent_addresses = 8;
+    string relay_agent_interface_id = 9;
 }
 
 message CreatePool4Request {

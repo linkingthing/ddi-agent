@@ -432,6 +432,7 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 		MinValidLifetime: req.GetMinValidLifetime(),
 		OptionDatas:      genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil),
 		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
+		InterfaceId:      req.GetRelayAgentInterfaceId(),
 	})
 
 	return h.reconfig6(dhcp6Conf)
@@ -482,6 +483,7 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 			dhcp6Conf.DHCP6.Subnet6s[i].MinValidLifetime = req.GetMinValidLifetime()
 			dhcp6Conf.DHCP6.Subnet6s[i].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
 			dhcp6Conf.DHCP6.Subnet6s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
+			dhcp6Conf.DHCP6.Subnet6s[i].InterfaceId = req.GetRelayAgentInterfaceId()
 			exists = true
 			break
 		}
