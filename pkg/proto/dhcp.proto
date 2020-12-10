@@ -38,6 +38,7 @@ service DHCPManager {
     
     rpc UpdateGlobalConfig(UpdateGlobalConfigRequest) returns (DDIResponse) {}
 
+    rpc GetSubnetsLeasesCount(GetSubnetsLeasesCountRequest) returns (GetSubnetsLeasesCountResponse){}
 
     rpc GetSubnet4LeasesCount(GetSubnet4LeasesCountRequest) returns (GetLeasesCountResponse){}
     rpc GetPool4LeasesCount(GetPool4LeasesCountRequest) returns (GetLeasesCountResponse){}
@@ -93,6 +94,7 @@ message CreateSubnet6Request {
     repeated string dns_servers = 7;
     string client_class = 8;
     repeated string relay_agent_addresses = 9;
+    string relay_agent_interface_id = 10;
 }
 
 message DeleteSubnet6Request {
@@ -109,6 +111,7 @@ message UpdateSubnet6Request {
     repeated string dns_servers= 6;
     string client_class = 7;
     repeated string relay_agent_addresses = 8;
+    string relay_agent_interface_id = 9;
 }
 
 message CreatePool4Request {
@@ -256,22 +259,27 @@ message UpdateGlobalConfigRequest {
     repeated string domain_servers = 5;
 }
 
+message GetSubnetsLeasesCountRequest{
+}
+
+message GetSubnetsLeasesCountResponse {
+    bool succeed = 1;
+    map<uint32, uint64> subnets_leases_count = 2;
+}
+
 message GetSubnet4LeasesCountRequest{
-    DDIRequestHead header = 1;
-    uint32 id = 2;
+    uint32 id = 1;
 }
 
 message GetPool4LeasesCountRequest{
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string begin_address = 3;
-    string end_address = 4;
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
 }
 
 message GetReservation4LeasesCountRequest {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string hw_address = 3;
+    uint32 subnet_id = 1;
+    string hw_address = 2;
 }
 
 message GetLeasesCountResponse {
@@ -280,30 +288,25 @@ message GetLeasesCountResponse {
 }
 
 message GetSubnet6LeasesCountRequest{
-    DDIRequestHead header = 1;
-    uint32 id = 2;
+    uint32 id = 1;
 }
 
 message GetPool6LeasesCountRequest{
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string begin_address = 3;
-    string end_address = 4;
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
 }
 
 message GetReservation6LeasesCountRequest {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string hw_address = 3;
+    uint32 subnet_id = 1;
+    string hw_address = 2;
 }
 
 message GetSubnet4LeasesRequest{
-    DDIRequestHead header = 1;
-    uint32 id = 2;
+    uint32 id = 1;
 }
 
 message GetSubnet6LeasesRequest{
-    DDIRequestHead header = 1;
     uint32 id = 2;
 }
 

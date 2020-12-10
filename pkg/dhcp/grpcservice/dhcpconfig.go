@@ -178,6 +178,7 @@ type Subnet6 struct {
 	ClientClass      string         `json:"client-class,omitempty"`
 	OptionDatas      []OptionData   `json:"option-data,omitempty"`
 	Relay            RelayAgent     `json:"relay,omitempty"`
+	InterfaceId      string         `json:"interface-id,omitempty"`
 	ValidLifetime    uint32         `json:"valid-lifetime,omitempty"`
 	MaxValidLifetime uint32         `json:"max-valid-lifetime,omitempty"`
 	MinValidLifetime uint32         `json:"min-valid-lifetime,omitempty"`

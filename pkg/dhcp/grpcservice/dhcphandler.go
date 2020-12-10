@@ -122,7 +122,8 @@ func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
 		}
 	}
 
-	resp, err := grpcclient.GetDDIMonitorGrpcClient().GetInterfaces(context.Background(), &monitorpb.GetInterfacesRequest{})
+	resp, err := grpcclient.GetDDIMonitorGrpcClient().GetInterfaces(context.Background(),
+		&monitorpb.GetInterfacesRequest{})
 	if err != nil {
 		return err
 	}
@@ -137,7 +138,8 @@ func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
 		if err := parseJsonConfig(&dhcp4Conf, dhcp4ConfPath); err != nil {
 			return fmt.Errorf("load dhcp4 config failed: %s", err.Error())
 		} else {
-			if interfaces := resp.GetInterfaces4(); isDiffStrSlice(dhcp4Conf.DHCP4.InterfacesConfig.Interfaces, interfaces) {
+			if interfaces := resp.GetInterfaces4(); isDiffStrSlice(dhcp4Conf.DHCP4.InterfacesConfig.Interfaces,
+				interfaces) {
 				dhcp4Conf.DHCP4.InterfacesConfig.Interfaces = interfaces
 				genDHCP4ConfFile = true
 			}
@@ -160,7 +162,8 @@ func (h *DHCPHandler) loadDHCPConfig(conf *config.AgentConfig) error {
 		if err := parseJsonConfig(&dhcp6Conf, dhcp6ConfPath); err != nil {
 			return fmt.Errorf("load dhcp6 config failed: %s", err.Error())
 		} else {
-			if interfaces := resp.GetInterfaces6(); isDiffStrSlice(dhcp6Conf.DHCP6.InterfacesConfig.Interfaces, interfaces) {
+			if interfaces := resp.GetInterfaces6(); isDiffStrSlice(dhcp6Conf.DHCP6.InterfacesConfig.Interfaces,
+				interfaces) {
 				dhcp6Conf.DHCP6.InterfacesConfig.Interfaces = interfaces
 				genDHCP6ConfFile = true
 			}
@@ -234,7 +237,8 @@ func (h *DHCPHandler) stopDHCP() error {
 
 func (h *DHCPHandler) monitor() {
 	for {
-		resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDHCPState(context.Background(), &monitorpb.GetDHCPStateRequest{})
+		resp, err := grpcclient.GetDDIMonitorGrpcClient().GetDHCPState(context.Background(),
+			&monitorpb.GetDHCPStateRequest{})
 		if err == nil && resp.GetIsRunning() == false {
 			if err := h.reconfigOrStartDHCP(false); err != nil {
 				log.Warnf("start dhcp failed: %s", err.Error())
@@ -269,7 +273,8 @@ func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
 }
 
 func genDhcp4ConfFromDeepCopy(src *DHCP4Config) (*DHCP4Config, error) {
-	resp, err := grpcclient.GetDDIMonitorGrpcClient().GetInterfaces(context.Background(), &monitorpb.GetInterfacesRequest{})
+	resp, err := grpcclient.GetDDIMonitorGrpcClient().GetInterfaces(context.Background(),
+		&monitorpb.GetInterfacesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("get network interfaces config failed: %s", err.Error())
 	}
@@ -369,7 +374,8 @@ func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
 			dhcp4Conf.DHCP4.Subnet4s[i].ValidLifetime = req.GetValidLifetime()
 			dhcp4Conf.DHCP4.Subnet4s[i].MaxValidLifetime = req.GetMaxValidLifetime()
 			dhcp4Conf.DHCP4.Subnet4s[i].MinValidLifetime = req.GetMinValidLifetime()
-			dhcp4Conf.DHCP4.Subnet4s[i].OptionDatas = genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), req.GetRouters())
+			dhcp4Conf.DHCP4.Subnet4s[i].OptionDatas = genDHCPOptionDatas(Option4DNSServers,
+				req.GetDomainServers(), req.GetRouters())
 			dhcp4Conf.DHCP4.Subnet4s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
 			exists = true
 			break
@@ -426,13 +432,15 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 		MinValidLifetime: req.GetMinValidLifetime(),
 		OptionDatas:      genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil),
 		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
+		InterfaceId:      req.GetRelayAgentInterfaceId(),
 	})
 
 	return h.reconfig6(dhcp6Conf)
 }
 
 func genDhcp6ConfFromDeepCopy(src *DHCP6Config) (*DHCP6Config, error) {
-	resp, err := grpcclient.GetDDIMonitorGrpcClient().GetInterfaces(context.Background(), &monitorpb.GetInterfacesRequest{})
+	resp, err := grpcclient.GetDDIMonitorGrpcClient().GetInterfaces(context.Background(),
+		&monitorpb.GetInterfacesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("get network interfaces config failed: %s", err.Error())
 	}
@@ -475,6 +483,7 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 			dhcp6Conf.DHCP6.Subnet6s[i].MinValidLifetime = req.GetMinValidLifetime()
 			dhcp6Conf.DHCP6.Subnet6s[i].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
 			dhcp6Conf.DHCP6.Subnet6s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
+			dhcp6Conf.DHCP6.Subnet6s[i].InterfaceId = req.GetRelayAgentInterfaceId()
 			exists = true
 			break
 		}
@@ -567,7 +576,8 @@ func (h *DHCPHandler) UpdatePool4(req *pb.UpdatePool4Request) error {
 	if exists {
 		return h.reconfig4(dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d",
+			req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
 }
 
@@ -599,7 +609,8 @@ func (h *DHCPHandler) DeletePool4(req *pb.DeletePool4Request) error {
 	if exists {
 		return h.reconfig4(dhcp4Conf)
 	} else {
-		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found pool4 %s-%s in subnet4 %d",
+			req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
 }
 
@@ -641,7 +652,8 @@ func (h *DHCPHandler) UpdatePool6(req *pb.UpdatePool6Request) error {
 			for j, pool := range subnet.Pools {
 				if pool.Pool == updatePool {
 					dhcp6Conf.DHCP6.Subnet6s[i].Pools[j].ClientClass = req.GetClientClass()
-					dhcp6Conf.DHCP6.Subnet6s[i].Pools[j].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
+					dhcp6Conf.DHCP6.Subnet6s[i].Pools[j].OptionDatas = genDHCPOptionDatas(Option6DNSServers,
+						req.GetDnsServers(), nil)
 					exists = true
 					break
 				}
@@ -653,7 +665,8 @@ func (h *DHCPHandler) UpdatePool6(req *pb.UpdatePool6Request) error {
 	if exists {
 		return h.reconfig6(dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d",
+			req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
 }
 
@@ -685,7 +698,8 @@ func (h *DHCPHandler) DeletePool6(req *pb.DeletePool6Request) error {
 	if exists {
 		return h.reconfig6(dhcp6Conf)
 	} else {
-		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d", req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
+		return fmt.Errorf("no found pool6 %s-%s in subnet6 %d",
+			req.GetBeginAddress(), req.GetEndAddress(), req.GetSubnetId())
 	}
 }
 
@@ -728,7 +742,8 @@ func (h *DHCPHandler) UpdatePDPool(req *pb.UpdatePDPoolRequest) error {
 			for j, pdpool := range subnet.PDPools {
 				if pdpool.Prefix == req.GetPrefix() {
 					dhcp6Conf.DHCP6.Subnet6s[i].PDPools[j].ClientClass = req.GetClientClass()
-					dhcp6Conf.DHCP6.Subnet6s[i].PDPools[j].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
+					dhcp6Conf.DHCP6.Subnet6s[i].PDPools[j].OptionDatas = genDHCPOptionDatas(Option6DNSServers,
+						req.GetDnsServers(), nil)
 					exists = true
 					break
 				}
@@ -997,7 +1012,8 @@ func (h *DHCPHandler) DeleteClientClass4(req *pb.DeleteClientClass4Request) erro
 
 	for i, clientclass := range dhcp4Conf.DHCP4.ClientClasses {
 		if clientclass.Name == req.GetName() {
-			dhcp4Conf.DHCP4.ClientClasses = append(dhcp4Conf.DHCP4.ClientClasses[:i], dhcp4Conf.DHCP4.ClientClasses[i+1:]...)
+			dhcp4Conf.DHCP4.ClientClasses = append(dhcp4Conf.DHCP4.ClientClasses[:i],
+				dhcp4Conf.DHCP4.ClientClasses[i+1:]...)
 			exists = true
 			break
 		}
@@ -1056,7 +1072,8 @@ type Lease4 struct {
 }
 
 func (h *DHCPHandler) GetSubnet4Leases(req *pb.GetSubnet4LeasesRequest) ([]*pb.DHCPLease, error) {
-	rows, err := h.db.Query(context.Background(), "select * from lease4 where subnet_id=$1 and state = 0 and expire > now()",
+	rows, err := h.db.Query(context.Background(),
+		"select * from lease4 where subnet_id=$1 and state = 0 and expire > now()",
 		req.GetId())
 	if err != nil {
 		return nil, err
@@ -1065,8 +1082,9 @@ func (h *DHCPHandler) GetSubnet4Leases(req *pb.GetSubnet4LeasesRequest) ([]*pb.D
 	var pbleases []*pb.DHCPLease
 	for rows.Next() {
 		var lease4 Lease4
-		if err := rows.Scan(&lease4.Address, &lease4.Hwaddr, &lease4.ClientId, &lease4.ValidLifetime, &lease4.Expire,
-			&lease4.SubnetId, &lease4.FqdnFwd, &lease4.FqdnRev, &lease4.Hostname, &lease4.State, &lease4.UserContext,
+		if err := rows.Scan(&lease4.Address, &lease4.Hwaddr, &lease4.ClientId, &lease4.ValidLifetime,
+			&lease4.Expire, &lease4.SubnetId, &lease4.FqdnFwd, &lease4.FqdnRev, &lease4.Hostname,
+			&lease4.State, &lease4.UserContext,
 		); err != nil {
 			return nil, err
 		}
@@ -1093,8 +1111,45 @@ func ipv4FromUint32(ipInt uint32) net.IP {
 	}
 }
 
+func (h *DHCPHandler) GetSubnetsLeasesCount(req *pb.GetSubnetsLeasesCountRequest) (map[uint32]uint64, error) {
+	subnetsLeasesCount := make(map[uint32]uint64)
+	if err := h.getSubnetsLeasesCount(
+		"select subnet_id, count(*) from lease4 where state = 0 and expire > now() group by subnet_id",
+		subnetsLeasesCount); err != nil {
+		return nil, err
+	}
+
+	if err := h.getSubnetsLeasesCount(
+		"select subnet_id, count(*) from lease6 where state = 0 and expire > now() group by subnet_id",
+		subnetsLeasesCount); err != nil {
+		return nil, err
+	}
+
+	return subnetsLeasesCount, nil
+}
+
+func (h *DHCPHandler) getSubnetsLeasesCount(sql string, subnetsLeasesCount map[uint32]uint64) error {
+	rows, err := h.db.Query(context.Background(), sql)
+	if err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		var subnetId uint32
+		var count uint64
+		if err := rows.Scan(&subnetId, &count); err != nil {
+			return err
+		} else {
+			subnetsLeasesCount[subnetId] = count
+		}
+	}
+
+	return nil
+}
+
 func (h *DHCPHandler) GetSubnet4LeasesCount(req *pb.GetSubnet4LeasesCountRequest) (uint64, error) {
-	return h.getLeasesCountFromDB("select count(*) from lease4 where subnet_id = $1 and state = 0 and expire > now()", req.GetId())
+	return h.getLeasesCountFromDB(
+		"select count(*) from lease4 where subnet_id = $1 and state = 0 and expire > now()", req.GetId())
 }
 
 func (h *DHCPHandler) getLeasesCountFromDB(sql string, args ...interface{}) (uint64, error) {
@@ -1107,7 +1162,8 @@ func (h *DHCPHandler) getLeasesCountFromDB(sql string, args ...interface{}) (uin
 }
 
 func (h *DHCPHandler) GetPool4LeasesCount(req *pb.GetPool4LeasesCountRequest) (uint64, error) {
-	return h.getLeasesCountFromDB("select count(*) from lease4 where subnet_id = $1 and address between $2 and $3 and state = 0 and expire > now()",
+	return h.getLeasesCountFromDB(
+		"select count(*) from lease4 where subnet_id = $1 and address between $2 and $3 and state = 0 and expire > now()",
 		req.GetSubnetId(), ipv4StrToUint32(req.GetBeginAddress()), ipv4StrToUint32(req.GetEndAddress()))
 }
 
@@ -1117,7 +1173,8 @@ func ipv4StrToUint32(ipv4 string) uint32 {
 }
 
 func (h *DHCPHandler) GetReservation4LeasesCount(req *pb.GetReservation4LeasesCountRequest) (uint64, error) {
-	return h.getLeasesCountFromDB("select count(*) from lease4 where subnet_id = $1 and hwaddr = $2 and state = 0 and expire > now()",
+	return h.getLeasesCountFromDB(
+		"select count(*) from lease4 where subnet_id = $1 and hwaddr = $2 and state = 0 and expire > now()",
 		req.GetSubnetId(), req.GetHwAddress())
 }
 
@@ -1146,7 +1203,8 @@ func (h *DHCPHandler) GetSubnet6Leases(req *pb.GetSubnet6LeasesRequest) ([]*pb.D
 }
 
 func (h *DHCPHandler) getSubnet6Leases(subnetID uint32) ([]*pb.DHCPLease, error) {
-	rows, err := h.db.Query(context.Background(), "select * from lease6 where subnet_id = $1 and state = 0 and expire > now()",
+	rows, err := h.db.Query(context.Background(),
+		"select * from lease6 where subnet_id = $1 and state = 0 and expire > now()",
 		subnetID)
 	if err != nil {
 		return nil, err
@@ -1155,9 +1213,10 @@ func (h *DHCPHandler) getSubnet6Leases(subnetID uint32) ([]*pb.DHCPLease, error)
 	var pbleases []*pb.DHCPLease
 	for rows.Next() {
 		var lease6 Lease6
-		if err := rows.Scan(&lease6.Address, &lease6.Duid, &lease6.ValidLifetime, &lease6.Expire, &lease6.SubnetId,
-			&lease6.PrefLifetime, &lease6.LeaseType, &lease6.Iaid, &lease6.PrefixLen, &lease6.FqdnFwd, &lease6.FqdnRev,
-			&lease6.Hostname, &lease6.State, &lease6.Hwaddr, &lease6.Hwtype, &lease6.HwaddrSource, &lease6.UserContext,
+		if err := rows.Scan(&lease6.Address, &lease6.Duid, &lease6.ValidLifetime, &lease6.Expire,
+			&lease6.SubnetId, &lease6.PrefLifetime, &lease6.LeaseType, &lease6.Iaid, &lease6.PrefixLen,
+			&lease6.FqdnFwd, &lease6.FqdnRev, &lease6.Hostname, &lease6.State, &lease6.Hwaddr,
+			&lease6.Hwtype, &lease6.HwaddrSource, &lease6.UserContext,
 		); err != nil {
 			return nil, err
 		}
@@ -1176,7 +1235,8 @@ func (h *DHCPHandler) getSubnet6Leases(subnetID uint32) ([]*pb.DHCPLease, error)
 }
 
 func (h *DHCPHandler) GetSubnet6LeasesCount(req *pb.GetSubnet6LeasesCountRequest) (uint64, error) {
-	return h.getLeasesCountFromDB("select count(*) from lease6 where subnet_id = $1 and state = 0 and expire > now()", req.GetId())
+	return h.getLeasesCountFromDB(
+		"select count(*) from lease6 where subnet_id = $1 and state = 0 and expire > now()", req.GetId())
 }
 
 func (h *DHCPHandler) GetPool6LeasesCount(req *pb.GetPool6LeasesCountRequest) (uint64, error) {
@@ -1200,6 +1260,7 @@ func ipV6InPool(ip, begin, end string) bool {
 }
 
 func (h *DHCPHandler) GetReservation6LeasesCount(req *pb.GetReservation6LeasesCountRequest) (uint64, error) {
-	return h.getLeasesCountFromDB("select count(*) from lease6 where subnet_id = $1 and hwaddr = $2 and state = 0 and expire > now()",
+	return h.getLeasesCountFromDB(
+		"select count(*) from lease6 where subnet_id = $1 and hwaddr = $2 and state = 0 and expire > now()",
 		req.GetSubnetId(), req.GetHwAddress())
 }

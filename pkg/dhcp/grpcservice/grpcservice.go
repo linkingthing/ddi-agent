@@ -220,6 +220,14 @@ func (s *DHCPService) UpdateGlobalConfig(ctx context.Context, req *pb.UpdateGlob
 	}
 }
 
+func (s *DHCPService) GetSubnetsLeasesCount(ctx context.Context, req *pb.GetSubnetsLeasesCountRequest) (*pb.GetSubnetsLeasesCountResponse, error) {
+	if subnetsLeasesCount, err := s.handler.GetSubnetsLeasesCount(req); err != nil {
+		return &pb.GetSubnetsLeasesCountResponse{Succeed: false}, err
+	} else {
+		return &pb.GetSubnetsLeasesCountResponse{Succeed: true, SubnetsLeasesCount: subnetsLeasesCount}, nil
+	}
+}
+
 func (s *DHCPService) GetSubnet4Leases(ctx context.Context, req *pb.GetSubnet4LeasesRequest) (*pb.GetLeasesResponse, error) {
 	if leases, err := s.handler.GetSubnet4Leases(req); err != nil {
 		return &pb.GetLeasesResponse{Succeed: false}, err
