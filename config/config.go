@@ -31,7 +31,8 @@ type DNSConf struct {
 	StatsAddr string `yaml:"stats_addr"`
 	GroupID   string `yaml:"group_id"`
 	ServerIp  string `yaml:"server_ip"`
-	Dbport    uint32 `yaml:"dbport"`
+	Dbport    uint32 `yaml:"db_port"`
+	Dbhost    string `yaml:"db_host"`
 }
 
 type DHCPConf struct {
