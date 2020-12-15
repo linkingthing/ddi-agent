@@ -144,14 +144,6 @@ func (service *DNSService) DeleteRR(context context.Context, req *pb.DeleteRRReq
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) UpdateRRsByZone(context context.Context, req *pb.UpdateRRsByZoneReq) (*pb.DDIResponse, error) {
-	if err := service.handler.UpdateRRsByZone(req); err != nil {
-		return &pb.DDIResponse{Succeed: false}, err
-	}
-
-	return &pb.DDIResponse{Succeed: true}, nil
-}
-
 func (service *DNSService) CreateRedirection(context context.Context, req *pb.CreateRedirectionReq) (*pb.DDIResponse, error) {
 	if err := service.handler.CreateRedirection(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err

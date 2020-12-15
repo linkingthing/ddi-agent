@@ -504,7 +504,6 @@ func (handler *DNSHandler) CreateZone(req *pb.CreateZoneReq) error {
 		ZoneFile:  req.ZoneFileName,
 		Ttl:       uint(req.Ttl),
 		AgentView: req.ViewId,
-		RrsRole:   req.RrsRole,
 	}
 	zone.SetID(req.ZoneId)
 
@@ -697,7 +696,7 @@ func formatRdata(rr, name *string, redirectType, datatype string) error {
 	return nil
 }
 
-func generateRRset(rr *resource.AgentRr, zoneName string, RrsRole string) (*g53.RRset, error) {
+func generateRRset(rr *resource.AgentRr, zoneName string) (*g53.RRset, error) {
 	domainName := rr.Name + "." + zoneName
 	if rr.Name == "@" {
 		domainName = zoneName
@@ -723,12 +722,6 @@ func generateRRset(rr *resource.AgentRr, zoneName string, RrsRole string) (*g53.
 	if err != nil {
 		return nil, fmt.Errorf("generateRRset rdata:%s error:%s", rr.Rdata, err.Error())
 	}
-	if RrsRole == RoleBackup && rr.RdataBackup != "" {
-		if rdata, err = g53.RdataFromString(rrType, rr.RdataBackup); err != nil {
-			return nil, fmt.Errorf("generateRRset rdata:%s error:%s",
-				rr.RdataBackup, err.Error())
-		}
-	}
 
 	return &g53.RRset{
 		Name:   name,
@@ -741,14 +734,12 @@ func generateRRset(rr *resource.AgentRr, zoneName string, RrsRole string) (*g53.
 
 func (handler *DNSHandler) CreateRR(req *pb.CreateRRReq) error {
 	rr := &resource.AgentRr{
-		Name:        req.Name,
-		DataType:    req.DataType,
-		Ttl:         uint(req.Ttl),
-		Rdata:       req.RData,
-		RdataBackup: req.BackupRData,
-		ActiveRdata: req.RData,
-		AgentView:   req.ViewId,
-		Zone:        req.ZoneId,
+		Name:      req.Name,
+		DataType:  req.DataType,
+		Ttl:       uint(req.Ttl),
+		Rdata:     req.RData,
+		AgentView: req.ViewId,
+		Zone:      req.ZoneId,
 	}
 	rr.SetID(req.Id)
 
@@ -766,7 +757,7 @@ func (handler *DNSHandler) CreateRR(req *pb.CreateRRReq) error {
 			return fmt.Errorf("CreateRR insert id:%s to db failed:%s", req.Id, err.Error())
 		}
 
-		rrset, err := generateRRset(rr, req.ZoneName, req.ZoneRrsRole)
+		rrset, err := generateRRset(rr, req.ZoneName)
 		if err != nil {
 			return fmt.Errorf("CreateRR generateRRset failed:%s", err.Error())
 		}
@@ -777,61 +768,6 @@ func (handler *DNSHandler) CreateRR(req *pb.CreateRRReq) error {
 
 		if err := handler.rndcZoneDumpJNLFile(req.ZoneName, req.ViewId); err != nil {
 			return fmt.Errorf("CreateRR rndcDumpJNLFile error:%s", err.Error())
-		}
-		return nil
-	})
-}
-
-func (handler *DNSHandler) UpdateRRsByZone(req *pb.UpdateRRsByZoneReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if req.ViewName == defaultView {
-			rrRes, err := dbhandler.GetWithTx(req.ViewName, &[]*resource.AgentView{}, tx)
-			if err != nil {
-				return fmt.Errorf("UpdateRRsByZone get default view id:%s from db failed:%s",
-					req.ViewName, err.Error())
-			}
-			req.ViewKey = rrRes.(*resource.AgentView).Key
-		}
-
-		var rrList []*resource.AgentRr
-		if err := dbhandler.ListWithTx(&rrList, tx); err != nil {
-			return fmt.Errorf("UpdateRRsByZone list rr from db failed:%s ", err.Error())
-		}
-		if _, err := tx.Update(
-			resource.TableZone,
-			map[string]interface{}{"rrs_role": req.NewRrsRole},
-			map[string]interface{}{restdb.IDField: req.ZoneId}); err != nil {
-			return fmt.Errorf("UpdateRRsByZone update role failed:%s", err.Error())
-		}
-
-		for _, rr := range rrList {
-			if rr.DataType != "A" && rr.DataType != "AAAA" {
-				continue
-			}
-
-			if rr.Zone == req.ZoneId {
-				rrset, err := generateRRset(rr, req.ZoneName, req.OldRrsRole)
-				if err != nil {
-					return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
-				}
-				if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, false); err != nil {
-					return fmt.Errorf("UpdateRRsByZone updateRR delete rrset:%s error:%s",
-						rrset.String(), err.Error())
-				}
-
-				rrset, err = generateRRset(rr, req.ZoneName, req.NewRrsRole)
-				if err != nil {
-					return fmt.Errorf("UpdateRRsByZone generateRRset failed:%s", err.Error())
-				}
-				if err := handler.updateRR("key"+req.ViewName, req.ViewKey, rrset, req.ZoneName, true); err != nil {
-					return fmt.Errorf("UpdateRRsByZone updateRR add rrset:%s error:%s",
-						rrset.String(), err.Error())
-				}
-			}
-		}
-
-		if err := handler.rndcDumpJNLFile(); err != nil {
-			return fmt.Errorf("UpdateRRsByZone rndcDumpJNLFile error:%s", err.Error())
 		}
 		return nil
 	})
@@ -856,11 +792,12 @@ func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32, tx restdb.Transaction) err
 		}
 		view := viewRes.(*resource.AgentView)
 		zone := zoneRes.(*resource.AgentZone)
-		if _, err := tx.Exec("update gr_agent_rr set ttl = $1", ttl); err != nil {
+		if _, err := tx.Exec("update gr_agent_rr set ttl = '" +
+			strconv.FormatUint(uint64(ttl), 10) + "'"); err != nil {
 			return fmt.Errorf("update updateRR to db failed:%s", err.Error())
 		}
 
-		rrset, err := generateRRset(rr, zone.Name, zone.RrsRole)
+		rrset, err := generateRRset(rr, zone.Name)
 		if err != nil {
 			return fmt.Errorf("UpdateAllRRTtl generateRRset failed:%s", err.Error())
 		}
@@ -870,7 +807,7 @@ func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32, tx restdb.Transaction) err
 		}
 
 		rr.Ttl = uint(ttl)
-		newRRset, err := generateRRset(rr, zone.Name, zone.RrsRole)
+		newRRset, err := generateRRset(rr, zone.Name)
 		if err != nil {
 			return fmt.Errorf("UpdateAllRRTtl generateRRset failed:%s", err.Error())
 		}
@@ -904,7 +841,7 @@ func (handler *DNSHandler) UpdateRR(req *pb.UpdateRRReq) error {
 				req.Id, err.Error())
 		}
 		rr := rrRes.(*resource.AgentRr)
-		rrset, err := generateRRset(rr, req.ZoneName, req.ZoneRrsRole)
+		rrset, err := generateRRset(rr, req.ZoneName)
 		if err != nil {
 			return fmt.Errorf("UpdateRR generateRRset failed:%s", err.Error())
 		}
@@ -914,10 +851,9 @@ func (handler *DNSHandler) UpdateRR(req *pb.UpdateRRReq) error {
 
 		if _, err := tx.Update(resource.TableRR,
 			map[string]interface{}{
-				"data_type":    req.DataType,
-				"ttl":          req.Ttl,
-				"rdata":        req.RData,
-				"rdata_backup": req.BackupRData,
+				"data_type": req.DataType,
+				"ttl":       req.Ttl,
+				"rdata":     req.RData,
 			},
 			map[string]interface{}{restdb.IDField: req.Id}); err != nil {
 			return err
@@ -926,8 +862,7 @@ func (handler *DNSHandler) UpdateRR(req *pb.UpdateRRReq) error {
 		rr.DataType = req.DataType
 		rr.Ttl = uint(req.Ttl)
 		rr.Rdata = req.RData
-		rr.RdataBackup = req.BackupRData
-		rrset, err = generateRRset(rr, req.ZoneName, req.ZoneRrsRole)
+		rrset, err = generateRRset(rr, req.ZoneName)
 		if err != nil {
 			return fmt.Errorf("UpdateRR generateRRset failed:%s", err.Error())
 		}
@@ -944,13 +879,12 @@ func (handler *DNSHandler) UpdateRR(req *pb.UpdateRRReq) error {
 
 func (handler *DNSHandler) DeleteRR(req *pb.DeleteRRReq) error {
 	rr := &resource.AgentRr{
-		Name:        req.Name,
-		DataType:    req.DataType,
-		Ttl:         uint(req.Ttl),
-		Rdata:       req.RData,
-		RdataBackup: req.BackupRData,
-		Zone:        req.ZoneId,
-		AgentView:   req.ViewName,
+		Name:      req.Name,
+		DataType:  req.DataType,
+		Ttl:       uint(req.Ttl),
+		Rdata:     req.RData,
+		Zone:      req.ZoneId,
+		AgentView: req.ViewName,
 	}
 	rr.SetID(req.Id)
 
@@ -968,7 +902,7 @@ func (handler *DNSHandler) DeleteRR(req *pb.DeleteRRReq) error {
 			return fmt.Errorf("DeleteRR rr id:%s from db failed:%s", rr.ID, err.Error())
 		}
 
-		rrset, err := generateRRset(rr, req.ZoneName, req.ZoneRrsRole)
+		rrset, err := generateRRset(rr, req.ZoneName)
 		if err != nil {
 			return fmt.Errorf("DeleteRR generateRRset failed:%s", err.Error())
 		}
@@ -1178,11 +1112,13 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 		}
 
 		if req.TtlChanged {
-			if _, err := tx.Exec("update gr_agent_zone set ttl = $1", req.Ttl); err != nil {
+			if _, err := tx.Exec("update gr_agent_zone set ttl = '" +
+				strconv.FormatUint(uint64(req.Ttl), 10) + "'"); err != nil {
 				return fmt.Errorf("update updateZonesTTLSQL to db failed:%s",
 					err.Error())
 			}
-			if _, err := tx.Exec("update gr_agent_redirection set ttl = $1", req.Ttl); err != nil {
+			if _, err := tx.Exec("update gr_agent_redirection set ttl = '" +
+				strconv.FormatUint(uint64(req.Ttl), 10) + "'"); err != nil {
 				return fmt.Errorf("update updateRedirectionTtlSQL to db failed:%s",
 					err.Error())
 			}

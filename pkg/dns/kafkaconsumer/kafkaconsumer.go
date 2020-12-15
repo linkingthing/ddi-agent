@@ -32,7 +32,6 @@ const (
 	CreateRR           = "CreateRR"
 	UpdateRR           = "UpdateRR"
 	DeleteRR           = "DeleteRR"
-	UpdateRRsByZone    = "UpdateRRsByZone"
 	UpdateForward      = "UpdateForward"
 	CreateRedirection  = "CreateRedirection"
 	UpdateRedirection  = "UpdateRedirection"
@@ -299,20 +298,6 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 				ddiResponse, err := cli.DeleteRR(context.Background(), &req)
 				if err != nil {
 					log.Errorf("grpc service exec DeleteRR failed: %s", err.Error())
-				}
-				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
-					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
-				}
-			}
-		case UpdateRRsByZone:
-			var req pb.UpdateRRsByZoneReq
-			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal CreateForward request failed: %s", err.Error())
-			} else {
-				ddiResponse, err := cli.UpdateRRsByZone(context.Background(), &req)
-				if err != nil {
-					log.Errorf("grpc service exec UpdateRRsByZone failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
 					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
