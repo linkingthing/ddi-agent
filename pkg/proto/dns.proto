@@ -53,12 +53,12 @@ message UpdateGlobalConfigReq{
 	DDIRequestHead header = 1;
 	bool log_enable = 2;
 	bool dnssec_enable = 3;
-	bool ttl_changed = 4;
-	uint32 ttl = 5;
-	bool blackhole_enable =6;
-	repeated string blackholes = 7;
-	bool recursion_enable =8;
-	uint32 recursive_clients =9;
+	uint32 ttl = 4;
+	bool blackhole_enable =5;
+	repeated string blackholes = 6;
+	bool recursion_enable =7;
+	uint32 recursive_clients =8;
+	string update_model = 9;
 }
 
 message CreateACLReq{

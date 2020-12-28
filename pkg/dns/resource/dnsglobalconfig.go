@@ -18,6 +18,15 @@ type AgentDnsGlobalConfig struct {
 	RecursiveClients          uint32   `json:"recursiveClients" rest:"required=true"`
 }
 
+const (
+	DnsConfigUpdateModelLog       = "log"
+	DnsConfigUpdateModelTTL       = "ttl"
+	DnsConfigUpdateModelDnssec    = "dnssec"
+	DnsConfigUpdateModelBlackhole = "blackhole"
+	DnsConfigUpdateModelRecursion = "recursion"
+	DnsConfigUpdateModelRecursive = "recursive"
+)
+
 func CreateDefaultResource() restresource.Resource {
 	return &AgentDnsGlobalConfig{LogEnable: true, Ttl: 3600, RecursiveClients: 1000,
 		DnssecEnable: false, BlackholeEnable: false, RecursionEnable: true}

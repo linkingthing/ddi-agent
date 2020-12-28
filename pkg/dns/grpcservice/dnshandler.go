@@ -1097,21 +1097,33 @@ func (handler *DNSHandler) DeleteUrlRedirect(req *pb.DeleteUrlRedirectReq) error
 
 func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableDnsGlobalConfig,
-			map[string]interface{}{
-				"log_enable":        req.LogEnable,
-				"ttl":               req.Ttl,
-				"dnssec_enable":     req.DnssecEnable,
-				"blackhole_enable":  req.BlackholeEnable,
-				"blackholes":        req.Blackholes,
-				"recursion_enable":  req.RecursionEnable,
-				"recursive_clients": req.RecursiveClients,
-			},
+		update := make(map[string]interface{})
+		updateTtl := false
+		switch req.UpdateModel {
+		case resource.DnsConfigUpdateModelLog:
+			update["log_enable"] = req.LogEnable
+		case resource.DnsConfigUpdateModelTTL:
+			update["ttl"] = req.Ttl
+			updateTtl = true
+		case resource.DnsConfigUpdateModelDnssec:
+			update["dnssec_enable"] = req.DnssecEnable
+		case resource.DnsConfigUpdateModelBlackhole:
+			update["blackhole_enable"] = req.BlackholeEnable
+			update["blackholes"] = req.Blackholes
+		case resource.DnsConfigUpdateModelRecursion:
+			update["recursion_enable"] = req.RecursionEnable
+		case resource.DnsConfigUpdateModelRecursive:
+			update["recursive_clients"] = req.RecursiveClients
+		default:
+			return fmt.Errorf("unknown updateState")
+		}
+
+		if _, err := tx.Update(resource.TableDnsGlobalConfig, update,
 			map[string]interface{}{restdb.IDField: defaultGlobalConfigID}); err != nil {
 			return fmt.Errorf("update dnsGlobalConfig to db failed:%s", err.Error())
 		}
 
-		if req.TtlChanged {
+		if updateTtl {
 			if _, err := tx.Exec("update gr_agent_zone set ttl = '" +
 				strconv.FormatUint(uint64(req.Ttl), 10) + "'"); err != nil {
 				return fmt.Errorf("update updateZonesTTLSQL to db failed:%s",
