@@ -2,6 +2,7 @@ options {
 	directory "{{.ConfigPath}}";
 	pid-file "named.pid";
 	allow-new-zones yes;
+	check-names master ignore;
 	allow-query {any;};
 	{{if .DnssecEnable}}dnssec-enable yes;{{else}}dnssec-enable no;{{end}}
 	dnssec-validation no;

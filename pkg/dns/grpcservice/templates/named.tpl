@@ -1,6 +1,6 @@
 key "rndc-key" {
 	algorithm hmac-sha256;
-	secret "4WqnJgCtpG8dPHDCBjwyQKtOzAPgiS+Iah5KN4xeq/U=";
+	secret "c3Ryb25nIGVub3VnaCBmb3IgYSBtYW4gYnV0IG1hZGUgZm9yIGEgd29tYW4K";
 };
 
 controls {
