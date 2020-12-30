@@ -3,7 +3,7 @@ package kafkaconsumer
 const (
 	Topic = "dhcp"
 
-	CreateSubnet4 = "createSubnet4"
+	CreateSubnet4 = "Create Subnet4"
 	UpdateSubnet4 = "updateSubnet4"
 	DeleteSubnet4 = "deleteSubnet4"
 
