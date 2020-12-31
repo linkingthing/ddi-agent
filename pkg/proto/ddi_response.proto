@@ -3,18 +3,14 @@ syntax = "proto3";
 package proto;
 
 message DDIResponse {
-    DDIRequestHead header = 1;
-    string node = 2;
-    string node_type = 3;
-    bool succeed = 4;
-    string error_message = 5;
-    string cmd_message = 6;
-    string operation_time = 7;
-}
-
-message DDIRequestHead {
     string resource = 1;
     string method = 2;
+    string node = 3;
+    string node_type = 4;
+    bool succeed = 5;
+    string error_message = 6;
+    string cmd_message = 7;
+    string operation_time = 8;
 }
 
 message UploadLogResponse {

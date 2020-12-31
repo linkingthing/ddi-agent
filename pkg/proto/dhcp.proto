@@ -55,26 +55,8 @@ service DHCPManager {
 }
 
 message CreateSubnet4Request {
-    DDIRequestHead header = 1;
-    uint32 id = 2;
-    string ipnet = 3;
-    uint32 valid_lifetime = 4;
-    uint32 max_valid_lifetime = 5;
-    uint32 min_valid_lifetime = 6;
-    repeated string domain_servers = 7;
-    repeated string routers = 8;
-    string client_class = 9;
-    repeated string relay_agent_addresses = 10;
-}
-
-message DeleteSubnet4Request {
-    DDIRequestHead header = 1;
-    uint32 id = 2;
-}
-
-message UpdateSubnet4Request {
-    DDIRequestHead header = 1;
-    uint32 id = 2;
+    uint32 id = 1;
+    string ipnet = 2;
     uint32 valid_lifetime = 3;
     uint32 max_valid_lifetime = 4;
     uint32 min_valid_lifetime = 5;
@@ -84,179 +66,172 @@ message UpdateSubnet4Request {
     repeated string relay_agent_addresses = 9;
 }
 
+message DeleteSubnet4Request {
+    uint32 id = 1;
+}
+
+message UpdateSubnet4Request {
+    uint32 id = 1;
+    uint32 valid_lifetime = 2;
+    uint32 max_valid_lifetime = 3;
+    uint32 min_valid_lifetime = 4;
+    repeated string domain_servers = 5;
+    repeated string routers = 6;
+    string client_class = 7;
+    repeated string relay_agent_addresses = 8;
+}
+
 message CreateSubnet6Request {
-    DDIRequestHead header = 1;
-    uint32 id = 2;
-    string ipnet = 3;
-    uint32 valid_lifetime = 4;
-    uint32 max_valid_lifetime = 5;
-    uint32 min_valid_lifetime = 6;
-    repeated string dns_servers = 7;
-    string client_class = 8;
-    repeated string relay_agent_addresses = 9;
-    string relay_agent_interface_id = 10;
-}
-
-message DeleteSubnet6Request {
-    DDIRequestHead header = 1;
-    uint32 id = 2;
-}
-
-message UpdateSubnet6Request {
-    DDIRequestHead header = 1;
-    uint32 id = 2;
+    uint32 id = 1;
+    string ipnet = 2;
     uint32 valid_lifetime = 3;
     uint32 max_valid_lifetime = 4;
     uint32 min_valid_lifetime = 5;
-    repeated string dns_servers= 6;
+    repeated string dns_servers = 6;
     string client_class = 7;
     repeated string relay_agent_addresses = 8;
     string relay_agent_interface_id = 9;
 }
 
+message DeleteSubnet6Request {
+    uint32 id = 1;
+}
+
+message UpdateSubnet6Request {
+    uint32 id = 1;
+    uint32 valid_lifetime = 2;
+    uint32 max_valid_lifetime = 3;
+    uint32 min_valid_lifetime = 4;
+    repeated string dns_servers= 5;
+    string client_class = 6;
+    repeated string relay_agent_addresses = 7;
+    string relay_agent_interface_id = 8;
+}
+
 message CreatePool4Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string begin_address = 3;
-    string end_address = 4;
-    repeated string domain_servers = 5;
-    repeated string routers = 6;
-    string client_class = 7;
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+    repeated string domain_servers = 4;
+    repeated string routers = 5;
+    string client_class = 6;
 }
 
 message DeletePool4Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string begin_address = 3;
-    string end_address = 4;
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
 }
 
 message UpdatePool4Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string begin_address = 3;
-    string end_address = 4;
-    repeated string domain_servers = 5;
-    repeated string routers = 6;
-    string client_class = 7;
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+    repeated string domain_servers = 4;
+    repeated string routers = 5;
+    string client_class = 6;
 }
 
 message CreatePool6Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string begin_address = 3;
-    string end_address = 4;
-    repeated string dns_servers = 5;
-    string client_class = 6;
-}
-
-message DeletePool6Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string begin_address = 3;
-    string end_address = 4;
-}
-
-message UpdatePool6Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string begin_address = 3;
-    string end_address = 4;
-    repeated string dns_servers = 5;
-    string client_class = 6;
-}
-
-message CreateReservation4Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string hw_address = 3;
-    string ip_address = 4;
-    repeated string domain_servers = 5;
-    repeated string routers = 6;
-}
-
-message DeleteReservation4Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string hw_address = 3;
-}
-
-message UpdateReservation4Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string hw_address = 3;
-    repeated string domain_servers = 4;
-    repeated string routers = 5;
-}
-
-message CreateReservation6Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string hw_address = 3;
-    repeated string ip_addresses = 4;
-    repeated string dns_servers = 5;
-}
-
-message DeleteReservation6Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string hw_address = 3;
-}
-
-message UpdateReservation6Request {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string hw_address = 3;
-    repeated string dns_servers = 4;
-}
-
-message CreatePDPoolRequest {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string prefix = 3;
-    uint32 prefix_len = 4;
-    uint32 delegated_len = 5;
-    repeated string dns_servers = 6;
-    string client_class = 7;
-}
-
-message DeletePDPoolRequest {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string prefix = 3;
-}
-
-message UpdatePDPoolRequest {
-    DDIRequestHead header = 1;
-    uint32 subnet_id = 2;
-    string prefix = 3;
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
     repeated string dns_servers = 4;
     string client_class = 5;
 }
 
+message DeletePool6Request {
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+}
+
+message UpdatePool6Request {
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+    repeated string dns_servers = 4;
+    string client_class = 5;
+}
+
+message CreateReservation4Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+    string ip_address = 3;
+    repeated string domain_servers = 4;
+    repeated string routers = 5;
+}
+
+message DeleteReservation4Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+}
+
+message UpdateReservation4Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+    repeated string domain_servers = 3;
+    repeated string routers = 4;
+}
+
+message CreateReservation6Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+    repeated string ip_addresses = 3;
+    repeated string dns_servers = 4;
+}
+
+message DeleteReservation6Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+}
+
+message UpdateReservation6Request {
+    uint32 subnet_id = 1;
+    string hw_address = 2;
+    repeated string dns_servers = 3;
+}
+
+message CreatePDPoolRequest {
+    uint32 subnet_id = 1;
+    string prefix = 2;
+    uint32 prefix_len = 3;
+    uint32 delegated_len = 4;
+    repeated string dns_servers = 5;
+    string client_class = 6;
+}
+
+message DeletePDPoolRequest {
+    uint32 subnet_id = 1;
+    string prefix = 2;
+}
+
+message UpdatePDPoolRequest {
+    uint32 subnet_id = 1;
+    string prefix = 2;
+    repeated string dns_servers = 3;
+    string client_class = 4;
+}
+
 message CreateClientClass4Request {
-    DDIRequestHead header = 1;
-    string name = 2;
-    string regexp = 3;
+    string name = 1;
+    string regexp = 2;
 }
 
 message DeleteClientClass4Request {
-    DDIRequestHead header = 1;
-    string name = 2;
+    string name = 1;
 }
 
 message UpdateClientClass4Request {
-    DDIRequestHead header = 1;
-    string name = 2;
-    string regexp = 3;
+    string name = 1;
+    string regexp = 2;
 }
 
 message UpdateGlobalConfigRequest {
-    DDIRequestHead header = 1;
-    uint32 valid_lifetime = 2;
-    uint32 max_valid_lifetime = 3;
-    uint32 min_valid_lifetime = 4;
-    repeated string domain_servers = 5;
+    uint32 valid_lifetime = 1;
+    uint32 max_valid_lifetime = 2;
+    uint32 min_valid_lifetime = 3;
+    repeated string domain_servers = 4;
 }
 
 message GetSubnetsLeasesCountRequest{

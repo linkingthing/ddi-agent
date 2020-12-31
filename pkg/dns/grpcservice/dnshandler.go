@@ -624,50 +624,35 @@ func (handler *DNSHandler) DeleteForwardZone(req *pb.DeleteForwardZoneReq) error
 	})
 }
 
-func (handler *DNSHandler) UpdateForward(req *pb.UpdateForwardReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		for _, zone := range req.ForwardZones {
-			if _, err := tx.Update(resource.TableForwardZone,
-				map[string]interface{}{"ips": zone.ForwardIps},
-				map[string]interface{}{restdb.IDField: zone.Id}); err != nil {
-				return fmt.Errorf("update forwardZone id:%s to db failed:%s",
-					zone.Id, err.Error())
-			}
-		}
-
-		if err := handler.rewriteNamedViewFile(false, tx); err != nil {
-			return fmt.Errorf("UpdateForward rewriteNamedViewFile failed:%s", err.Error())
-		}
-		return nil
-	})
-}
-
 func (handler *DNSHandler) FlushForwardZone(req *pb.FlushForwardZoneReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		for _, forwardView := range req.ForwardViews {
-			if _, err := tx.Delete(resource.TableForwardZone,
-				map[string]interface{}{"agent_view": forwardView.View}); err != nil {
-				return fmt.Errorf("BatchCreateForwardZone view:%s delete forwardzones failed:%s",
-					forwardView.View, err.Error())
-			}
-
-			for _, protoZone := range forwardView.ForwardZones {
-				forwardZone := &resource.AgentForwardZone{
-					Name:        protoZone.Domain,
-					ForwardType: protoZone.ForwardType,
-					Ips:         protoZone.ForwardIps,
-					AgentView:   forwardView.View,
+		for _, forwardZones := range req.OldViewForwardZones {
+			for _, zone := range forwardZones.ForwardZones {
+				if _, err := tx.Delete(resource.TableForwardZone,
+					map[string]interface{}{restdb.IDField: zone.GetId()}); err != nil {
+					return fmt.Errorf("delete old forward zones failed:%s", err.Error())
 				}
-				forwardZone.SetID(protoZone.Id)
+			}
+		}
+
+		for _, forwardZones := range req.NewViewForwardZones {
+			for _, zone := range forwardZones.ForwardZones {
+				forwardZone := &resource.AgentForwardZone{
+					Name:        zone.Domain,
+					ForwardType: zone.ForwardType,
+					Ips:         zone.ForwardIps,
+					AgentView:   zone.View,
+				}
+				forwardZone.SetID(zone.Id)
 				if _, err := tx.Insert(forwardZone); err != nil {
-					return fmt.Errorf("BatchCreateForwardZone view:%s update forwardzone id:%s failed:%s",
-						forwardView.View, protoZone.Id, err.Error())
+					return fmt.Errorf("flushForwardZone view:%s update forwardzone id:%s failed:%s",
+						zone.View, zone.Id, err.Error())
 				}
 			}
 		}
 
 		if err := handler.rewriteNamedViewFile(false, tx); err != nil {
-			return fmt.Errorf("BatchCreateForwardZone rewriteNamedViewFile failed:%s", err.Error())
+			return fmt.Errorf("BatchUpdateForwardZone rewriteNamedViewFile failed:%s", err.Error())
 		}
 		return nil
 	})

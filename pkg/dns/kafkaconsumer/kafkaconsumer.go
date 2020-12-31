@@ -13,41 +13,6 @@ import (
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
-const (
-	StartDNS               = "StartDNS"
-	StopDNS                = "StopDNS"
-	CreateACL              = "CreateACL"
-	UpdateACL              = "UpdateACL"
-	DeleteACL              = "DeleteACL"
-	CreateView             = "CreateView"
-	UpdateView             = "UpdateView"
-	DeleteView             = "DeleteView"
-	CreateZone             = "CreateZone"
-	UpdateZone             = "UpdateZone"
-	DeleteZone             = "DeleteZone"
-	CreateForwardZone      = "CreateForwardZone"
-	UpdateForwardZone      = "UpdateForwardZone"
-	DeleteForwardZone      = "DeleteForwardZone"
-	FlushForwardZone       = "FlushForwardZone"
-	BatchUpdateForwardZone = "BatchUpdateForwardZone"
-	CreateRR               = "CreateRR"
-	UpdateRR               = "UpdateRR"
-	DeleteRR               = "DeleteRR"
-	UpdateForward          = "UpdateForward"
-	CreateRedirection      = "CreateRedirection"
-	UpdateRedirection      = "UpdateRedirection"
-	DeleteRedirection      = "DeleteRedirection"
-	CreateUrlRedirect      = "CreateUrlRedirect"
-	UpdateUrlRedirect      = "UpdateUrlRedirect"
-	DeleteUrlRedirect      = "DeleteUrlRedirect"
-	UpdateGlobalConfig     = "UpdateGlobalConfig"
-	UploadLog              = "UploadLog"
-)
-
-var (
-	DNSTopic = "dns"
-)
-
 func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 	if conf.DNS.Enabled == false {
 		return
@@ -98,7 +63,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec CreateACL failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -112,7 +77,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec UpdateACL failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -126,7 +91,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec DeleteACL failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -140,7 +105,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec CreateView failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -154,7 +119,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec UpdateView failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -168,7 +133,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec DeleteView failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -182,7 +147,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec CreateZone failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -196,7 +161,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec UpdateZone failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -210,7 +175,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec DeleteZone failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -224,7 +189,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec CreateForwardZone failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -238,7 +203,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec UpdateForwardZone failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -252,16 +217,9 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec DeleteForwardZone failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
-			}
-		case FlushForwardZone:
-			var target pb.FlushForwardZoneReq
-			if err := proto.Unmarshal(message.Value, &target); err != nil {
-			}
-			if _, err := cli.FlushForwardZone(context.Background(), &target); err != nil {
-				log.Errorf("grpc service exec FlushForwardZone failed: %s", err.Error())
 			}
 		case CreateRR:
 			var req pb.CreateRRReq
@@ -273,7 +231,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec CreateRR failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -287,7 +245,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec UpdateRR failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -301,21 +259,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec DeleteRR failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
-					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
-				}
-			}
-		case UpdateForward:
-			var req pb.UpdateForwardReq
-			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal UpdateForward request failed: %s", err.Error())
-			} else {
-				ddiResponse, err := cli.UpdateForward(context.Background(), &req)
-				if err != nil {
-					log.Errorf("grpc service exec UpdateForward failed: %s", err.Error())
-				}
-				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -329,7 +273,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec CreateRedirection failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -343,7 +287,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec UpdateRedirection failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -357,7 +301,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec DeleteRedirection failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -371,7 +315,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec CreateUrlRedirect failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -385,7 +329,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec UpdateUrlRedirect failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -399,7 +343,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec DeleteUrlRedirect failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -413,7 +357,7 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("grpc service exec UpdateGlobalConfig failed:%s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
-					conf.Server.IP, "dns", req.Header, &req, ddiResponse, err); err != nil {
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
@@ -424,6 +368,20 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 			} else {
 				if _, err := cli.UploadLog(context.Background(), &req); err != nil {
 					log.Errorf("grpc service exec FtpTransport failed:%s", err.Error())
+				}
+			}
+		case FlushForwardZone:
+			var req pb.FlushForwardZoneReq
+			if err := proto.Unmarshal(message.Value, &req); err != nil {
+				log.Errorf("unmarshal FlushForwardZone failed:%s", err.Error())
+			} else {
+				ddiResponse, err := cli.FlushForwardZone(context.Background(), &req)
+				if err != nil {
+					log.Errorf("grpc service exec FlushForwardZone failed:%s", err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
 		}

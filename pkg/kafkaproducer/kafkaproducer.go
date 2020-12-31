@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
-
 	kg "github.com/segmentio/kafka-go"
-
-	"github.com/linkingthing/ddi-agent/config"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/linkingthing/ddi-agent/config"
+	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 const (
@@ -20,6 +20,10 @@ const (
 	UploadLogTopic  = "UploadLogTopic"
 	AgentEvent      = "AgentEvent"
 	UploadLogEvent  = "UploadLogEvent"
+)
+
+const (
+	CmdSplitSymbol = "_"
 )
 
 type KafkaProducer struct {
@@ -48,11 +52,20 @@ func Init(conf *config.AgentConfig) {
 	}
 }
 
-func (producer *KafkaProducer) SendAgentEventMessage(node, nodeType string, header *pb.DDIRequestHead, req interface{}, ddiResponse *pb.DDIResponse, err error) error {
+func formatCmd(cmd []byte) (string, string) {
+	cmds := strings.Split(string(cmd), CmdSplitSymbol)
+	if len(cmds) > 1 {
+		return cmds[0], cmds[1]
+	}
+
+	return "", ""
+}
+
+func (producer *KafkaProducer) SendAgentEventMessage(
+	node, nodeType string, cmd []byte, req interface{}, ddiResponse *pb.DDIResponse, err error) error {
 	if ddiResponse == nil {
 		ddiResponse = &pb.DDIResponse{}
 	}
-	ddiResponse.Header = header
 	if !ddiResponse.Succeed && err != nil {
 		s, ok := status.FromError(err)
 		if !ok {
@@ -61,6 +74,9 @@ func (producer *KafkaProducer) SendAgentEventMessage(node, nodeType string, head
 			ddiResponse.ErrorMessage = s.Message()
 		}
 	}
+	method, resource := formatCmd(cmd)
+	ddiResponse.Method = method
+	ddiResponse.Resource = resource
 	reqData, _ := json.Marshal(req)
 	ddiResponse.CmdMessage = string(reqData)
 	ddiResponse.Node = node
