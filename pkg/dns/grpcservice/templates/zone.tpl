@@ -2,7 +2,7 @@
 
 $TTL {{.TTL}}
 
-$ORIGIN {{.Name}}.
+$ORIGIN {{.Name}}
 ; SOA record
 ; owner-name ttl class rr      name-server      email-addr  (sn ref ret ex min)
 @                 IN   SOA     ns.{{.Name}}.   root.{{.Name}}. (
@@ -12,10 +12,10 @@ $ORIGIN {{.Name}}.
 			1209600    ; ex = expiry = 2w
 			10800      ; nx = nxdomain ttl = 3h
 			)
-			NS	ns.{{.Name}}.
+			NS	ns.{{.Name}}
 ; type syntax
 ; host ttl class type data
-$ORIGIN {{.Name}}.
+$ORIGIN {{.Name}}
 ns                     A       127.0.0.1
 {{range $k,$rr := .RRs}}{{$rr.Name}} {{$rr.TTL}} {{$rr.Type}} {{$rr.Value}}
 {{end}}

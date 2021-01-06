@@ -3,6 +3,8 @@ package resource
 import (
 	"strconv"
 
+	"github.com/zdnscloud/g53"
+
 	restdb "github.com/zdnscloud/gorest/db"
 	"github.com/zdnscloud/gorest/resource"
 )
@@ -36,7 +38,17 @@ func (zone *AgentZone) ToZoneData() ZoneData {
 	return ZoneData{Name: zone.Name, ZoneFile: zone.ZoneFile}
 }
 
+func (zone *AgentZone) formatName() {
+	name, _ := g53.NameFromString(zone.Name)
+	if zone.Name == "@" {
+		zone.Name = name.String(true)
+	} else {
+		zone.Name = name.String(false)
+	}
+}
+
 func (zone *AgentZone) ToZoneFileData() ZoneFileData {
+	zone.formatName()
 	return ZoneFileData{
 		ViewName: zone.AgentView,
 		Name:     zone.Name,

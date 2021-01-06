@@ -43,7 +43,7 @@ type DHCPConf struct {
 }
 
 type KafkaConf struct {
-	Addr  []string `yaml:"addr"`
+	Addr  []string `yaml:"kafka_addrs"`
 	Topic string   `yaml:"topic"`
 }
 
