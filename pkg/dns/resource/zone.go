@@ -29,6 +29,8 @@ type ZoneData struct {
 type ZoneFileData struct {
 	ViewName string
 	Name     string
+	NsName   string
+	RootName string
 	ZoneFile string
 	TTL      string
 	RRs      []RRData
@@ -38,20 +40,23 @@ func (zone *AgentZone) ToZoneData() ZoneData {
 	return ZoneData{Name: zone.Name, ZoneFile: zone.ZoneFile}
 }
 
-func (zone *AgentZone) formatName() {
+func (zone *AgentZone) ToZoneFileData() ZoneFileData {
+	var rootName, nsName string
 	name, _ := g53.NameFromString(zone.Name)
 	if zone.Name == "@" {
 		zone.Name = name.String(true)
+		rootName = "root."
+		nsName = "ns."
 	} else {
 		zone.Name = name.String(false)
+		rootName = "root." + zone.Name
+		nsName = "ns." + zone.Name
 	}
-}
-
-func (zone *AgentZone) ToZoneFileData() ZoneFileData {
-	zone.formatName()
 	return ZoneFileData{
 		ViewName: zone.AgentView,
 		Name:     zone.Name,
+		RootName: rootName,
+		NsName:   nsName,
 		ZoneFile: zone.ZoneFile,
 		TTL:      strconv.FormatUint(uint64(zone.Ttl), 10)}
 }

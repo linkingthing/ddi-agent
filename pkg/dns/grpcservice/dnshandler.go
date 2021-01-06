@@ -683,7 +683,7 @@ func formatRdata(rr, name *string, redirectType, datatype string) error {
 
 func generateRRset(rr *resource.AgentRr, zoneName string) (*g53.RRset, error) {
 	domainName := rr.Name + "." + zoneName
-	if rr.Name == "@" {
+	if rr.Name == "@" || rr.Name == "." {
 		domainName = zoneName
 	}
 	name, err := g53.NameFromString(domainName)
