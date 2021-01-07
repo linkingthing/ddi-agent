@@ -15,7 +15,7 @@ type AgentRedirection struct {
 	Ttl                   uint   `json:"ttl" rest:"required=true, min=0,max=86401"`
 	DataType              string `json:"datatype" rest:"required=true,options=A|AAAA|CNAME" db:"uk"`
 	RedirectType          string `json:"redirecttype" rest:"required=true,options=localzone|nxdomain"`
-	Rdata                 string `json:"rdata" rest:"required=true,minLen=1,maxLen=40"`
+	Rdata                 string `json:"rdata" rest:"required=true,minLen=1,maxLen=40" db:"uk"`
 	AgentView             string `db:"ownby,uk"`
 }
 
