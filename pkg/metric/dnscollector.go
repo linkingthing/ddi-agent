@@ -12,6 +12,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/zdnscloud/cement/log"
+	"github.com/zdnscloud/cement/slice"
 
 	"github.com/linkingthing/ddi-agent/config"
 )
@@ -24,6 +25,7 @@ const (
 	ServerCounterTypeQType    = "qtype"
 	ViewCounterTypeCacheStats = "cachestats"
 	CacheStatsQueryHits       = "QueryHits"
+	CacheStatsQueryMisses     = "QueryMisses"
 	OpcodeQUERY               = "QUERY"
 	QrySuccess                = "QrySuccess"
 	QryReferral               = "QryReferral"
@@ -141,11 +143,17 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	totalCacheHits := dns.collectCacheHits(ch, statistics.Views)
+	ch <- prometheus.MustNewConstMetric(DNSQPS,
+		prometheus.CounterValue, float64(atomic.LoadUint64(&dns.qps)), dns.nodeIP)
+	ch <- prometheus.MustNewConstMetric(DNSQueriesTotal,
+		prometheus.CounterValue, totalQueries, dns.nodeIP)
 
-	ch <- prometheus.MustNewConstMetric(DNSQPS, prometheus.CounterValue, float64(atomic.LoadUint64(&dns.qps)), dns.nodeIP)
-	ch <- prometheus.MustNewConstMetric(DNSCacheHitsRatio, prometheus.CounterValue, totalCacheHits/totalQueries, dns.nodeIP)
-	ch <- prometheus.MustNewConstMetric(DNSQueriesTotal, prometheus.CounterValue, totalQueries, dns.nodeIP)
+	totalCacheHits, totalCacheMisses := dns.collectCacheHits(ch, statistics.Views)
+	if totalCacheQueries := totalCacheHits + totalCacheMisses; totalCacheQueries != 0 {
+		ch <- prometheus.MustNewConstMetric(DNSCacheHitsRatio, prometheus.CounterValue,
+			totalCacheHits/totalCacheQueries, dns.nodeIP)
+	}
+
 	for _, cs := range statistics.Server.Counters {
 		switch cs.Type {
 		case ServerCounterTypeNSStat:
@@ -156,17 +164,20 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []View) float64 {
+func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []View) (float64, float64) {
 	var totalCacheHits uint64
+	var totalCacheMisses uint64
 	for _, v := range views {
 		for _, cs := range v.Counters {
 			if cs.Type == ViewCounterTypeCacheStats {
 				for _, c := range cs.Counters {
-					if c.Name == CacheStatsQueryHits {
-						ch <- prometheus.MustNewConstMetric(DNSCacheHits, prometheus.CounterValue, float64(c.Counter),
-							dns.nodeIP, v.Name)
+					switch c.Name {
+					case CacheStatsQueryHits:
+						ch <- prometheus.MustNewConstMetric(DNSCacheHits,
+							prometheus.CounterValue, float64(c.Counter), dns.nodeIP, v.Name)
 						totalCacheHits += c.Counter
-						break
+					case CacheStatsQueryMisses:
+						totalCacheMisses += c.Counter
 					}
 				}
 				break
@@ -174,7 +185,7 @@ func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []V
 		}
 	}
 
-	return float64(totalCacheHits)
+	return float64(totalCacheHits), float64(totalCacheMisses)
 }
 
 func (dns *DNSCollector) getQueryTotal(counters []Counters) (float64, bool) {
@@ -194,7 +205,9 @@ func (dns *DNSCollector) getQueryTotal(counters []Counters) (float64, bool) {
 func (dns *DNSCollector) collectNSStat(ch chan<- prometheus.Metric, totalQueries float64, counters []Counter) {
 	for _, c := range counters {
 		switch c.Name {
-		case QrySuccess, QryReferral, QryNxrrset, QrySERVFAIL, QryFORMERR, QryNXDOMAIN, QryDuplicate, QryDropped, QryFailure:
+		case QrySuccess, QryReferral, QryNxrrset,
+			QrySERVFAIL, QryFORMERR, QryNXDOMAIN,
+			QryDuplicate, QryDropped, QryFailure:
 			ch <- prometheus.MustNewConstMetric(DNSResolvedRatios, prometheus.CounterValue,
 				float64(c.Counter)/totalQueries, dns.nodeIP, strings.TrimPrefix(c.Name, "Qry"))
 		}
@@ -211,8 +224,11 @@ func (dns *DNSCollector) collectQTypeRatio(ch chan<- prometheus.Metric, counters
 		}
 	}
 
-	for _, c := range newCounters {
-		ch <- prometheus.MustNewConstMetric(DNSQueryTypeRatios, prometheus.CounterValue, float64(c.Counter)/newTotalQueries, dns.nodeIP, c.Name)
+	if newTotalQueries != 0 {
+		for _, c := range newCounters {
+			ch <- prometheus.MustNewConstMetric(DNSQueryTypeRatios,
+				prometheus.CounterValue, float64(c.Counter)/newTotalQueries, dns.nodeIP, c.Name)
+		}
 	}
 }
 
@@ -249,11 +265,5 @@ func (dns *DNSCollector) get(resp interface{}) error {
 }
 
 func isTypeSupport(queryType string) bool {
-	support := false
-	for _, supportType := range SupportTypes {
-		if supportType == queryType {
-			support = true
-		}
-	}
-	return support
+	return slice.SliceIndex(SupportTypes, queryType) != -1
 }
