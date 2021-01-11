@@ -96,7 +96,8 @@ func (dhcp *DHCPCollector) Run() {
 			now := time.Now()
 			if seconds := now.Sub(dhcp.lastGetTime).Seconds(); seconds > 0 && dhcp.lastAssignedAddrsCount != 0 {
 				if assignedAddrsCount >= dhcp.lastAssignedAddrsCount {
-					atomic.StoreUint64(&dhcp.lps, uint64((assignedAddrsCount-dhcp.lastAssignedAddrsCount)/now.Sub(dhcp.lastGetTime).Seconds()))
+					atomic.StoreUint64(&dhcp.lps,
+						uint64((assignedAddrsCount-dhcp.lastAssignedAddrsCount)/seconds))
 				}
 			}
 
@@ -117,7 +118,8 @@ func (dhcp *DHCPCollector) getAssignedAddrsCount() (float64, error) {
 		return 0, fmt.Errorf("get node %s dhcp6 stats failed: %s", dhcp.nodeIP, err.Error())
 	}
 
-	return getAssignedAddrsCountByVersion(resp4s, DHCPVersion4) + getAssignedAddrsCountByVersion(resp6s, DHCPVersion6), nil
+	return getAssignedAddrsCountByVersion(resp4s, DHCPVersion4) +
+		getAssignedAddrsCountByVersion(resp6s, DHCPVersion6), nil
 }
 
 func getAssignedAddrsCountByVersion(resps []dhcpsrv.DHCPCmdResponse, version string) float64 {
@@ -153,7 +155,8 @@ func (dhcp *DHCPCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	ch <- prometheus.MustNewConstMetric(DHCPLPS, prometheus.GaugeValue, float64(atomic.LoadUint64(&dhcp.lps)), dhcp.nodeIP)
+	ch <- prometheus.MustNewConstMetric(DHCPLPS, prometheus.GaugeValue,
+		float64(atomic.LoadUint64(&dhcp.lps)), dhcp.nodeIP)
 	var leasesCount float64
 	if count, err := dhcp.Collect4(ch); err != nil {
 		log.Warnf("collect node %s dhcp4 statistic failed: %s", dhcp.nodeIP, err.Error())
@@ -212,7 +215,8 @@ func setDHCPSubnetAddressStats(statsName string, stats interface{}, subnetStats 
 			addrStats.totalAddrsCount += totalAddrsCount
 		}
 		subnetStats[subnetID] = addrStats
-	} else if subnetID, assignedAddrsCount, ok := getSubnetIdAndStatsValue(statsName, stats, SubnetAssignedAddressesRegexp); ok {
+	} else if subnetID, assignedAddrsCount, ok := getSubnetIdAndStatsValue(statsName, stats,
+		SubnetAssignedAddressesRegexp); ok {
 		addrStats := subnetStats[subnetID]
 		if version == DHCPVersion4 {
 			addrStats.assignedAddrsCount = assignedAddrsCount
@@ -281,7 +285,8 @@ func (dhcp *DHCPCollector) Collect6(ch chan<- prometheus.Metric) (float64, error
 
 func (dhcp *DHCPCollector) collectPacketStats(ch chan<- prometheus.Metric, dhcpVersion, packetType string, stats interface{}) {
 	if v, ok := getStatsValue(stats); ok {
-		ch <- prometheus.MustNewConstMetric(DHCPPacketsStats, prometheus.GaugeValue, v, dhcp.nodeIP, dhcpVersion, packetType)
+		ch <- prometheus.MustNewConstMetric(DHCPPacketsStats,
+			prometheus.GaugeValue, v, dhcp.nodeIP, dhcpVersion, packetType)
 	}
 }
 
