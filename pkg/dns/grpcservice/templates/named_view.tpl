@@ -7,7 +7,8 @@ key key{{$view.Name}} {
 
 {{range $k, $view := .Views}}
 view "{{$view.Name}}" {
-	match-clients {
+    {{if $view.Recursion}}recursion yes;{{else}}recursion no;{{end}}
+    match-clients {
 	key key{{$view.Name}};{{range $kk, $deniedIP := $view.DeniedIPs}}!{{$deniedIP}};{{end}}{{range $kk, $acl := $view.ACLs}}{{$acl.Name}};{{end}}
 	};
 	allow-update {key key{{$view.Name}};};{{range $i, $zone := $view.Zones}}

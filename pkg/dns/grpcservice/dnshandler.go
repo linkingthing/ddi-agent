@@ -49,7 +49,7 @@ const (
 	nxDomain              = "nxdomain"
 	ptrType               = "PTR"
 	RoleBackup            = "backup"
-	nginxDefaultConfFile  = "default.conf"
+	nginxDefaultConfFile  = "ddi_domains.conf"
 	defaultGlobalConfigID = "globalConfig"
 	TemplateDir           = "/etc/dns/templates"
 	FilePermissions       = 0777
@@ -185,7 +185,7 @@ func initDefaultDbData() error {
 		if exist, err := dbhandler.ExistWithTx(resource.TableView, defaultView, tx); err != nil {
 			return fmt.Errorf("check agent_view defaultView exist from db failed:%s", err.Error())
 		} else if !exist {
-			view := &resource.AgentView{Name: defaultView, Priority: 1}
+			view := &resource.AgentView{Name: defaultView, Priority: 1, Recursion: true}
 			view.SetID(defaultView)
 			view.Acls = append(view.Acls, anyACL)
 			key, _ := uuid.Gen()
@@ -257,39 +257,56 @@ func (handler *DNSHandler) updateRR(key string, secret string, rrset *g53.RRset,
 	return nil
 }
 
-func (handler *DNSHandler) CreateACL(req *pb.CreateACLReq) error {
-	acl := &resource.AgentAcl{Name: req.Name, Ips: req.Ips}
-	acl.SetID(req.Id)
+func (handler *DNSHandler) CreateACL(req *pb.CreateAclReq) error {
+	acl := &resource.AgentAcl{Name: req.GetAcl().Name, Ips: req.GetAcl().Ips}
+	acl.SetID(req.GetAcl().Id)
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(acl); err != nil {
-			return fmt.Errorf("CreateACL insert acl db id:%s failed: %s ", req.Id, err.Error())
+			return fmt.Errorf("CreateACL insert acl db id:%s failed: %s ", req.GetAcl().Id, err.Error())
 		}
 
 		if err := handler.rewriteNamedAclFile(tx); err != nil {
-			return fmt.Errorf("CreateACL id:%s rewriteNamedFile failed :%s", req.Id, err.Error())
+			return fmt.Errorf("CreateACL id:%s rewriteNamedFile failed :%s", req.GetAcl().Id, err.Error())
 		}
 		return nil
 	})
 }
 
-func (handler *DNSHandler) UpdateACL(req *pb.UpdateACLReq) error {
+func (handler *DNSHandler) BatchCreateACL(req *pb.BatchCreateAclReq) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		for _, acl := range req.Acls {
+			acl := &resource.AgentAcl{Name: acl.Name, Ips: acl.Ips}
+			acl.SetID(acl.ID)
+			if _, err := tx.Insert(acl); err != nil {
+				return fmt.Errorf("BatchCreateACL insert acl db id:%s failed: %s ", acl.ID, err.Error())
+			}
+		}
+
+		if err := handler.rewriteNamedAclFile(tx); err != nil {
+			return fmt.Errorf("BatchCreateACL rewriteNamedFile failed :%s", err.Error())
+		}
+		return nil
+	})
+}
+
+func (handler *DNSHandler) UpdateACL(req *pb.UpdateAclReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Update(
 			resource.TableAcl,
-			map[string]interface{}{"ips": req.Ips},
-			map[string]interface{}{restdb.IDField: req.Id}); err != nil {
+			map[string]interface{}{"ips": req.GetAcl().Ips},
+			map[string]interface{}{restdb.IDField: req.GetAcl().Id}); err != nil {
 			return fmt.Errorf("UpdateACL failed:%s", err.Error())
 		}
 
 		if err := handler.rewriteNamedAclFile(tx); err != nil {
-			return fmt.Errorf("UpdateACL id:%s rewriteNamedFile failed :%s", req.Id, err.Error())
+			return fmt.Errorf("UpdateACL id:%s rewriteNamedFile failed :%s", req.GetAcl().Id, err.Error())
 		}
 		return nil
 	})
 }
 
-func (handler *DNSHandler) DeleteACL(req *pb.DeleteACLReq) error {
+func (handler *DNSHandler) DeleteACL(req *pb.DeleteAclReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Delete(resource.TableAcl, map[string]interface{}{restdb.IDField: req.Id}); err != nil {
 			return fmt.Errorf("DeleteACL acl id:%s from db failed: %s", req.Id, err.Error())
@@ -304,11 +321,12 @@ func (handler *DNSHandler) DeleteACL(req *pb.DeleteACLReq) error {
 
 func (handler *DNSHandler) CreateView(req *pb.CreateViewReq) error {
 	view := &resource.AgentView{
-		Name:     req.Name,
-		Priority: uint(req.Priority),
-		Acls:     req.Acls,
-		Dns64:    req.Dns64,
-		Key:      req.Key,
+		Name:      req.Name,
+		Priority:  uint(req.Priority),
+		Acls:      req.Acls,
+		Dns64:     req.Dns64,
+		Key:       req.Key,
+		Recursion: req.Recursion,
 	}
 	view.SetID(req.Id)
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -339,9 +357,10 @@ func (handler *DNSHandler) UpdateView(req *pb.UpdateViewReq) error {
 		if _, err := tx.Update(
 			resource.TableView,
 			map[string]interface{}{
-				"priority": req.Priority,
-				"acls":     req.Acls,
-				"dns64":    req.Dns64,
+				"priority":  req.Priority,
+				"acls":      req.Acls,
+				"dns64":     req.Dns64,
+				"recursion": req.Recursion,
 			},
 			map[string]interface{}{restdb.IDField: req.Id}); err != nil {
 			return fmt.Errorf("UpdateView id:%s update to db failed:%s", req.Id, err.Error())
@@ -571,7 +590,7 @@ func (handler *DNSHandler) CreateForwardZone(req *pb.CreateForwardZoneReq) error
 		Name:        req.Name,
 		ForwardType: req.ForwardType,
 		AgentView:   req.ViewId,
-		Ips:         req.ForwardIps,
+		Addresses:   req.Addresses,
 	}
 	forwardZone.SetID(req.Id)
 
@@ -593,7 +612,7 @@ func (handler *DNSHandler) UpdateForwardZone(req *pb.UpdateForwardZoneReq) error
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Update(resource.TableForwardZone, map[string]interface{}{
 			"forward_type": req.ForwardType,
-			"ips":          req.ForwardIps,
+			"addresses":    req.Addresses,
 		}, map[string]interface{}{restdb.IDField: req.Id}); err != nil {
 			return fmt.Errorf("UpdateForwardZone update forwardZone id:%s to db failed:%s",
 				req.Id, err.Error())
@@ -640,7 +659,7 @@ func (handler *DNSHandler) FlushForwardZone(req *pb.FlushForwardZoneReq) error {
 				forwardZone := &resource.AgentForwardZone{
 					Name:        zone.Domain,
 					ForwardType: zone.ForwardType,
-					Ips:         zone.ForwardIps,
+					Addresses:   zone.Addresses,
 					AgentView:   zone.View,
 				}
 				forwardZone.SetID(zone.Id)

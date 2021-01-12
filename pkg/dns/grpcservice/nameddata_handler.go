@@ -54,6 +54,7 @@ type View struct {
 	DNS64s    []Dns64
 	Key       string
 	DeniedIPs []string
+	Recursion bool
 }
 
 type ACL struct {
@@ -93,7 +94,7 @@ type nginxDefaultConf struct {
 
 type urlRedirect struct {
 	Domain string
-	URL    string
+	Url    string
 }
 
 func (handler *DNSHandler) initFiles() error {
@@ -210,7 +211,7 @@ func (handler *DNSHandler) rewriteNginxHttpFile(tx restdb.Transaction) error {
 	for _, urlValue := range urlRedirectList {
 		if !urlValue.IsHttps {
 			data.URLRedirects = append(data.URLRedirects,
-				urlRedirect{Domain: urlValue.Domain, URL: urlValue.Url})
+				urlRedirect{Domain: urlValue.Domain, Url: urlValue.Url})
 		}
 	}
 
@@ -296,7 +297,7 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 				acls = append(acls, ACL{Name: aclValue})
 			}
 		}
-		view := View{Name: value.Name, Key: value.Key}
+		view := View{Name: value.Name, Key: value.Key, Recursion: value.Recursion}
 		if len(handler.interfaceIPs) > 0 {
 			view.DeniedIPs = handler.interfaceIPs
 		}
@@ -323,7 +324,11 @@ func (handler *DNSHandler) initNamedViewFile(tx restdb.Transaction) error {
 
 		for _, forwardZone := range forwardZoneList {
 			if forwardZone.AgentView == value.ID {
-				view.Zones = append(view.Zones, forwardZone.ToZoneData())
+				if zoneData, err := forwardZone.ToZoneData(); err != nil {
+					return err
+				} else {
+					view.Zones = append(view.Zones, zoneData)
+				}
 			}
 		}
 
@@ -366,7 +371,7 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 				acls = append(acls, ACL{Name: aclValue})
 			}
 		}
-		view := View{Name: value.Name, Key: value.Key}
+		view := View{Name: value.Name, Key: value.Key, Recursion: value.Recursion}
 		if len(handler.interfaceIPs) > 0 {
 			view.DeniedIPs = handler.interfaceIPs
 		}
@@ -395,7 +400,11 @@ func (handler *DNSHandler) rewriteNamedViewFile(existRPZ bool, tx restdb.Transac
 
 		for _, forwardZone := range forwardZoneList {
 			if forwardZone.AgentView == value.ID {
-				view.Zones = append(view.Zones, forwardZone.ToZoneData())
+				if zoneData, err := forwardZone.ToZoneData(); err != nil {
+					return err
+				} else {
+					view.Zones = append(view.Zones, zoneData)
+				}
 			}
 		}
 

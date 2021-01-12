@@ -14,4 +14,5 @@ type AgentView struct {
 	Acls                  []string `json:"acls" rest:"required=true"`
 	Dns64                 string   `json:"dns64" rest:"min=1,max=100"`
 	Key                   string   `json:"-" db:"uk"`
+	Recursion             bool     `json:"recursion"`
 }

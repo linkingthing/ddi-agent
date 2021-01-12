@@ -6,9 +6,10 @@ const (
 	StartDNS = "start_dns"
 	StopDNS  = "stop_dns"
 
-	CreateACL = "create_acl"
-	UpdateACL = "update_acl"
-	DeleteACL = "delete_acl"
+	CreateACL      = "create_acl"
+	UpdateACL      = "update_acl"
+	DeleteACL      = "delete_acl"
+	BatchCreateACL = "batchcreate_acl"
 
 	CreateView = "create_view"
 	UpdateView = "update_view"

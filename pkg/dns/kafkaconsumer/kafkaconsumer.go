@@ -54,11 +54,11 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 				}
 			}
 		case CreateACL:
-			var req pb.CreateACLReq
+			var req pb.CreateAclReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Errorf("unmarshal CreateACL request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.CreateACL(context.Background(), &req)
+				ddiResponse, err := cli.CreateAcl(context.Background(), &req)
 				if err != nil {
 					log.Errorf("grpc service exec CreateACL failed: %s", err.Error())
 				}
@@ -67,12 +67,26 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
+		case BatchCreateACL:
+			var req pb.BatchCreateAclReq
+			if err := proto.Unmarshal(message.Value, &req); err != nil {
+				log.Errorf("unmarshal BatchCreateAclReq request failed: %s", err.Error())
+			} else {
+				ddiResponse, err := cli.BatchCreateAcl(context.Background(), &req)
+				if err != nil {
+					log.Errorf("grpc service exec BatchCreateAclReq failed: %s", err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
+				}
+			}
 		case UpdateACL:
-			var req pb.UpdateACLReq
+			var req pb.UpdateAclReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Errorf("unmarshal UpdateACL request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.UpdateACL(context.Background(), &req)
+				ddiResponse, err := cli.UpdateAcl(context.Background(), &req)
 				if err != nil {
 					log.Errorf("grpc service exec UpdateACL failed: %s", err.Error())
 				}
@@ -82,11 +96,11 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 				}
 			}
 		case DeleteACL:
-			var req pb.DeleteACLReq
+			var req pb.DeleteAclReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Errorf("unmarshal DeleteACL request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.DeleteACL(context.Background(), &req)
+				ddiResponse, err := cli.DeleteAcl(context.Background(), &req)
 				if err != nil {
 					log.Errorf("grpc service exec DeleteACL failed: %s", err.Error())
 				}

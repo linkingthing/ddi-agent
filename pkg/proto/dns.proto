@@ -7,9 +7,10 @@ service AgentManager{
 	rpc StartDNS(DNSStartReq) returns (DDIResponse){}
 	rpc StopDNS(DNSStopReq) returns (DDIResponse){}
 
-	rpc CreateACL(CreateACLReq) returns (DDIResponse){}
-	rpc UpdateACL(UpdateACLReq) returns (DDIResponse){}
-	rpc DeleteACL(DeleteACLReq) returns (DDIResponse){}
+	rpc CreateAcl(CreateAclReq) returns (DDIResponse){}
+	rpc UpdateAcl(UpdateAclReq) returns (DDIResponse){}
+	rpc DeleteAcl(DeleteAclReq) returns (DDIResponse){}
+	rpc BatchCreateAcl(BatchCreateAclReq) returns (DDIResponse){}
 
 	rpc CreateView(CreateViewReq) returns (DDIResponse){}
 	rpc UpdateView(UpdateViewReq) returns (DDIResponse){}
@@ -58,19 +59,25 @@ message UpdateGlobalConfigReq{
 	string update_model = 8;
 }
 
-message CreateACLReq{
+message Acl{
 	string id = 1;
 	string name = 2;
 	repeated string ips = 3;
 }
 
-message UpdateACLReq{
-	string id = 1;
-	string name = 2;
-	repeated string ips = 3;
+message CreateAclReq{
+	Acl acl =1;
 }
 
-message DeleteACLReq{
+message BatchCreateAclReq{
+	repeated Acl acls =1;
+}
+
+message UpdateAclReq{
+	Acl acl =1;
+}
+
+message DeleteAclReq{
 	string id = 1;
 }
 
@@ -136,8 +143,9 @@ message CreateViewReq{
 	uint32 priority = 3;
 	string dns64 = 4;
 	string key = 5;
-	repeated string acls = 8;
-	repeated ViewPriority view_priority = 7;
+	repeated string acls = 6;
+	bool recursion = 7;
+	repeated ViewPriority view_priority = 8;
 }
 
 message ViewPriority{
@@ -150,7 +158,8 @@ message UpdateViewReq{
 	uint32 priority = 2;
 	string dns64 = 3;
 	repeated string acls = 4;
-	repeated ViewPriority view_priority = 5;
+	bool recursion = 5;
+	repeated ViewPriority view_priority = 6;
 }
 
 message DeleteViewReq{
@@ -214,14 +223,14 @@ message CreateForwardZoneReq{
 	string id = 1;
 	string name = 2;
 	string forward_type = 3;
-	repeated string forward_ips = 4;
+	repeated string addresses = 4;
 	string view_id = 5;
 }
 
 message UpdateForwardZoneReq{
 	string id = 1;
 	string forward_type = 2;
-	repeated string forward_ips = 3;
+	repeated string addresses = 3;
 }
 
 message DeleteForwardZoneReq{
@@ -234,7 +243,7 @@ message FlushForwardZoneReq {
 					string id = 1;
 					string domain = 2;
 					string forward_type = 3;
-					repeated string forward_ips = 4;
+					repeated string addresses = 4;
 					string view = 5;
 				}
         repeated forwardZone forward_zones = 1;

@@ -48,7 +48,7 @@ func (service *DNSService) UpdateGlobalConfig(context context.Context, req *pb.U
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) CreateACL(context context.Context, req *pb.CreateACLReq) (*pb.DDIResponse, error) {
+func (service *DNSService) CreateAcl(context context.Context, req *pb.CreateAclReq) (*pb.DDIResponse, error) {
 	if err := service.handler.CreateACL(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
@@ -56,7 +56,7 @@ func (service *DNSService) CreateACL(context context.Context, req *pb.CreateACLR
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) UpdateACL(context context.Context, req *pb.UpdateACLReq) (*pb.DDIResponse, error) {
+func (service *DNSService) UpdateAcl(context context.Context, req *pb.UpdateAclReq) (*pb.DDIResponse, error) {
 	if err := service.handler.UpdateACL(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
@@ -64,8 +64,16 @@ func (service *DNSService) UpdateACL(context context.Context, req *pb.UpdateACLR
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) DeleteACL(context context.Context, req *pb.DeleteACLReq) (*pb.DDIResponse, error) {
+func (service *DNSService) DeleteAcl(context context.Context, req *pb.DeleteAclReq) (*pb.DDIResponse, error) {
 	if err := service.handler.DeleteACL(req); err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+
+	return &pb.DDIResponse{Succeed: true}, nil
+}
+
+func (service *DNSService) BatchCreateAcl(context context.Context, req *pb.BatchCreateAclReq) (*pb.DDIResponse, error) {
+	if err := service.handler.BatchCreateACL(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 
