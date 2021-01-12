@@ -5,5 +5,5 @@ $TTL 300
 ; NS records do not need address records in this zone as it is not in the
 ; normal namespace.
 ;
-{{range $k,$rr := .RRs}}{{$rr.Name}} {{$rr.TTL}} {{$rr.Type}} {{$rr.Value}}
+{{range $k,$rr := .RRs}}{{$rr.Name}} {{$rr.TTL}} {{$rr.Type}} {{$rr.Rdata}}
 {{end}}

@@ -137,26 +137,26 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
-		case CreateZone:
-			var req pb.CreateZoneReq
+		case CreateAuthZone:
+			var req pb.CreateAuthZoneReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal CreateZone request failed: %s", err.Error())
+				log.Errorf("unmarshal CreateAuthZone request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.CreateZone(context.Background(), &req)
+				ddiResponse, err := cli.CreateAuthZone(context.Background(), &req)
 				if err != nil {
-					log.Errorf("grpc service exec CreateZone failed: %s", err.Error())
+					log.Errorf("grpc service exec CreateAuthZone failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
 					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
-		case UpdateZone:
-			var req pb.UpdateZoneReq
+		case UpdateAuthZone:
+			var req pb.UpdateAuthZoneReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Errorf("unmarshal UpdateZone request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.UpdateZone(context.Background(), &req)
+				ddiResponse, err := cli.UpdateAuthZone(context.Background(), &req)
 				if err != nil {
 					log.Errorf("grpc service exec UpdateZone failed: %s", err.Error())
 				}
@@ -165,12 +165,12 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
-		case DeleteZone:
-			var req pb.DeleteZoneReq
+		case DeleteAuthZone:
+			var req pb.DeleteAuthZoneReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Errorf("unmarshal DeleteZone request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.DeleteZone(context.Background(), &req)
+				ddiResponse, err := cli.DeleteAuthZone(context.Background(), &req)
 				if err != nil {
 					log.Errorf("grpc service exec DeleteZone failed: %s", err.Error())
 				}
@@ -221,42 +221,56 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
-		case CreateRR:
-			var req pb.CreateRRReq
+		case CreateAuthRR:
+			var req pb.CreateAuthRRReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal CreateRR request failed: %s", err.Error())
+				log.Errorf("unmarshal CreateAuthRR request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.CreateRR(context.Background(), &req)
+				ddiResponse, err := cli.CreateAuthRR(context.Background(), &req)
 				if err != nil {
-					log.Errorf("grpc service exec CreateRR failed: %s", err.Error())
+					log.Errorf("grpc service exec CreateAuthRR failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
 					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
-		case UpdateRR:
-			var req pb.UpdateRRReq
+		case UpdateAuthRR:
+			var req pb.UpdateAuthRRReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal UpdateRR request failed: %s", err.Error())
+				log.Errorf("unmarshal UpdateAuthRR request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.UpdateRR(context.Background(), &req)
+				ddiResponse, err := cli.UpdateAuthRR(context.Background(), &req)
 				if err != nil {
-					log.Errorf("grpc service exec UpdateRR failed: %s", err.Error())
+					log.Errorf("grpc service exec UpdateAuthRR failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
 					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
-		case DeleteRR:
-			var req pb.DeleteRRReq
+		case DeleteAuthRR:
+			var req pb.DeleteAuthRRReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal DeleteRR request failed: %s", err.Error())
+				log.Errorf("unmarshal DeleteAuthRR request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.DeleteRR(context.Background(), &req)
+				ddiResponse, err := cli.DeleteAuthRR(context.Background(), &req)
 				if err != nil {
-					log.Errorf("grpc service exec DeleteRR failed: %s", err.Error())
+					log.Errorf("grpc service exec DeleteAuthRR failed: %s", err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
+				}
+			}
+		case BatchCreateAuthRRs:
+			var req pb.BatchCreateAuthRRsReq
+			if err := proto.Unmarshal(message.Value, &req); err != nil {
+				log.Errorf("unmarshal BatchCreateAuthRRs request failed: %s", err.Error())
+			} else {
+				ddiResponse, err := cli.BatchCreateAuthRRs(context.Background(), &req)
+				if err != nil {
+					log.Errorf("grpc service exec BatchCreateAuthRRs failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
 					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {

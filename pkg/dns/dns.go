@@ -10,9 +10,9 @@ func PersistentResources() []restresource.Resource {
 	return []restresource.Resource{
 		&resource.AgentAcl{},
 		&resource.AgentView{},
-		&resource.AgentZone{},
+		&resource.AgentAuthZone{},
 		&resource.AgentForwardZone{},
-		&resource.AgentRr{},
+		&resource.AgentAuthRr{},
 		&resource.AgentRedirection{},
 		&resource.AgentDnsGlobalConfig{},
 		&resource.AgentUrlRedirect{},

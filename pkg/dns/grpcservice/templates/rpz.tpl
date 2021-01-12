@@ -8,5 +8,5 @@ $TTL 7200	; 2 hours
 				)
 @       IN              NS      nons.blocked.com.
 
-{{range $k,$rr := .RRs}}{{$rr.Name}} {{$rr.TTL}} {{$rr.Type}} {{$rr.Value}}
+{{range $k,$rr := .RRs}}{{$rr.Name}} {{$rr.TTL}} {{$rr.Type}} {{$rr.Rdata}}
 {{end}}

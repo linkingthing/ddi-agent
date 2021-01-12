@@ -14,18 +14,19 @@ const (
 	UpdateView = "update_view"
 	DeleteView = "delete_view"
 
-	CreateZone = "create_zone"
-	UpdateZone = "update_zone"
-	DeleteZone = "delete_zone"
+	CreateAuthZone = "create_authzone"
+	UpdateAuthZone = "update_authzone"
+	DeleteAuthZone = "delete_authzone"
 
 	CreateForwardZone = "create_forwardzone"
 	UpdateForwardZone = "update_forwardzone"
 	DeleteForwardZone = "delete_forwardzone"
 	FlushForwardZone  = "flush_forwardzone"
 
-	CreateRR = "create_rr"
-	UpdateRR = "update_rr"
-	DeleteRR = "delete_rr"
+	CreateAuthRR       = "create_authrr"
+	UpdateAuthRR       = "update_authrr"
+	DeleteAuthRR       = "delete_authrr"
+	BatchCreateAuthRRs = "batchcreate_authrr"
 
 	CreateRedirection = "create_redirection"
 	UpdateRedirection = "update_redirection"

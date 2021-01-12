@@ -4,43 +4,44 @@ import (
 	"strconv"
 
 	"github.com/zdnscloud/g53"
-
 	restdb "github.com/zdnscloud/gorest/db"
-	"github.com/zdnscloud/gorest/resource"
+	restresource "github.com/zdnscloud/gorest/resource"
 )
 
-var TableZone = restdb.ResourceDBType(&AgentZone{})
+var TableAgentAuthZone = restdb.ResourceDBType(&AgentAuthZone{})
 
-type AgentZone struct {
-	resource.ResourceBase `json:",inline"`
-	Name                  string `json:"name" rest:"required=true,minLen=1,maxLen=254" db:"uk"`
-	Ttl                   uint   `json:"ttl" rest:"required=true, min=0,max=3000000"`
-	ZoneFile              string `json:"-"`
-	AgentView             string `json:"-" db:"ownby,uk"`
+type AgentAuthZone struct {
+	restresource.ResourceBase `json:",inline"`
+	Name                      string `json:"name" db:"uk"`
+	Ttl                       uint32 `json:"ttl"`
+	AgentView                 string `json:"-" db:"ownby,uk"`
 }
 
 type ZoneData struct {
-	Name        string
-	ZoneFile    string
-	ForwardType string
-	IPs         []string
+	Name         string
+	ZoneFile     string
+	ForwardStyle string
+	IPs          []string
 }
 
-type ZoneFileData struct {
-	ViewName string
+type AuthZoneFileData struct {
+	View     string
 	Name     string
-	NsName   string
+	NSName   string
 	RootName string
-	ZoneFile string
 	TTL      string
-	RRs      []RRData
+	RRs      []RR
 }
 
-func (zone *AgentZone) ToZoneData() ZoneData {
-	return ZoneData{Name: zone.Name, ZoneFile: zone.ZoneFile}
+func (zone *AgentAuthZone) GetZoneFile() string {
+	return zone.AgentView + "#" + zone.Name + ".zone"
 }
 
-func (zone *AgentZone) ToZoneFileData() ZoneFileData {
+func (zone *AgentAuthZone) ToZoneData() ZoneData {
+	return ZoneData{Name: zone.Name, ZoneFile: zone.GetZoneFile()}
+}
+
+func (zone *AgentAuthZone) ToAuthZoneFileData() AuthZoneFileData {
 	var rootName, nsName string
 	name, _ := g53.NameFromString(zone.Name)
 	if zone.Name == "@" {
@@ -52,11 +53,19 @@ func (zone *AgentZone) ToZoneFileData() ZoneFileData {
 		rootName = "root." + zone.Name
 		nsName = "ns." + zone.Name
 	}
-	return ZoneFileData{
-		ViewName: zone.AgentView,
+	return AuthZoneFileData{
+		View:     zone.AgentView,
 		Name:     zone.Name,
 		RootName: rootName,
-		NsName:   nsName,
-		ZoneFile: zone.ZoneFile,
+		NSName:   nsName,
 		TTL:      strconv.FormatUint(uint64(zone.Ttl), 10)}
+}
+
+func (zone *AgentAuthZone) Validate() error {
+	name, err := g53.NameFromString(zone.Name)
+	if err != nil {
+		return err
+	}
+	zone.Name = name.String(true)
+	return nil
 }

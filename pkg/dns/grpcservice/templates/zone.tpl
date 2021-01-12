@@ -17,5 +17,5 @@ $ORIGIN {{.Name}}
 ; host ttl class type data
 $ORIGIN {{.Name}}
 ns                     A       127.0.0.1
-{{range $k,$rr := .RRs}}{{$rr.Name}} {{$rr.TTL}} {{$rr.Type}} {{$rr.Value}}
+{{range $k,$rr := .RRs}}{{$rr.Name}} {{$rr.TTL}} {{$rr.Type}} {{$rr.Rdata}}
 {{end}}
