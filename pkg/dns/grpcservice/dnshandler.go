@@ -46,7 +46,6 @@ const (
 	anyACL                = "any"
 	noneACL               = "none"
 	DefaultView           = "default"
-	RoleBackup            = "backup"
 	nginxDefaultConfFile  = "default.conf"
 	defaultGlobalConfigID = "globalConfig"
 	TemplateDir           = "/etc/dns/templates"
@@ -488,8 +487,41 @@ func (handler *DNSHandler) DeleteForwardZone(req *pb.DeleteForwardZoneReq) error
 }
 
 func (handler *DNSHandler) FlushForwardZone(req *pb.FlushForwardZoneReq) error {
-	var oldViews, oldZones map[string]struct{}
-	for _, forwardZone := range req.OldForwardZones {
+	oldSql := getDeleteForwardZonesSql(req.OldForwardZones)
+	newSql := getAddForwardZonesSql(req.NewForwardZones)
+	if oldSql == "" && newSql == "" {
+		return nil
+	}
+
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if oldSql != "" {
+			if _, err := tx.Exec(oldSql); err != nil {
+				return fmt.Errorf("delete forward zones from db failed:%s", err.Error())
+			}
+		}
+
+		if newSql != "" {
+			if _, err := tx.Exec(newSql); err != nil {
+				return fmt.Errorf("batch create forward zones to db failed:%s", err.Error())
+			}
+		}
+
+		if err := handler.rewriteNamedViewFile(tx, false); err != nil {
+			return fmt.Errorf("reflush forward zones from dns failed:%s", err.Error())
+		}
+
+		return nil
+	})
+}
+
+func getDeleteForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone) string {
+	if len(forwardZones) == 0 {
+		return ""
+	}
+
+	oldViews := make(map[string]struct{})
+	oldZones := make(map[string]struct{})
+	for _, forwardZone := range forwardZones {
 		oldViews[forwardZone.View] = struct{}{}
 		oldZones[forwardZone.Name] = struct{}{}
 	}
@@ -503,9 +535,18 @@ func (handler *DNSHandler) FlushForwardZone(req *pb.FlushForwardZoneReq) error {
 		zones = append(zones, zone)
 	}
 
+	return "delete from gr_agent_forward_zone where agent_view in ('" +
+		strings.Join(views, "','") + "') and zone in ('" + strings.Join(zones, "','") + "')"
+}
+
+func getAddForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone) string {
+	if len(forwardZones) == 0 {
+		return ""
+	}
+
 	var buf bytes.Buffer
 	buf.WriteString("insert into gr_agent_forward_zone (id, create_time, name, forward_style, ips, agent_view) values")
-	for _, zone := range req.NewForwardZones {
+	for _, zone := range forwardZones {
 		buf.WriteString("('")
 		id, _ := uuid.Gen()
 		buf.WriteString(id)
@@ -522,28 +563,8 @@ func (handler *DNSHandler) FlushForwardZone(req *pb.FlushForwardZoneReq) error {
 		buf.WriteString("')")
 		buf.WriteString(",")
 	}
-	newSql := buf.String()
-	newSql = strings.TrimSuffix(newSql, ",")
 
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Exec("delete from gr_agent_forward_zone where agent_view in ('" +
-			strings.Join(views, "','") + "') and zone in ('" + strings.Join(zones, "','") + "')",
-		); err != nil {
-			return fmt.Errorf("delete forward zone %v with view %v from db failed:%s",
-				zones, views, err.Error())
-		}
-
-		if _, err := tx.Exec(newSql); err != nil {
-			return fmt.Errorf("delete forward zone %v with view %v from db failed:%s",
-				zones, views, err.Error())
-		}
-
-		if err := handler.rewriteNamedViewFile(tx, false); err != nil {
-			return fmt.Errorf("reflush forward zones from dns failed:%s", err.Error())
-		}
-
-		return nil
-	})
+	return strings.TrimSuffix(buf.String(), ",")
 }
 
 func (handler *DNSHandler) CreateAuthRR(req *pb.CreateAuthRRReq) error {
