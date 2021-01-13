@@ -75,16 +75,21 @@ message DeleteACLReq{
 	string id = 1;
 }
 
-message CreateAuthZoneReq{
+message AuthZone {
 	string view = 1;
 	string name = 2;
 	uint32 ttl = 3;
+	string role = 4;
+	repeated string masters = 5;
+	repeated string slaves = 6;
+}
+
+message CreateAuthZoneReq{
+		AuthZone authZone = 1;
 }
 
 message UpdateAuthZoneReq{
-	string view = 1;
-	string name = 2;
-	uint32 ttl = 3;
+	AuthZone authZone = 1;
 }
 
 message DeleteAuthZoneReq{

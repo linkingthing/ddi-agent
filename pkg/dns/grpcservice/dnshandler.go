@@ -352,7 +352,13 @@ func (handler *DNSHandler) DeleteView(req *pb.DeleteViewReq) error {
 }
 
 func (handler *DNSHandler) CreateAuthZone(req *pb.CreateAuthZoneReq) error {
-	zone := &resource.AgentAuthZone{Name: req.Name, Ttl: req.Ttl, AgentView: req.View}
+	zone := &resource.AgentAuthZone{
+		Name:      req.GetAuthZone().Name,
+		Ttl:       req.GetAuthZone().Ttl,
+		AgentView: req.GetAuthZone().View,
+		Role:      resource.AuthZoneRole(req.GetAuthZone().Role),
+		Masters:   req.GetAuthZone().Masters,
+		Slaves:    req.GetAuthZone().Slaves}
 	if err := zone.Validate(); err != nil {
 		return fmt.Errorf("auth zone name %s is invalid %s", zone.Name, err.Error())
 	}
@@ -375,13 +381,23 @@ func (handler *DNSHandler) CreateAuthZone(req *pb.CreateAuthZoneReq) error {
 }
 
 func (handler *DNSHandler) UpdateAuthZone(req *pb.UpdateAuthZoneReq) error {
-	zone := &resource.AgentAuthZone{Name: req.Name, Ttl: req.Ttl, AgentView: req.View}
+	zone := &resource.AgentAuthZone{
+		Name:      req.GetAuthZone().Name,
+		Ttl:       req.GetAuthZone().Ttl,
+		AgentView: req.GetAuthZone().View,
+		Role:      resource.AuthZoneRole(req.GetAuthZone().Role),
+		Masters:   req.GetAuthZone().Masters,
+		Slaves:    req.GetAuthZone().Slaves}
+
 	if err := zone.Validate(); err != nil {
 		return fmt.Errorf("auth zone name %s is invalid %s", zone.Name, err.Error())
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableAgentAuthZone, map[string]interface{}{"ttl": req.Ttl},
+		if _, err := tx.Update(resource.TableAgentAuthZone,
+			map[string]interface{}{
+				"ttl": req.GetAuthZone().Ttl, "role": req.GetAuthZone().Role,
+				"masters": req.GetAuthZone().Masters, "slaves": req.GetAuthZone().Slaves},
 			map[string]interface{}{"agent_view": zone.AgentView, "name": zone.Name},
 		); err != nil {
 			return fmt.Errorf("update auth zone %s with view %s failed:%s", zone.Name, zone.AgentView, err.Error())
