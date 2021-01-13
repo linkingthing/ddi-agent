@@ -161,20 +161,20 @@ func (handler *DNSHandler) rndcReload() error {
 	return err
 }
 
-func (handler *DNSHandler) rndcAddZone(zoneName string, zoneFile string, viewName string) error {
+func (handler *DNSHandler) rndcAddZone(zone *resource.AgentAuthZone) error {
+	zoneData := zone.ToZoneData()
 	_, err := grpcclient.GetDDIMonitorGrpcClient().AddDNSZone(context.Background(), &monitorpb.AddDNSZoneRequest{
-		ZoneName: zoneName,
-		ViewName: viewName,
-		ZoneFile: zoneFile,
+		Zone: &monitorpb.Zone{ZoneName: zoneData.Name, ZoneFile: zoneData.ZoneFile,
+			ZoneRole: zoneData.Role, ZoneMasters: zoneData.Masters, ZoneSlaves: zoneData.Slaves},
 	})
 	return err
 }
 
-func (handler *DNSHandler) rndcModifyZone(zoneName string, zoneFile string, viewName string) error {
+func (handler *DNSHandler) rndcModifyZone(zone *resource.AgentAuthZone) error {
+	zoneData := zone.ToZoneData()
 	_, err := grpcclient.GetDDIMonitorGrpcClient().UpdateDNSZone(context.Background(), &monitorpb.UpdateDNSZoneRequest{
-		ZoneName: zoneName,
-		ViewName: viewName,
-		ZoneFile: zoneFile,
+		Zone: &monitorpb.Zone{ZoneName: zoneData.Name, ZoneFile: zoneData.ZoneFile,
+			ZoneRole: zoneData.Role, ZoneMasters: zoneData.Masters, ZoneSlaves: zoneData.Slaves},
 	})
 	return err
 }

@@ -2,6 +2,7 @@ package resource
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/zdnscloud/g53"
 	restdb "github.com/zdnscloud/gorest/db"
@@ -12,13 +13,26 @@ var TableAgentAuthZone = restdb.ResourceDBType(&AgentAuthZone{})
 
 type AgentAuthZone struct {
 	restresource.ResourceBase `json:",inline"`
-	Name                      string `json:"name" db:"uk"`
-	Ttl                       uint32 `json:"ttl"`
-	AgentView                 string `json:"-" db:"ownby,uk"`
+	Name                      string       `json:"name" db:"uk"`
+	Ttl                       uint32       `json:"ttl"`
+	Role                      AuthZoneRole `json:"role"`
+	Slaves                    []string     `json:"slaves"`
+	Masters                   []string     `json:"masters"`
+	AgentView                 string       `json:"-" db:"ownby,uk"`
 }
+
+type AuthZoneRole string
+
+const (
+	AuthZoneRoleMaster AuthZoneRole = "master"
+	AuthZoneRoleSlave  AuthZoneRole = "slave"
+)
 
 type ZoneData struct {
 	Name         string
+	Role         string
+	Slaves       string
+	Masters      string
 	ZoneFile     string
 	ForwardStyle string
 	IPs          []string
@@ -38,7 +52,19 @@ func (zone *AgentAuthZone) GetZoneFile() string {
 }
 
 func (zone *AgentAuthZone) ToZoneData() ZoneData {
-	return ZoneData{Name: zone.Name, ZoneFile: zone.GetZoneFile()}
+	var masters, slaves string
+	if zone.Role == AuthZoneRoleMaster {
+		if len(zone.Slaves) > 0 {
+			slaves = strings.Join(zone.Slaves, ";") + ";"
+		}
+	} else if zone.Role == AuthZoneRoleSlave {
+		if len(zone.Masters) > 0 {
+			masters = strings.Join(zone.Masters, ";") + ";"
+		}
+	}
+
+	return ZoneData{Name: zone.Name, ZoneFile: zone.GetZoneFile(),
+		Role: string(zone.Role), Masters: masters, Slaves: slaves}
 }
 
 func (zone *AgentAuthZone) ToAuthZoneFileData() AuthZoneFileData {

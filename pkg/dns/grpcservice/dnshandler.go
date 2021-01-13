@@ -367,7 +367,7 @@ func (handler *DNSHandler) CreateAuthZone(req *pb.CreateAuthZoneReq) error {
 				zone.Name, zone.AgentView, err.Error())
 		}
 
-		if err := handler.rndcAddZone(zone.Name, zone.GetZoneFile(), zone.AgentView); err != nil {
+		if err := handler.rndcAddZone(zone); err != nil {
 			return fmt.Errorf("add auth zone %s with view %s to dns failed:%s", zone.Name, zone.AgentView, err.Error())
 		}
 		return nil
@@ -392,7 +392,7 @@ func (handler *DNSHandler) UpdateAuthZone(req *pb.UpdateAuthZoneReq) error {
 				zone.Name, zone.AgentView, err.Error())
 		}
 
-		if err := handler.rndcModifyZone(zone.Name, zone.GetZoneFile(), zone.AgentView); err != nil {
+		if err := handler.rndcModifyZone(zone); err != nil {
 			return fmt.Errorf("update auth zone %s with view %s to dns failed:%s",
 				zone.Name, zone.AgentView, err.Error())
 		}
@@ -798,7 +798,7 @@ func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) err
 			return fmt.Errorf("rewrite zone %s files with view %s failed: %s", reqZone, reqView, err.Error())
 		}
 
-		if err := handler.rndcModifyZone(zones[0].Name, zones[0].GetZoneFile(), zones[0].AgentView); err != nil {
+		if err := handler.rndcModifyZone(zones[0]); err != nil {
 			return fmt.Errorf("reconfig zone %s with view %s failed: %s", reqZone, reqView, err.Error())
 		}
 
