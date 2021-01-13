@@ -165,7 +165,7 @@ func (handler *DNSHandler) rndcAddZone(zone *resource.AgentAuthZone) error {
 	zoneData := zone.ToZoneData()
 	_, err := grpcclient.GetDDIMonitorGrpcClient().AddDNSZone(context.Background(), &monitorpb.AddDNSZoneRequest{
 		Zone: &monitorpb.Zone{ZoneName: zoneData.Name, ZoneFile: zoneData.ZoneFile,
-			ZoneRole: zoneData.Role, ZoneMasters: zoneData.Masters, ZoneSlaves: zoneData.Slaves},
+			ZoneRole: zoneData.Role, ZoneMasters: zoneData.Masters, ZoneSlaves: zoneData.Slaves, ViewName: zone.AgentView},
 	})
 	return err
 }
@@ -174,7 +174,7 @@ func (handler *DNSHandler) rndcModifyZone(zone *resource.AgentAuthZone) error {
 	zoneData := zone.ToZoneData()
 	_, err := grpcclient.GetDDIMonitorGrpcClient().UpdateDNSZone(context.Background(), &monitorpb.UpdateDNSZoneRequest{
 		Zone: &monitorpb.Zone{ZoneName: zoneData.Name, ZoneFile: zoneData.ZoneFile,
-			ZoneRole: zoneData.Role, ZoneMasters: zoneData.Masters, ZoneSlaves: zoneData.Slaves},
+			ZoneRole: zoneData.Role, ZoneMasters: zoneData.Masters, ZoneSlaves: zoneData.Slaves, ViewName: zone.AgentView},
 	})
 	return err
 }
