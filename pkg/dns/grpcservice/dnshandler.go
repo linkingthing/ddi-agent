@@ -352,113 +352,6 @@ func (handler *DNSHandler) DeleteView(req *pb.DeleteViewReq) error {
 	})
 }
 
-func (handler *DNSHandler) CreateRedirection(req *pb.CreateRedirectionReq) error {
-	redirect := &resource.AgentRedirection{
-		Name:         req.Name,
-		Ttl:          req.Ttl,
-		RrType:       req.RrType,
-		RedirectType: req.RedirectType,
-		Rdata:        req.Rdata,
-		AgentView:    req.View,
-	}
-
-	if err := redirect.Validate(); err != nil {
-		return fmt.Errorf("redirection %s with view %s invalid: %s", req.Name, req.View, err.Error())
-	}
-
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Insert(redirect); err != nil {
-			return fmt.Errorf("create redirection insert %s failed:%s", req.Name, err.Error())
-		}
-
-		return handler.rewriteRpzOrRedirectFile(tx, redirect, false)
-	})
-}
-
-func (handler *DNSHandler) UpdateRedirection(req *pb.UpdateRedirectionReq) error {
-	redirect := &resource.AgentRedirection{
-		Name:         req.Name,
-		Ttl:          req.Ttl,
-		RrType:       req.RrType,
-		RedirectType: req.RedirectType,
-		Rdata:        req.Rdata,
-		AgentView:    req.View,
-	}
-	if err := redirect.Validate(); err != nil {
-		return fmt.Errorf("redirection %s invalid: %s", req.Name, err.Error())
-	}
-
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableAgentRedirection, map[string]interface{}{
-			"rdata":         redirect.Rdata,
-			"ttl":           redirect.Ttl,
-			"redirect_type": redirect.RedirectType,
-		}, map[string]interface{}{
-			"agent_view": redirect.AgentView,
-			"name":       redirect.Name,
-		}); err != nil {
-			return err
-		}
-
-		return handler.rewriteRpzOrRedirectFile(tx, redirect, req.RedirectTypeChanged)
-	})
-}
-
-func (handler *DNSHandler) DeleteRedirection(req *pb.DeleteRedirectionReq) error {
-	redirect := &resource.AgentRedirection{
-		Name:         req.Name,
-		RedirectType: req.RedirectType,
-		AgentView:    req.View,
-	}
-
-	name, err := g53.NameFromString(redirect.Name)
-	if err != nil {
-		return fmt.Errorf("delete redirection %s with view %s failed:%s",
-			redirect.Name, redirect.AgentView, err.Error())
-	} else if redirect.RedirectType != resource.LocalZoneType {
-		redirect.Name = name.String(false)
-	}
-
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Delete(resource.TableAgentRedirection, map[string]interface{}{
-			"agent_view": redirect.AgentView, "name": redirect.Name, "redirect_type": redirect.RedirectType,
-		}); err != nil {
-			return fmt.Errorf("delete redirection %s with view %s failed:%s",
-				redirect.Name, redirect.AgentView, err.Error())
-		}
-
-		return handler.rewriteRpzOrRedirectFile(tx, redirect, false)
-	})
-}
-
-func (handler *DNSHandler) rewriteRpzOrRedirectFile(tx restdb.Transaction, redirect *resource.AgentRedirection, redirectTypeChanged bool) error {
-	if redirect.RedirectType == resource.LocalZoneType {
-		if err := handler.rewriteOneRPZFile(redirect.AgentView, tx); err != nil {
-			return fmt.Errorf("update redirection %s with view %s rewrite rpz file failed:%s",
-				redirect.Name, redirect.AgentView, err.Error())
-		}
-		if redirectTypeChanged {
-			if err := handler.rewriteOneRedirectFile(redirect.AgentView, tx); err != nil {
-				return fmt.Errorf("update redirection %s with view %s rewrite redirect file failed:%s",
-					redirect.Name, redirect.AgentView, err.Error())
-			}
-		}
-	} else {
-		if err := handler.rewriteOneRedirectFile(redirect.AgentView, tx); err != nil {
-			return fmt.Errorf("update redirection %s with view %s rewrite redirect file failed:%s",
-				redirect.Name, redirect.AgentView, err.Error())
-		}
-		if redirectTypeChanged {
-			if err := handler.rewriteOneRPZFile(redirect.AgentView, tx); err != nil {
-				return fmt.Errorf("update redirection %s with view %s rewrite rpz file failed:%s",
-					redirect.Name, redirect.AgentView, err.Error())
-			}
-		}
-	}
-
-	return nil
-}
-
 func (handler *DNSHandler) CreateAuthZone(req *pb.CreateAuthZoneReq) error {
 	zone := &resource.AgentAuthZone{Name: req.Name, Ttl: req.Ttl, AgentView: req.View}
 	if err := zone.Validate(); err != nil {
@@ -595,27 +488,54 @@ func (handler *DNSHandler) DeleteForwardZone(req *pb.DeleteForwardZoneReq) error
 }
 
 func (handler *DNSHandler) FlushForwardZone(req *pb.FlushForwardZoneReq) error {
+	var oldViews, oldZones map[string]struct{}
+	for _, forwardZone := range req.OldForwardZones {
+		oldViews[forwardZone.View] = struct{}{}
+		oldZones[forwardZone.Name] = struct{}{}
+	}
+
+	var views, zones []string
+	for view := range oldViews {
+		views = append(views, view)
+	}
+
+	for zone := range oldZones {
+		zones = append(zones, zone)
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString("insert into gr_agent_forward_zone (id, create_time, name, forward_style, ips, agent_view) values")
+	for _, zone := range req.NewForwardZones {
+		buf.WriteString("('")
+		id, _ := uuid.Gen()
+		buf.WriteString(id)
+		buf.WriteString("','")
+		buf.WriteString(time.Now().Format(time.RFC3339))
+		buf.WriteString("','")
+		buf.WriteString(zone.Name)
+		buf.WriteString("','")
+		buf.WriteString(zone.ForwardStyle)
+		buf.WriteString("','{")
+		buf.WriteString(strings.Join(zone.ForwardIps, ","))
+		buf.WriteString("}','")
+		buf.WriteString(zone.View)
+		buf.WriteString("')")
+		buf.WriteString(",")
+	}
+	newSql := buf.String()
+	newSql = strings.TrimSuffix(newSql, ",")
+
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		for _, forwardZone := range req.OldForwardZones {
-			if _, err := tx.Delete(resource.TableAgentForwardZone, map[string]interface{}{
-				"agent_view": forwardZone.View, "zone": forwardZone.Name,
-			}); err != nil {
-				return fmt.Errorf("delete forward zone %s with view %s from db failed:%s",
-					forwardZone.Name, forwardZone.View, err.Error())
-			}
+		if _, err := tx.Exec("delete from gr_agent_forward_zone where agent_view in ('" +
+			strings.Join(views, "','") + "') and zone in ('" + strings.Join(zones, "','") + "')",
+		); err != nil {
+			return fmt.Errorf("delete forward zone %v with view %v from db failed:%s",
+				zones, views, err.Error())
 		}
 
-		for _, zone := range req.NewForwardZones {
-			forwardZone := &resource.AgentForwardZone{
-				Name:         zone.Name,
-				ForwardStyle: zone.ForwardStyle,
-				Ips:          zone.ForwardIps,
-				AgentView:    zone.View,
-			}
-			if _, err := tx.Insert(forwardZone); err != nil {
-				return fmt.Errorf("add forward zone %s with view %s to db failed:%s",
-					zone.Name, zone.View, err.Error())
-			}
+		if _, err := tx.Exec(newSql); err != nil {
+			return fmt.Errorf("delete forward zone %v with view %v from db failed:%s",
+				zones, views, err.Error())
 		}
 
 		if err := handler.rewriteNamedViewFile(tx, false); err != nil {
@@ -627,19 +547,9 @@ func (handler *DNSHandler) FlushForwardZone(req *pb.FlushForwardZoneReq) error {
 }
 
 func (handler *DNSHandler) CreateAuthRR(req *pb.CreateAuthRRReq) error {
-	rr := &resource.AgentAuthRr{
-		Name:      req.Rr.Name,
-		RrType:    req.Rr.Type,
-		Ttl:       req.Rr.Ttl,
-		Rdata:     req.Rr.Rdata,
-		AgentView: req.Rr.View,
-		Zone:      req.Rr.Zone,
-	}
-
-	rrset, err := rr.ToRRset()
+	rr, rrset, err := pbAuthRRToAgentAuthRRAndRRset(req.Rr)
 	if err != nil {
-		return fmt.Errorf("rr %s with zone %s and view %s is invalid: %s",
-			rr.Name, rr.Zone, rr.AgentView, err.Error())
+		return err
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -665,6 +575,25 @@ func (handler *DNSHandler) CreateAuthRR(req *pb.CreateAuthRRReq) error {
 		}
 		return nil
 	})
+}
+
+func pbAuthRRToAgentAuthRRAndRRset(pbRR *pb.AuthZoneRR) (*resource.AgentAuthRr, *g53.RRset, error) {
+	rr := &resource.AgentAuthRr{
+		Name:      pbRR.Name,
+		RrType:    pbRR.Type,
+		Ttl:       pbRR.Ttl,
+		Rdata:     pbRR.Rdata,
+		AgentView: pbRR.View,
+		Zone:      pbRR.Zone,
+	}
+
+	rrset, err := rr.ToRRset()
+	if err != nil {
+		return nil, nil, fmt.Errorf("rr %s with zone %s and view %s is invalid: %s",
+			rr.Name, rr.Zone, rr.AgentView, err.Error())
+	}
+
+	return rr, rrset, nil
 }
 
 func (handler *DNSHandler) updateRR(key string, secret string, rrset *g53.RRset, zone string, isAdd bool) error {
@@ -716,33 +645,14 @@ func (handler *DNSHandler) updateRR(key string, secret string, rrset *g53.RRset,
 }
 
 func (handler *DNSHandler) UpdateAuthRR(req *pb.UpdateAuthRRReq) error {
-	oldRR := &resource.AgentAuthRr{
-		Name:      req.OldRr.Name,
-		RrType:    req.OldRr.Type,
-		Ttl:       req.OldRr.Ttl,
-		Rdata:     req.OldRr.Rdata,
-		AgentView: req.OldRr.View,
-		Zone:      req.OldRr.Zone,
+	oldRR, oldRRset, err := pbAuthRRToAgentAuthRRAndRRset(req.OldRr)
+	if err != nil {
+		return err
 	}
 
-	oldRRset, err := oldRR.ToRRset()
+	newRR, newRRset, err := pbAuthRRToAgentAuthRRAndRRset(req.NewRr)
 	if err != nil {
-		return fmt.Errorf("rr %s with zone %s and view %s is invalid: %s",
-			oldRR.Name, oldRR.Zone, oldRR.AgentView, err.Error())
-	}
-	newRR := &resource.AgentAuthRr{
-		Name:      req.NewRr.Name,
-		RrType:    req.NewRr.Type,
-		Ttl:       req.NewRr.Ttl,
-		Rdata:     req.NewRr.Rdata,
-		AgentView: req.NewRr.View,
-		Zone:      req.NewRr.Zone,
-	}
-
-	newRRset, err := newRR.ToRRset()
-	if err != nil {
-		return fmt.Errorf("rr %s with zone %s and view %s is invalid: %s",
-			newRR.Name, newRR.Zone, newRR.AgentView, err.Error())
+		return err
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -780,19 +690,9 @@ func (handler *DNSHandler) UpdateAuthRR(req *pb.UpdateAuthRRReq) error {
 }
 
 func (handler *DNSHandler) DeleteAuthRR(req *pb.DeleteAuthRRReq) error {
-	oldRR := &resource.AgentAuthRr{
-		Name:      req.Rr.Name,
-		RrType:    req.Rr.Type,
-		Ttl:       req.Rr.Ttl,
-		Rdata:     req.Rr.Rdata,
-		AgentView: req.Rr.View,
-		Zone:      req.Rr.Zone,
-	}
-
-	oldRRset, err := oldRR.ToRRset()
+	oldRR, oldRRset, err := pbAuthRRToAgentAuthRRAndRRset(req.Rr)
 	if err != nil {
-		return fmt.Errorf("rr %s with zone %s and view %s is invalid: %s",
-			oldRR.Name, oldRR.Zone, oldRR.AgentView, err.Error())
+		return err
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -831,22 +731,17 @@ func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) err
 	reqView := req.AuthZoneRrs[0].View
 	reqZone := req.AuthZoneRrs[0].Zone
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_agent_rr (create_time, name, rr_type, ttl, rdata, zone, agent_view) values")
+	buf.WriteString("insert into gr_agent_rr (id, create_time, name, rr_type, ttl, rdata, zone, agent_view) values")
 	for _, reqRr := range req.AuthZoneRrs {
-		rr := &resource.AgentAuthRr{
-			Name:      reqRr.Name,
-			RrType:    reqRr.Type,
-			Ttl:       reqRr.Ttl,
-			Rdata:     reqRr.Rdata,
-			AgentView: reqRr.View,
-			Zone:      reqRr.Zone,
-		}
-		if _, err := rr.ToRRset(); err != nil {
-			return fmt.Errorf("rr %s with zone %s and view %s is invalid: %s",
-				rr.Name, rr.Zone, rr.AgentView, err.Error())
+		rr, _, err := pbAuthRRToAgentAuthRRAndRRset(reqRr)
+		if err != nil {
+			return err
 		}
 
 		buf.WriteString("('")
+		id, _ := uuid.Gen()
+		buf.WriteString(id)
+		buf.WriteString("','")
 		buf.WriteString(time.Now().Format(time.RFC3339))
 		buf.WriteString("','")
 		buf.WriteString(rr.Name)
@@ -887,6 +782,117 @@ func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) err
 		}
 
 		return nil
+	})
+}
+
+func (handler *DNSHandler) CreateRedirection(req *pb.CreateRedirectionReq) error {
+	redirect, err := pbRedirectionToAgentRedirection(req.Redirection)
+	if err != nil {
+		return err
+	}
+
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if _, err := tx.Insert(redirect); err != nil {
+			return fmt.Errorf("insert redirection %s with view %s to db failed: %s",
+				redirect.Name, redirect.AgentView, err.Error())
+		}
+
+		return handler.rewriteRpzOrRedirectFile(tx, redirect, false)
+	})
+}
+
+func pbRedirectionToAgentRedirection(redirection *pb.Redirection) (*resource.AgentRedirection, error) {
+	redirect := &resource.AgentRedirection{
+		Name:         redirection.Name,
+		Ttl:          redirection.Ttl,
+		RrType:       redirection.RrType,
+		RedirectType: redirection.RedirectType,
+		Rdata:        redirection.Rdata,
+		AgentView:    redirection.View,
+	}
+
+	if err := redirect.Validate(); err != nil {
+		return nil, fmt.Errorf("redirection %s with view %s invalid: %s", redirect.Name, redirect.AgentView, err.Error())
+	}
+
+	return redirect, nil
+}
+
+func (handler *DNSHandler) rewriteRpzOrRedirectFile(tx restdb.Transaction, redirect *resource.AgentRedirection, redirectTypeChanged bool) error {
+	if redirect.RedirectType == resource.LocalZoneType {
+		if err := handler.rewriteOneRPZFile(redirect.AgentView, tx); err != nil {
+			return fmt.Errorf("update redirection %s with view %s rewrite rpz file failed:%s",
+				redirect.Name, redirect.AgentView, err.Error())
+		}
+		if redirectTypeChanged {
+			if err := handler.rewriteOneRedirectFile(redirect.AgentView, tx); err != nil {
+				return fmt.Errorf("update redirection %s with view %s rewrite redirect file failed:%s",
+					redirect.Name, redirect.AgentView, err.Error())
+			}
+		}
+	} else {
+		if err := handler.rewriteOneRedirectFile(redirect.AgentView, tx); err != nil {
+			return fmt.Errorf("update redirection %s with view %s rewrite redirect file failed:%s",
+				redirect.Name, redirect.AgentView, err.Error())
+		}
+		if redirectTypeChanged {
+			if err := handler.rewriteOneRPZFile(redirect.AgentView, tx); err != nil {
+				return fmt.Errorf("update redirection %s with view %s rewrite rpz file failed:%s",
+					redirect.Name, redirect.AgentView, err.Error())
+			}
+		}
+	}
+
+	return nil
+}
+
+func (handler *DNSHandler) UpdateRedirection(req *pb.UpdateRedirectionReq) error {
+	oldRedirect, err := pbRedirectionToAgentRedirection(req.OldRedirection)
+	if err != nil {
+		return err
+	}
+
+	newRedirect, err := pbRedirectionToAgentRedirection(req.NewRedirection)
+	if err != nil {
+		return err
+	}
+
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if _, err := tx.Update(resource.TableAgentRedirection, map[string]interface{}{
+			"rdata":         newRedirect.Rdata,
+			"ttl":           newRedirect.Ttl,
+			"redirect_type": newRedirect.RedirectType,
+		}, map[string]interface{}{
+			"agent_view": oldRedirect.AgentView,
+			"name":       oldRedirect.Name,
+			"rr_type":    oldRedirect.RrType,
+			"rdata":      oldRedirect.Rdata,
+		}); err != nil {
+			return err
+		}
+
+		return handler.rewriteRpzOrRedirectFile(tx, newRedirect, oldRedirect.RedirectType != newRedirect.RedirectType)
+	})
+}
+
+func (handler *DNSHandler) DeleteRedirection(req *pb.DeleteRedirectionReq) error {
+	oldRedirect, err := pbRedirectionToAgentRedirection(req.Redirection)
+	if err != nil {
+		return err
+	}
+
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if _, err := tx.Delete(resource.TableAgentRedirection, map[string]interface{}{
+			"agent_view": oldRedirect.AgentView,
+			"name":       oldRedirect.Name,
+			"rr_type":    oldRedirect.RrType,
+			"rdata":      oldRedirect.Rdata,
+		}); err != nil {
+			return fmt.Errorf("delete redirection %s with view %s failed:%s",
+				oldRedirect.Name, oldRedirect.AgentView, err.Error())
+		}
+
+		return handler.rewriteRpzOrRedirectFile(tx, oldRedirect, false)
 	})
 }
 
@@ -971,19 +977,11 @@ func (handler *DNSHandler) UpdateUrlRedirect(req *pb.UpdateUrlRedirectReq) error
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Update(resource.TableAgentUrlRedirect, map[string]interface{}{
-			"domain": urlRedirect.Domain, "url": urlRedirect.Url}, map[string]interface{}{
+			"url": urlRedirect.Url}, map[string]interface{}{
 			"domain": urlRedirect.Domain, "agent_view": urlRedirect.AgentView,
 		}); err != nil {
 			return fmt.Errorf("update urlredirect %s to db failed: %s",
 				urlRedirect.Domain, err.Error())
-		}
-
-		if _, err := tx.Update(resource.TableAgentRedirection, map[string]interface{}{
-			"name": urlRedirect.Domain}, map[string]interface{}{
-			"name": urlRedirect.Domain, "agent_view": urlRedirect.AgentView,
-		}); err != nil {
-			return fmt.Errorf("update redirection %s with view %s to db failed:%s",
-				urlRedirect.Domain, urlRedirect.AgentView, err.Error())
 		}
 
 		if err := handler.rewriteOneRPZFile(urlRedirect.AgentView, tx); err != nil {

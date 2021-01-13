@@ -169,29 +169,26 @@ message DeleteUrlRedirectReq{
 	bool is_https = 3;
 }
 
-message CreateRedirectionReq{
-	string view = 1;
-	string name = 2;
-	uint32 ttl = 3;
-	string rr_type = 4;
-	string redirect_type = 5;
-	string rdata = 6;
-}
-
-message UpdateRedirectionReq{
+message Redirection{
 	string view = 1;
 	string name = 2;
 	string rr_type = 3;
-	string redirect_type = 4;
+	uint32 ttl = 4;
 	string rdata = 5;
-	uint32 ttl = 6;
-	bool redirect_type_changed = 7;
+	string redirect_type = 6;
+}
+
+message CreateRedirectionReq{
+    Redirection redirection = 1;
+}
+
+message UpdateRedirectionReq{
+    Redirection old_redirection = 1;
+    Redirection new_redirection = 2;
 }
 
 message DeleteRedirectionReq{
-    string name = 1;
-	string redirect_type = 2;
-	string view = 3;
+    Redirection redirection = 1;
 }
 
 message CreateForwardZoneReq{
