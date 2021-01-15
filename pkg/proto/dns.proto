@@ -18,9 +18,9 @@ service AgentManager{
 	rpc CreateAuthZone(CreateAuthZoneReq) returns (DDIResponse){}
 	rpc UpdateAuthZone(UpdateAuthZoneReq) returns (DDIResponse){}
 	rpc DeleteAuthZone(DeleteAuthZoneReq) returns (DDIResponse){}
-    rpc CreateAuthZoneAuthRRs(CreateAuthZoneAuthRRsReq) returns (DDIResponse){}
-    rpc UpdateAuthZoneAXFR(UpdateAuthZoneAXFRReq) returns (DDIResponse){}
-    rpc UpdateAuthZoneIXFR(UpdateAuthZoneIXFRReq) returns (DDIResponse){}
+	rpc CreateAuthZoneAuthRRs(CreateAuthZoneAuthRRsReq) returns (DDIResponse){}
+	rpc UpdateAuthZoneAXFR(UpdateAuthZoneAXFRReq) returns (DDIResponse){}
+	rpc UpdateAuthZoneIXFR(UpdateAuthZoneIXFRReq) returns (DDIResponse){}
 
 	rpc CreateForwardZone(CreateForwardZoneReq) returns (DDIResponse){}
 	rpc UpdateForwardZone(UpdateForwardZoneReq) returns (DDIResponse){}
