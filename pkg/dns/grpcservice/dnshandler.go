@@ -368,7 +368,15 @@ func (handler *DNSHandler) CreateAuthZone(req *pb.CreateAuthZoneReq) error {
 			return fmt.Errorf("create auth zone %s with view %s failed:%s", zone.Name, zone.AgentView, err.Error())
 		}
 
-		if err := handler.createAuthZoneFile(zone); err != nil {
+		if sql, err := genBatchInsertAuthRRsSql(zone.CreateDefaultRRs()); err != nil {
+			return err
+		} else {
+			if _, err := tx.Exec(sql); err != nil {
+				return fmt.Errorf("insert default rrs failed:%s", err.Error())
+			}
+		}
+
+		if err := handler.rewriteAuthZoneFile(tx, zone); err != nil {
 			return fmt.Errorf("create auth zone %s with view %s file failed:%s",
 				zone.Name, zone.AgentView, err.Error())
 		}

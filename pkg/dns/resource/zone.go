@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	pb "github.com/linkingthing/ddi-agent/pkg/proto"
+
 	"github.com/zdnscloud/g53"
 	restdb "github.com/zdnscloud/gorest/db"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -40,12 +42,11 @@ type ZoneData struct {
 }
 
 type AuthZoneFileData struct {
-	View     string
-	Name     string
-	NSName   string
-	RootName string
-	TTL      string
-	RRs      []RR
+	View    string
+	Name    string
+	SOAData string
+	TTL     string
+	RRs     []RR
 }
 
 func (zone *AgentAuthZone) GetZoneFile() string {
@@ -82,24 +83,18 @@ func formatAddress(ipOrAddress []string) string {
 }
 
 func (zone *AgentAuthZone) ToAuthZoneFileData() AuthZoneFileData {
-	var rootName, nsName string
 	name, _ := g53.NameFromString(zone.Name)
 	var zoneName string
 	if zone.Name == "@" {
 		zoneName = name.String(true)
-		rootName = "root."
-		nsName = "ns."
 	} else {
 		zoneName = name.String(false)
-		rootName = "root." + zoneName
-		nsName = "ns." + zoneName
 	}
+
 	return AuthZoneFileData{
-		View:     zone.AgentView,
-		Name:     zoneName,
-		RootName: rootName,
-		NSName:   nsName,
-		TTL:      strconv.FormatUint(uint64(zone.Ttl), 10)}
+		View: zone.AgentView,
+		Name: zoneName,
+		TTL:  strconv.FormatUint(uint64(zone.Ttl), 10)}
 }
 
 func (zone *AgentAuthZone) Validate() error {
@@ -109,4 +104,28 @@ func (zone *AgentAuthZone) Validate() error {
 	}
 	zone.Name = name.String(true)
 	return nil
+}
+
+const soaDigitalData = " 2017031090 1800 180 1209600 10800"
+
+func (zone *AgentAuthZone) CreateDefaultRRs() []*pb.AuthZoneRR {
+	name, _ := g53.NameFromString(zone.Name)
+	var zoneName string
+	if zone.Name == "@" {
+		zoneName = name.String(true)
+	} else {
+		zoneName = name.String(false)
+	}
+
+	nsRdara := "ns." + zoneName
+	soaRData := nsRdara + " " + "root." + zoneName + soaDigitalData
+
+	nsRR := &pb.AuthZoneRR{Name: "ns", Type: "A", Ttl: 3600, Rdata: "127.0.0.1",
+		Zone: zone.Name, View: zone.AgentView}
+	nsRootRR := &pb.AuthZoneRR{Name: "@", Type: "NS", Ttl: 3600, Rdata: nsRdara,
+		Zone: zone.Name, View: zone.AgentView}
+	soaRR := &pb.AuthZoneRR{Name: "@", Type: "SOA", Ttl: 3600, Rdata: soaRData,
+		Zone: zone.Name, View: zone.AgentView}
+
+	return append([]*pb.AuthZoneRR{}, nsRR, nsRootRR, soaRR)
 }
