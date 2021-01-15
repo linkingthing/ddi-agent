@@ -120,6 +120,30 @@ func (service *DNSService) DeleteAuthZone(context context.Context, req *pb.Delet
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
+func (service *DNSService) CreateAuthZoneAuthRRs(context context.Context, req *pb.CreateAuthZoneAuthRRsReq) (*pb.DDIResponse, error) {
+	if err := service.handler.CreateAuthZoneAuthRRs(req); err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+
+	return &pb.DDIResponse{Succeed: true}, nil
+}
+
+func (service *DNSService) UpdateAuthZoneAXFR(context context.Context, req *pb.UpdateAuthZoneAXFRReq) (*pb.DDIResponse, error) {
+	if err := service.handler.UpdateAuthZoneAXFR(req); err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+
+	return &pb.DDIResponse{Succeed: true}, nil
+}
+
+func (service *DNSService) UpdateAuthZoneIXFR(context context.Context, req *pb.UpdateAuthZoneIXFRReq) (*pb.DDIResponse, error) {
+	if err := service.handler.UpdateAuthZoneIXFR(req); err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+
+	return &pb.DDIResponse{Succeed: true}, nil
+}
+
 func (service *DNSService) CreateAuthRR(context context.Context, req *pb.CreateAuthRRReq) (*pb.DDIResponse, error) {
 	if err := service.handler.CreateAuthRR(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err

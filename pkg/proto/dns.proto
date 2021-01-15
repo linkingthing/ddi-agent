@@ -125,7 +125,7 @@ message AuthZoneRR{
     string type = 4;
     uint32 ttl = 5;
     string rdata = 6;
-	string view_key = 7;
+	  string view_key = 7;
 }
 
 message BatchCreateAuthRRsReq{

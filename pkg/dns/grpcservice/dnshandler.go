@@ -444,6 +444,20 @@ func (handler *DNSHandler) DeleteAuthZone(req *pb.DeleteAuthZoneReq) error {
 	})
 }
 
+func (handler *DNSHandler) CreateAuthZoneAuthRRs(req *pb.CreateAuthZoneAuthRRsReq) error {
+	return nil
+}
+
+func (handler *DNSHandler) UpdateAuthZoneAXFR(req *pb.UpdateAuthZoneAXFRReq) error {
+
+	return nil
+}
+
+func (handler *DNSHandler) UpdateAuthZoneIXFR(req *pb.UpdateAuthZoneIXFRReq) error {
+
+	return nil
+}
+
 func (handler *DNSHandler) CreateForwardZone(req *pb.CreateForwardZoneReq) error {
 	forwardZone := &resource.AgentForwardZone{
 		Name:         req.Name,
