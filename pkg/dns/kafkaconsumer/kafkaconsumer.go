@@ -179,6 +179,48 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
+		case CreateAuthZoneAuthRRs:
+			var req pb.CreateAuthZoneAuthRRsReq
+			if err := proto.Unmarshal(message.Value, &req); err != nil {
+				log.Errorf("unmarshal CreateAuthZoneAuthRRs request failed: %s", err.Error())
+			} else {
+				ddiResponse, err := cli.CreateAuthZoneAuthRRs(context.Background(), &req)
+				if err != nil {
+					log.Errorf("grpc service exec CreateAuthZoneAuthRRs failed: %s", err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
+				}
+			}
+		case UpdateAuthZoneAXFR:
+			var req pb.UpdateAuthZoneAXFRReq
+			if err := proto.Unmarshal(message.Value, &req); err != nil {
+				log.Errorf("unmarshal UpdateAuthZoneAXFR request failed: %s", err.Error())
+			} else {
+				ddiResponse, err := cli.UpdateAuthZoneAXFR(context.Background(), &req)
+				if err != nil {
+					log.Errorf("grpc service exec UpdateAuthZoneAXFR failed: %s", err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
+				}
+			}
+		case UpdateAuthZoneIXFR:
+			var req pb.UpdateAuthZoneIXFRReq
+			if err := proto.Unmarshal(message.Value, &req); err != nil {
+				log.Errorf("unmarshal UpdateAuthZoneIXFR request failed: %s", err.Error())
+			} else {
+				ddiResponse, err := cli.UpdateAuthZoneIXFR(context.Background(), &req)
+				if err != nil {
+					log.Errorf("grpc service exec UpdateAuthZoneIXFR failed: %s", err.Error())
+				}
+				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
+					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
+					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
+				}
+			}
 		case CreateForwardZone:
 			var req pb.CreateForwardZoneReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
