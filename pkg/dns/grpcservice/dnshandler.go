@@ -430,32 +430,126 @@ func (handler *DNSHandler) DeleteAuthZone(req *pb.DeleteAuthZoneReq) error {
 				zone.Name, zone.AgentView, err.Error())
 		}
 
-		if _, err := tx.Delete(resource.TableAgentAuthRR, map[string]interface{}{
-			"zone": zone.Name, "agent_view": zone.AgentView}); err != nil {
-			return fmt.Errorf("delete zone %s with view %s rrs from db failed:%s",
+		return handler.deleteZoneAuthRR(tx, zone)
+	})
+}
+
+func (handler *DNSHandler) deleteZoneAuthRR(tx restdb.Transaction, zone *resource.AgentAuthZone) error {
+	if _, err := tx.Delete(resource.TableAgentAuthRR, map[string]interface{}{
+		"zone": zone.Name, "agent_view": zone.AgentView}); err != nil {
+		return fmt.Errorf("delete zone %s with view %s rrs from db failed:%s",
+			zone.Name, zone.AgentView, err.Error())
+	}
+
+	if err := handler.rndcDeleteZone(zone.Name, zone.AgentView); err != nil {
+		return fmt.Errorf("delete zone %s with view %s rrs from dns failed:%s",
+			zone.Name, zone.AgentView, err.Error())
+	}
+
+	return nil
+}
+
+func (handler *DNSHandler) CreateAuthZoneAuthRRs(req *pb.CreateAuthZoneAuthRRsReq) error {
+	zone := &resource.AgentAuthZone{
+		Name:      req.GetAuthZone().Name,
+		Ttl:       req.GetAuthZone().Ttl,
+		AgentView: req.GetAuthZone().View,
+		Role:      resource.AuthZoneRole(req.GetAuthZone().Role),
+		Masters:   req.GetAuthZone().Masters,
+		Slaves:    req.GetAuthZone().Slaves}
+	if err := zone.Validate(); err != nil {
+		return fmt.Errorf("auth zone name %s is invalid %s", zone.Name, err.Error())
+	}
+
+	sql, err := genBatchInsertAuthRRsSql(req.AuthZoneRrs)
+	if err != nil {
+		return err
+	}
+
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if _, err := tx.Insert(zone); err != nil {
+			return fmt.Errorf(
+				"create auth zone %s with view %s failed:%s", zone.Name, zone.AgentView, err.Error())
+		}
+
+		if _, err := tx.Exec(sql); err != nil {
+			return fmt.Errorf(
+				"create auth rrs with zone %s with view %s failed:%s", zone.Name, zone.AgentView, err.Error())
+		}
+
+		if err := handler.rewriteAuthZoneFile(tx, zone); err != nil {
+			return fmt.Errorf("create auth zone %s with view %s file failed:%s",
 				zone.Name, zone.AgentView, err.Error())
 		}
 
-		if err := handler.rndcDeleteZone(zone.Name, zone.AgentView); err != nil {
-			return fmt.Errorf("delete zone %s with view %s rrs from dns failed:%s",
-				zone.Name, zone.AgentView, err.Error())
+		if err := handler.rndcAddZone(zone); err != nil {
+			return fmt.Errorf(
+				"add auth zone %s with view %s to dns failed:%s", zone.Name, zone.AgentView, err.Error())
 		}
 		return nil
 	})
 }
 
-func (handler *DNSHandler) CreateAuthZoneAuthRRs(req *pb.CreateAuthZoneAuthRRsReq) error {
-	return nil
-}
-
 func (handler *DNSHandler) UpdateAuthZoneAXFR(req *pb.UpdateAuthZoneAXFRReq) error {
+	sql, err := genBatchInsertAuthRRsSql(req.AuthZoneRrs)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		var zones []*resource.AgentAuthZone
+		for _, authZone := range req.AuthZones {
+			zone := &resource.AgentAuthZone{
+				Name:      authZone.Name,
+				Ttl:       authZone.Ttl,
+				AgentView: authZone.View,
+				Role:      resource.AuthZoneRole(authZone.Role),
+				Masters:   authZone.Masters,
+				Slaves:    authZone.Slaves}
+			if err := zone.Validate(); err != nil {
+				return fmt.Errorf("auth zone name %s is invalid %s", zone.Name, err.Error())
+			}
+			if err := handler.deleteZoneAuthRR(tx, zone); err != nil {
+				return err
+			}
+			zones = append(zones, zone)
+		}
+
+		if _, err := tx.Exec(sql); err != nil {
+			return fmt.Errorf("create auth rrs failed:%s", err.Error())
+		}
+
+		for _, zone := range zones {
+			if err := handler.rewriteAuthZoneFile(tx, zone); err != nil {
+				return fmt.Errorf("create auth zone %s with view %s file failed:%s",
+					zone.Name, zone.AgentView, err.Error())
+			}
+
+			if err := handler.rndcAddZone(zone); err != nil {
+				return fmt.Errorf(
+					"add auth zone %s with view %s to dns failed:%s", zone.Name, zone.AgentView, err.Error())
+			}
+		}
+		return nil
+	})
 }
 
 func (handler *DNSHandler) UpdateAuthZoneIXFR(req *pb.UpdateAuthZoneIXFRReq) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		for _, oldAuthZoneRr := range req.OldAuthZoneRrs {
+			if err := handler.deleteAuthRRFromDB(tx, oldAuthZoneRr); err != nil {
+				return err
+			}
+		}
 
-	return nil
+		for _, newAuthZoneRr := range req.NewAuthZoneRrs {
+			if err := handler.addAuthRRToDB(tx, newAuthZoneRr); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (handler *DNSHandler) CreateForwardZone(req *pb.CreateForwardZoneReq) error {
@@ -598,34 +692,35 @@ func getAddForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone) st
 }
 
 func (handler *DNSHandler) CreateAuthRR(req *pb.CreateAuthRRReq) error {
-	rr, rrset, err := pbAuthRRToAgentAuthRRAndRRset(req.Rr)
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return handler.addAuthRRToDB(tx, req.Rr)
+	})
+}
+
+func (handler *DNSHandler) addAuthRRToDB(tx restdb.Transaction, authZoneRr *pb.AuthZoneRR) error {
+	rr, rrSet, err := pbAuthRRToAgentAuthRRAndRRset(authZoneRr)
 	if err != nil {
 		return err
 	}
-
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if rr.AgentView == DefaultView {
-			rrRes, err := dbhandler.GetWithTx(DefaultView, &[]*resource.AgentView{}, tx)
-			if err != nil {
-				return fmt.Errorf("create auth rr get default view from db failed:%s", err.Error())
-			}
-			req.Rr.ViewKey = rrRes.(*resource.AgentView).Key
+	if rr.AgentView == DefaultView {
+		rrRes, err := dbhandler.GetWithTx(DefaultView, &[]*resource.AgentView{}, tx)
+		if err != nil {
+			return fmt.Errorf("create auth rr get default view from db failed:%s", err.Error())
 		}
+		authZoneRr.ViewKey = rrRes.(*resource.AgentView).Key
+	}
+	if _, err := tx.Insert(rr); err != nil {
+		return fmt.Errorf("insert auth rr %s with zone %s and view %s to db failed:%s",
+			rr.Name, rr.Zone, rr.AgentView, err.Error())
+	}
+	if err := handler.updateRR("key"+rr.AgentView, authZoneRr.ViewKey, rrSet, rr.Zone, true); err != nil {
+		return fmt.Errorf("update auth rr %s to dns failed:%s", rrSet.String(), err.Error())
+	}
+	if err := handler.rndcZoneDumpJNLFile(rr.Zone, rr.AgentView); err != nil {
+		return fmt.Errorf("CreateRR rndcDumpJNLFile error:%s", err.Error())
+	}
 
-		if _, err := tx.Insert(rr); err != nil {
-			return fmt.Errorf("insert auth rr %s with zone %s and view %s to db failed:%s",
-				rr.Name, rr.Zone, rr.AgentView, err.Error())
-		}
-
-		if err := handler.updateRR("key"+rr.AgentView, req.Rr.ViewKey, rrset, rr.Zone, true); err != nil {
-			return fmt.Errorf("update auth rr %s to dns failed:%s", rrset.String(), err.Error())
-		}
-
-		if err := handler.rndcZoneDumpJNLFile(rr.Zone, rr.AgentView); err != nil {
-			return fmt.Errorf("CreateRR rndcDumpJNLFile error:%s", err.Error())
-		}
-		return nil
-	})
+	return nil
 }
 
 func pbAuthRRToAgentAuthRRAndRRset(pbRR *pb.AuthZoneRR) (*resource.AgentAuthRr, *g53.RRset, error) {
@@ -741,37 +836,37 @@ func (handler *DNSHandler) UpdateAuthRR(req *pb.UpdateAuthRRReq) error {
 }
 
 func (handler *DNSHandler) DeleteAuthRR(req *pb.DeleteAuthRRReq) error {
-	oldRR, oldRRset, err := pbAuthRRToAgentAuthRRAndRRset(req.Rr)
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return handler.deleteAuthRRFromDB(tx, req.Rr)
+	})
+}
+
+func (handler *DNSHandler) deleteAuthRRFromDB(tx restdb.Transaction, authZoneRr *pb.AuthZoneRR) error {
+	rr, rrSet, err := pbAuthRRToAgentAuthRRAndRRset(authZoneRr)
 	if err != nil {
 		return err
 	}
-
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if oldRR.AgentView == DefaultView {
-			rrRes, err := dbhandler.GetWithTx(DefaultView, &[]*resource.AgentView{}, tx)
-			if err != nil {
-				return fmt.Errorf("delete auth rr get default view from db failed:%s", err.Error())
-			}
-			req.Rr.ViewKey = rrRes.(*resource.AgentView).Key
+	if rr.AgentView == DefaultView {
+		rrRes, err := dbhandler.GetWithTx(DefaultView, &[]*resource.AgentView{}, tx)
+		if err != nil {
+			return fmt.Errorf("delete auth rr get default view from db failed:%s", err.Error())
 		}
+		authZoneRr.ViewKey = rrRes.(*resource.AgentView).Key
+	}
+	if _, err := tx.Delete(resource.TableAgentAuthRR, map[string]interface{}{
+		"agent_view": rr.AgentView, "zone": rr.Zone,
+		"name": rr.Name, "rr_type": rr.RrType, "rdata": rr.Rdata,
+	}); err != nil {
+		return fmt.Errorf("delete auth rr %s from db failed:%s", rrSet.String(), err.Error())
+	}
+	if err := handler.updateRR("key"+rr.AgentView, authZoneRr.ViewKey, rrSet, rr.Zone, false); err != nil {
+		return fmt.Errorf("delete auth rrset %s failed: %s", rrSet.String(), err.Error())
+	}
+	if err := handler.rndcZoneDumpJNLFile(rr.Zone, rr.AgentView); err != nil {
+		return fmt.Errorf("delete rrset %s from dns failed: %s", rrSet.String(), err.Error())
+	}
 
-		if _, err := tx.Delete(resource.TableAgentAuthRR, map[string]interface{}{
-			"agent_view": oldRR.AgentView, "zone": oldRR.Zone,
-			"name": oldRR.Name, "rr_type": oldRR.RrType, "rdata": oldRR.Rdata,
-		}); err != nil {
-			return fmt.Errorf("delete auth rr %s from db failed:%s", oldRRset.String(), err.Error())
-		}
-
-		if err := handler.updateRR("key"+oldRR.AgentView, req.Rr.ViewKey, oldRRset, oldRR.Zone, false); err != nil {
-			return fmt.Errorf("delete auth rrset %s failed: %s", oldRRset.String(), err.Error())
-		}
-
-		if err := handler.rndcZoneDumpJNLFile(oldRR.Zone, oldRR.AgentView); err != nil {
-			return fmt.Errorf("delete rrset %s from dns failed: %s", oldRRset.String(), err.Error())
-		}
-
-		return nil
-	})
+	return nil
 }
 
 func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) error {
@@ -781,36 +876,10 @@ func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) err
 
 	reqView := req.AuthZoneRrs[0].View
 	reqZone := req.AuthZoneRrs[0].Zone
-	var buf bytes.Buffer
-	buf.WriteString("insert into gr_agent_rr (id, create_time, name, rr_type, ttl, rdata, zone, agent_view) values")
-	for _, reqRr := range req.AuthZoneRrs {
-		rr, _, err := pbAuthRRToAgentAuthRRAndRRset(reqRr)
-		if err != nil {
-			return err
-		}
-
-		buf.WriteString("('")
-		id, _ := uuid.Gen()
-		buf.WriteString(id)
-		buf.WriteString("','")
-		buf.WriteString(time.Now().Format(time.RFC3339))
-		buf.WriteString("','")
-		buf.WriteString(rr.Name)
-		buf.WriteString("','")
-		buf.WriteString(rr.RrType)
-		buf.WriteString("','")
-		buf.WriteString(strconv.Itoa(int(rr.Ttl)))
-		buf.WriteString("','")
-		buf.WriteString(rr.Rdata)
-		buf.WriteString("','")
-		buf.WriteString(rr.Zone)
-		buf.WriteString("','")
-		buf.WriteString(rr.AgentView)
-		buf.WriteString(")")
-		buf.WriteString(",")
+	sql, err := genBatchInsertAuthRRsSql(req.AuthZoneRrs)
+	if err != nil {
+		return err
 	}
-	sql := buf.String()
-	sql = strings.TrimSuffix(sql, ",")
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var zones []*resource.AgentAuthZone
@@ -834,6 +903,39 @@ func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) err
 
 		return nil
 	})
+}
+
+func genBatchInsertAuthRRsSql(authZoneRrs []*pb.AuthZoneRR) (string, error) {
+	var buf bytes.Buffer
+	buf.WriteString("insert into gr_agent_rr (id, create_time, name, rr_type, ttl, rdata, zone, agent_view) values")
+	for _, reqRr := range authZoneRrs {
+		rr, _, err := pbAuthRRToAgentAuthRRAndRRset(reqRr)
+		if err != nil {
+			return "", err
+		}
+
+		buf.WriteString("('")
+		id, _ := uuid.Gen()
+		buf.WriteString(id)
+		buf.WriteString("','")
+		buf.WriteString(time.Now().Format(time.RFC3339))
+		buf.WriteString("','")
+		buf.WriteString(rr.Name)
+		buf.WriteString("','")
+		buf.WriteString(rr.RrType)
+		buf.WriteString("','")
+		buf.WriteString(strconv.Itoa(int(rr.Ttl)))
+		buf.WriteString("','")
+		buf.WriteString(rr.Rdata)
+		buf.WriteString("','")
+		buf.WriteString(rr.Zone)
+		buf.WriteString("','")
+		buf.WriteString(rr.AgentView)
+		buf.WriteString(")")
+		buf.WriteString(",")
+	}
+
+	return strings.TrimSuffix(buf.String(), ","), nil
 }
 
 func (handler *DNSHandler) CreateRedirection(req *pb.CreateRedirectionReq) error {
