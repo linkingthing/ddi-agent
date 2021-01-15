@@ -73,8 +73,8 @@ func formatAddress(ipOrAddress []string) string {
 	for _, address := range ipOrAddress {
 		if net.ParseIP(address) != nil {
 			addresses = append(addresses, address)
-		} else if address_ := strings.Split(address, ":"); len(address_) == 2 {
-			addresses = append(addresses, address_[0]+" port "+address_[1])
+		} else if addr, err := net.ResolveTCPAddr("tcp", address); err == nil {
+			addresses = append(addresses, addr.IP.String()+" port "+strconv.Itoa(addr.Port))
 		}
 	}
 
