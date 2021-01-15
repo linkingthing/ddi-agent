@@ -14,9 +14,12 @@ const (
 	UpdateView = "update_view"
 	DeleteView = "delete_view"
 
-	CreateAuthZone = "create_authzone"
-	UpdateAuthZone = "update_authzone"
-	DeleteAuthZone = "delete_authzone"
+	CreateAuthZone        = "create_authzone"
+	UpdateAuthZone        = "update_authzone"
+	DeleteAuthZone        = "delete_authzone"
+	CreateAuthZoneAuthRRs = "create_authzoneauthrrs"
+	UpdateAuthZoneAXFR    = "update_authzoneaxfr"
+	UpdateAuthZoneIXFR    = "update_authzoneixfr"
 
 	CreateForwardZone = "create_forwardzone"
 	UpdateForwardZone = "update_forwardzone"
