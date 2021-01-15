@@ -566,7 +566,7 @@ func getDeleteForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone)
 	}
 
 	return "delete from gr_agent_forward_zone where agent_view in ('" +
-		strings.Join(views, "','") + "') and zone in ('" + strings.Join(zones, "','") + "')"
+		strings.Join(views, "','") + "') and zone in ('" + strings.Join(zones, "','") + "');"
 }
 
 func getAddForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone) string {
@@ -594,7 +594,7 @@ func getAddForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone) st
 		buf.WriteString(",")
 	}
 
-	return strings.TrimSuffix(buf.String(), ",")
+	return strings.TrimSuffix(buf.String(), ",") + ";"
 }
 
 func (handler *DNSHandler) CreateAuthRR(req *pb.CreateAuthRRReq) error {
@@ -782,7 +782,7 @@ func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) err
 	reqView := req.AuthZoneRrs[0].View
 	reqZone := req.AuthZoneRrs[0].Zone
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_agent_rr (id, create_time, name, rr_type, ttl, rdata, zone, agent_view) values")
+	buf.WriteString("insert into gr_agent_rr (id, create_time, name, rr_type, ttl, rdata, zone, agent_view) values ")
 	for _, reqRr := range req.AuthZoneRrs {
 		rr, _, err := pbAuthRRToAgentAuthRRAndRRset(reqRr)
 		if err != nil {
@@ -809,8 +809,7 @@ func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) err
 		buf.WriteString(")")
 		buf.WriteString(",")
 	}
-	sql := buf.String()
-	sql = strings.TrimSuffix(sql, ",")
+	sql := strings.TrimSuffix(buf.String(), ",") + ";"
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var zones []*resource.AgentAuthZone
