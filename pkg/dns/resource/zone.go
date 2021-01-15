@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"net"
 	"strconv"
 	"strings"
 
@@ -54,17 +55,30 @@ func (zone *AgentAuthZone) GetZoneFile() string {
 func (zone *AgentAuthZone) ToZoneData() ZoneData {
 	var masters, slaves string
 	if zone.Role == AuthZoneRoleMaster {
-		if len(zone.Slaves) > 0 {
-			slaves = strings.Join(zone.Slaves, ";") + ";"
-		}
+		slaves = formatAddress(zone.Slaves)
 	} else if zone.Role == AuthZoneRoleSlave {
-		if len(zone.Masters) > 0 {
-			masters = strings.Join(zone.Masters, ";") + ";"
-		}
+		masters = formatAddress(zone.Masters)
 	}
 
 	return ZoneData{Name: zone.Name, ZoneFile: zone.GetZoneFile(),
 		Role: string(zone.Role), Masters: masters, Slaves: slaves}
+}
+
+func formatAddress(ipOrAddress []string) string {
+	if len(ipOrAddress) == 0 {
+		return ""
+	}
+
+	var addresses []string
+	for _, address := range ipOrAddress {
+		if net.ParseIP(address) != nil {
+			addresses = append(addresses, address)
+		} else if address_ := strings.Split(address, ":"); len(address_) == 2 {
+			addresses = append(addresses, address_[0]+" port "+address_[1])
+		}
+	}
+
+	return strings.Join(addresses, ";") + ";"
 }
 
 func (zone *AgentAuthZone) ToAuthZoneFileData() AuthZoneFileData {
