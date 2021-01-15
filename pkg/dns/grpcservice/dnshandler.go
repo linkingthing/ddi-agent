@@ -328,7 +328,7 @@ func (handler *DNSHandler) DeleteView(req *pb.DeleteViewReq) error {
 		}
 
 		if err := removeFiles(
-			filepath.Join(handler.dnsConfPath), req.Id+"#", zoneSuffix); err != nil {
+			filepath.Join(handler.dnsConfPath), req.Id+"#", ""); err != nil {
 			return fmt.Errorf("DeleteView zonefile in %s err: %s",
 				filepath.Join(handler.dnsConfPath, "redirection"), err.Error())
 		}
