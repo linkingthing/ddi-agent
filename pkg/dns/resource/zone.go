@@ -84,18 +84,19 @@ func formatAddress(ipOrAddress []string) string {
 func (zone *AgentAuthZone) ToAuthZoneFileData() AuthZoneFileData {
 	var rootName, nsName string
 	name, _ := g53.NameFromString(zone.Name)
+	var zoneName string
 	if zone.Name == "@" {
-		zone.Name = name.String(true)
+		zoneName = name.String(true)
 		rootName = "root."
 		nsName = "ns."
 	} else {
-		zone.Name = name.String(false)
-		rootName = "root." + zone.Name
-		nsName = "ns." + zone.Name
+		zoneName = name.String(false)
+		rootName = "root." + zoneName
+		nsName = "ns." + zoneName
 	}
 	return AuthZoneFileData{
 		View:     zone.AgentView,
-		Name:     zone.Name,
+		Name:     zoneName,
 		RootName: rootName,
 		NSName:   nsName,
 		TTL:      strconv.FormatUint(uint64(zone.Ttl), 10)}
