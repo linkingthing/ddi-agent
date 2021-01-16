@@ -1285,46 +1285,29 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 
 func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32, tx restdb.Transaction) error {
 	var rrs []*resource.AgentAuthRr
+	var zones []*resource.AgentAuthZone
 	if err := tx.Fill(nil, &rrs); err != nil {
 		return fmt.Errorf("update all rrs ttl when get rrs from db falied:%s", err.Error())
+	}
+
+	if err := tx.Fill(nil, &zones); err != nil {
+		return fmt.Errorf("update all rrs ttl when get zones from db falied:%s", err.Error())
 	}
 
 	if _, err := tx.Exec("update gr_agent_auth_rr set ttl = '" + strconv.FormatUint(uint64(ttl), 10) + "'"); err != nil {
 		return fmt.Errorf("update rrs ttl to db failed:%s", err.Error())
 	}
 
-	for _, rr := range rrs {
-		viewRes, err := dbhandler.GetWithTx(rr.AgentView, &[]*resource.AgentView{}, tx)
-		if err != nil {
-			return fmt.Errorf("get view %s falied:%s", rr.AgentView, err.Error())
+	for _, zone := range zones {
+		if err := handler.rewriteAuthZoneFile(tx, zone); err != nil {
+			return fmt.Errorf("rewrite auth zone %s with view %s file failed:%s",
+				zone.Name, zone.AgentView, err.Error())
 		}
 
-		var zones []*resource.AgentAuthZone
-		if err := tx.Fill(map[string]interface{}{"agent_view": rr.AgentView, "name": rr.Zone}, &zones); err != nil {
-			return fmt.Errorf("get zone %s with view %s falied:%s", rr.Zone, rr.AgentView, err.Error())
-		} else if len(zones) != 1 {
-			return fmt.Errorf("no found zone %s with view %s", rr.Zone, rr.AgentView)
+		if err := handler.rndcModifyZone(zone); err != nil {
+			return fmt.Errorf("update auth zone %s with view %s to dns failed:%s",
+				zone.Name, zone.AgentView, err.Error())
 		}
-
-		view := viewRes.(*resource.AgentView)
-		zone := zones[0]
-
-		rrset, err := rr.ToRRset()
-		if err != nil {
-			return fmt.Errorf("rr %s to rrset failed: %s", rr.Name, err.Error())
-		}
-		if err := handler.updateRR("key"+view.Name, view.Key, rrset, zone.Name, false); err != nil {
-			return fmt.Errorf("delete rrset %s failed:%s", rrset.String(), err.Error())
-		}
-
-		rrset.Ttl = g53.RRTTL(ttl)
-		if err := handler.updateRR("key"+view.Name, view.Key, rrset, zone.Name, true); err != nil {
-			return fmt.Errorf("add rrset %s error:%s", rrset.String(), err.Error())
-		}
-	}
-
-	if err := handler.rndcDumpJNLFile(); err != nil {
-		return fmt.Errorf("update all rrs ttl to dns file failed:%s", err.Error())
 	}
 
 	return nil
