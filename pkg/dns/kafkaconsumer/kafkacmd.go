@@ -35,7 +35,7 @@ const (
 	UpdateUrlRedirect = "update_urlredirect"
 	DeleteUrlRedirect = "delete_urlredirect"
 
-	UpdateGlobalConfig = "update_globalconfig"
+	UpdateGlobalConfig = "update_dnsglobalconfig"
 
 	UploadLog = "upload_dnslog"
 )
