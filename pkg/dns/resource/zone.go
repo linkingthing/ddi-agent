@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
-
 	"github.com/zdnscloud/g53"
 	restdb "github.com/zdnscloud/gorest/db"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -104,28 +102,4 @@ func (zone *AgentAuthZone) Validate() error {
 	}
 	zone.Name = name.String(true)
 	return nil
-}
-
-const soaDigitalData = " 2017031090 1800 180 1209600 10800"
-
-func (zone *AgentAuthZone) CreateDefaultRRs() []*pb.AuthZoneRR {
-	name, _ := g53.NameFromString(zone.Name)
-	var zoneName string
-	if zone.Name == "@" {
-		zoneName = name.String(true)
-	} else {
-		zoneName = name.String(false)
-	}
-
-	nsRdara := "ns." + zoneName
-	soaRData := nsRdara + " " + "root." + zoneName + soaDigitalData
-
-	nsRR := &pb.AuthZoneRR{Name: "ns", Type: "A", Ttl: 3600, Rdata: "127.0.0.1",
-		Zone: zone.Name, View: zone.AgentView}
-	nsRootRR := &pb.AuthZoneRR{Name: "@", Type: "NS", Ttl: 3600, Rdata: nsRdara,
-		Zone: zone.Name, View: zone.AgentView}
-	soaRR := &pb.AuthZoneRR{Name: "@", Type: "SOA", Ttl: 3600, Rdata: soaRData,
-		Zone: zone.Name, View: zone.AgentView}
-
-	return append([]*pb.AuthZoneRR{}, nsRR, nsRootRR, soaRR)
 }
