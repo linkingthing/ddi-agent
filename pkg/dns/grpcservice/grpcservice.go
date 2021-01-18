@@ -104,48 +104,80 @@ func (service *DNSService) DeleteView(context context.Context, req *pb.DeleteVie
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) CreateZone(context context.Context, req *pb.CreateZoneReq) (*pb.DDIResponse, error) {
-	if err := service.handler.CreateZone(req); err != nil {
+func (service *DNSService) CreateAuthZone(context context.Context, req *pb.CreateAuthZoneReq) (*pb.DDIResponse, error) {
+	if err := service.handler.CreateAuthZone(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) UpdateZone(context context.Context, req *pb.UpdateZoneReq) (*pb.DDIResponse, error) {
-	if err := service.handler.UpdateZone(req); err != nil {
+func (service *DNSService) UpdateAuthZone(context context.Context, req *pb.UpdateAuthZoneReq) (*pb.DDIResponse, error) {
+	if err := service.handler.UpdateAuthZone(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) DeleteZone(context context.Context, req *pb.DeleteZoneReq) (*pb.DDIResponse, error) {
-	if err := service.handler.DeleteZone(req); err != nil {
+func (service *DNSService) DeleteAuthZone(context context.Context, req *pb.DeleteAuthZoneReq) (*pb.DDIResponse, error) {
+	if err := service.handler.DeleteAuthZone(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) CreateRR(context context.Context, req *pb.CreateRRReq) (*pb.DDIResponse, error) {
-	if err := service.handler.CreateRR(req); err != nil {
+func (service *DNSService) CreateAuthZoneAuthRRs(context context.Context, req *pb.CreateAuthZoneAuthRRsReq) (*pb.DDIResponse, error) {
+	if err := service.handler.CreateAuthZoneAuthRRs(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) UpdateRR(context context.Context, req *pb.UpdateRRReq) (*pb.DDIResponse, error) {
-	if err := service.handler.UpdateRR(req); err != nil {
+func (service *DNSService) UpdateAuthZoneAXFR(context context.Context, req *pb.UpdateAuthZoneAXFRReq) (*pb.DDIResponse, error) {
+	if err := service.handler.UpdateAuthZoneAXFR(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) DeleteRR(context context.Context, req *pb.DeleteRRReq) (*pb.DDIResponse, error) {
-	if err := service.handler.DeleteRR(req); err != nil {
+func (service *DNSService) UpdateAuthZoneIXFR(context context.Context, req *pb.UpdateAuthZoneIXFRReq) (*pb.DDIResponse, error) {
+	if err := service.handler.UpdateAuthZoneIXFR(req); err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+
+	return &pb.DDIResponse{Succeed: true}, nil
+}
+
+func (service *DNSService) CreateAuthRR(context context.Context, req *pb.CreateAuthRRReq) (*pb.DDIResponse, error) {
+	if err := service.handler.CreateAuthRR(req); err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+
+	return &pb.DDIResponse{Succeed: true}, nil
+}
+
+func (service *DNSService) UpdateAuthRR(context context.Context, req *pb.UpdateAuthRRReq) (*pb.DDIResponse, error) {
+	if err := service.handler.UpdateAuthRR(req); err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+
+	return &pb.DDIResponse{Succeed: true}, nil
+}
+
+func (service *DNSService) DeleteAuthRR(context context.Context, req *pb.DeleteAuthRRReq) (*pb.DDIResponse, error) {
+	if err := service.handler.DeleteAuthRR(req); err != nil {
+		return &pb.DDIResponse{Succeed: false}, err
+	}
+
+	return &pb.DDIResponse{Succeed: true}, nil
+}
+
+func (service *DNSService) BatchCreateAuthRRs(context context.Context, req *pb.BatchCreateAuthRRsReq) (*pb.DDIResponse, error) {
+	if err := service.handler.BatchCreateAuthRRs(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 

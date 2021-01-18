@@ -16,18 +16,22 @@ service AgentManager{
 	rpc UpdateView(UpdateViewReq) returns (DDIResponse){}
 	rpc DeleteView(DeleteViewReq) returns (DDIResponse){}
 
-	rpc CreateZone(CreateZoneReq) returns (DDIResponse){}
-	rpc UpdateZone(UpdateZoneReq) returns (DDIResponse){}
-	rpc DeleteZone(DeleteZoneReq) returns (DDIResponse){}
+	rpc CreateAuthZone(CreateAuthZoneReq) returns (DDIResponse){}
+	rpc UpdateAuthZone(UpdateAuthZoneReq) returns (DDIResponse){}
+	rpc DeleteAuthZone(DeleteAuthZoneReq) returns (DDIResponse){}
+	rpc CreateAuthZoneAuthRRs(CreateAuthZoneAuthRRsReq) returns (DDIResponse){}
+	rpc UpdateAuthZoneAXFR(UpdateAuthZoneAXFRReq) returns (DDIResponse){}
+	rpc UpdateAuthZoneIXFR(UpdateAuthZoneIXFRReq) returns (DDIResponse){}
 
 	rpc CreateForwardZone(CreateForwardZoneReq) returns (DDIResponse){}
 	rpc UpdateForwardZone(UpdateForwardZoneReq) returns (DDIResponse){}
 	rpc DeleteForwardZone(DeleteForwardZoneReq) returns (DDIResponse){}
 	rpc FlushForwardZone(FlushForwardZoneReq) returns (DDIResponse){}
 
-	rpc CreateRR(CreateRRReq) returns (DDIResponse){}
-	rpc UpdateRR(UpdateRRReq) returns (DDIResponse){}
-	rpc DeleteRR(DeleteRRReq) returns (DDIResponse){}
+	rpc CreateAuthRR(CreateAuthRRReq) returns (DDIResponse){}
+	rpc UpdateAuthRR(UpdateAuthRRReq) returns (DDIResponse){}
+	rpc DeleteAuthRR(DeleteAuthRRReq) returns (DDIResponse){}
+	rpc BatchCreateAuthRRs(BatchCreateAuthRRsReq) returns (DDIResponse){}
 
 	rpc CreateRedirection(CreateRedirectionReq) returns (DDIResponse){}
 	rpc UpdateRedirection(UpdateRedirectionReq) returns (DDIResponse){}
@@ -81,60 +85,71 @@ message DeleteAclReq{
 	string id = 1;
 }
 
-message CreateZoneReq{
-	string view_id = 1;
-	string zone_id = 2;
-	string zone_name = 3;
-	string zone_file_name = 4;
-	uint32 ttl = 5;
-}
-
-message UpdateZoneReq{
-	string id = 1;
-	uint32 ttl = 2;
-	string name = 3;
-	string zone_file_name = 4;
-	string view = 5;
-}
-
-message DeleteZoneReq{
-	string id = 1;
+message AuthZone {
+	string view = 1;
 	string name = 2;
-	string view = 3;
+	uint32 ttl = 3;
+	string role = 4;
+	repeated string masters = 5;
+	repeated string slaves = 6;
 }
 
-message CreateRRReq{
-	string id = 1;
+message CreateAuthZoneReq{
+		AuthZone authZone = 1;
+}
+
+message UpdateAuthZoneReq{
+	AuthZone authZone = 1;
+}
+
+message DeleteAuthZoneReq{
+	string view = 1;
 	string name = 2;
-	string zone_id = 3;
-	string view_id = 4;
-	string data_type = 5;
-	string r_data = 6;
-	uint32 ttl = 7;
-	string view_key = 8;
-	string zone_name = 9;
 }
 
-message UpdateRRReq{
-	string id = 1;
-	string data_type = 2;
-	string r_data = 3;
-	uint32 ttl = 4;
-	string view_name = 5;
-	string view_key = 6;
-	string zone_name = 7;
+//create slave zone
+message CreateAuthZoneAuthRRsReq{
+    AuthZone authZone = 1;
+    repeated AuthZoneRR auth_zone_rrs = 2;
 }
 
-message DeleteRRReq{
-	string id = 1;
-	string name = 2;
-	string zone_id = 3;
-	string data_type = 4;
-	string r_data = 5;
-	uint32 ttl = 6;
-	string view_name = 7;
-	string view_key = 8;
-	string zone_name = 9;
+//update zone to slave
+message UpdateAuthZoneAXFRReq{
+    repeated AuthZone authZones = 1;
+    repeated AuthZoneRR auth_zone_rrs = 2;
+}
+
+//handle notify
+message UpdateAuthZoneIXFRReq{
+    repeated AuthZoneRR old_auth_zone_rrs = 1;
+    repeated AuthZoneRR new_auth_zone_rrs = 2;
+}
+
+message AuthZoneRR{
+    string view = 1;
+    string zone = 2;
+    string name = 3;
+    string type = 4;
+    uint32 ttl = 5;
+    string rdata = 6;
+	  string view_key = 7;
+}
+
+message BatchCreateAuthRRsReq{
+    repeated AuthZoneRR auth_zone_rrs = 1;
+}
+
+message CreateAuthRRReq{
+    AuthZoneRR rr = 1;
+}
+
+message UpdateAuthRRReq{
+    AuthZoneRR old_rr = 1;
+    AuthZoneRR new_rr = 2;
+}
+
+message DeleteAuthRRReq{
+    AuthZoneRR rr = 1;
 }
 
 message CreateViewReq{
@@ -168,88 +183,78 @@ message DeleteViewReq{
 }
 
 message CreateUrlRedirectReq{
-	string id = 1;
+	string view = 1;
 	string domain = 2;
 	string url = 3;
-	string view_id = 4;
-	bool is_https = 5;
-	bytes key = 6;
-	bytes crt = 7;
+	bool is_https = 4;
+	bytes key = 5;
+	bytes crt = 6;
 }
 
 message UpdateUrlRedirectReq{
-	string id = 1;
+	string view = 1;
 	string domain = 2;
 	string url = 3;
-	string view = 4;
-	bool is_https = 5;
-}
-
-message DeleteUrlRedirectReq{
-	string id = 1;
-	string domain = 2;
-	string view = 3;
 	bool is_https = 4;
 }
 
-message CreateRedirectionReq{
-	string id = 1;
+message DeleteUrlRedirectReq{
+	string view = 1;
+	string domain = 2;
+	bool is_https = 3;
+}
+
+message Redirection{
+	string view = 1;
 	string name = 2;
-	uint32 ttl = 3;
-	string data_type = 4;
-	string redirect_type = 5;
-	string r_data = 6;
-	string view_id = 7;
+	string rr_type = 3;
+	uint32 ttl = 4;
+	string rdata = 5;
+	string redirect_type = 6;
+}
+
+message CreateRedirectionReq{
+    Redirection redirection = 1;
 }
 
 message UpdateRedirectionReq{
-	string id = 1;
-	string data_type = 2;
-	string redirect_type = 3;
-	string r_data = 4;
-	uint32 ttl = 5;
-	bool redirect_type_changed = 6;
-	string view = 7;
-	string name = 8;
+    Redirection old_redirection = 1;
+    Redirection new_redirection = 2;
 }
 
 message DeleteRedirectionReq{
-	string id = 1;
-	string redirect_type = 2;
-	string view = 3;
+    Redirection redirection = 1;
 }
 
 message CreateForwardZoneReq{
-	string id = 1;
+	string view = 1;
 	string name = 2;
-	string forward_type = 3;
+	string forward_style = 3;
 	repeated string addresses = 4;
-	string view_id = 5;
 }
 
 message UpdateForwardZoneReq{
-	string id = 1;
-	string forward_type = 2;
-	repeated string addresses = 3;
+	string view = 1;
+	string name = 2;
+	string forward_style= 3;
+	repeated string addresses = 4;
 }
 
 message DeleteForwardZoneReq{
-	string id = 1;
+	string view = 1;
+	string name = 2;
 }
 
 message FlushForwardZoneReq {
-    message forwardZones {
-				message forwardZone{
-					string id = 1;
-					string domain = 2;
-					string forward_type = 3;
-					repeated string addresses = 4;
-					string view = 5;
-				}
-        repeated forwardZone forward_zones = 1;
+    message forwardZone{
+        string view = 1;
+        string name = 2;
+        string forward_style= 3;
+        repeated string forward_ips = 4;
     }
-    map<string, forwardZones> new_view_forward_zones = 1;
-    map<string, forwardZones> old_view_forward_zones = 2;
+
+    repeated forwardZone new_forward_zones = 1;
+    repeated forwardZone old_forward_zones = 2;
 }
 
 message UploadLogReq{

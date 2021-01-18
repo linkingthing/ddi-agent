@@ -1,62 +1,131 @@
 package resource
 
 import (
+	"net"
 	"strconv"
+	"strings"
+
+	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 
 	"github.com/zdnscloud/g53"
-
 	restdb "github.com/zdnscloud/gorest/db"
-	"github.com/zdnscloud/gorest/resource"
+	restresource "github.com/zdnscloud/gorest/resource"
 )
 
-var TableZone = restdb.ResourceDBType(&AgentZone{})
+var TableAgentAuthZone = restdb.ResourceDBType(&AgentAuthZone{})
 
-type AgentZone struct {
-	resource.ResourceBase `json:",inline"`
-	Name                  string `json:"name" rest:"required=true,minLen=1,maxLen=254" db:"uk"`
-	Ttl                   uint   `json:"ttl" rest:"required=true, min=0,max=3000000"`
-	ZoneFile              string `json:"-"`
-	AgentView             string `json:"-" db:"ownby,uk"`
+type AgentAuthZone struct {
+	restresource.ResourceBase `json:",inline"`
+	Name                      string       `json:"name" db:"uk"`
+	Ttl                       uint32       `json:"ttl"`
+	Role                      AuthZoneRole `json:"role"`
+	Slaves                    []string     `json:"slaves"`
+	Masters                   []string     `json:"masters"`
+	AgentView                 string       `json:"-" db:"ownby,uk"`
 }
+
+type AuthZoneRole string
+
+const (
+	AuthZoneRoleMaster AuthZoneRole = "master"
+	AuthZoneRoleSlave  AuthZoneRole = "slave"
+)
 
 type ZoneData struct {
-	Name        string
-	ZoneFile    string
-	ForwardType string
-	IPs         []string
+	Name         string
+	Role         string
+	Slaves       string
+	Masters      string
+	ZoneFile     string
+	ForwardStyle string
+	IPs          []string
 }
 
-type ZoneFileData struct {
-	ViewName string
-	Name     string
-	NsName   string
-	RootName string
-	ZoneFile string
-	TTL      string
-	RRs      []RRData
+type AuthZoneFileData struct {
+	View    string
+	Name    string
+	SOAData string
+	TTL     string
+	RRs     []RR
 }
 
-func (zone *AgentZone) ToZoneData() ZoneData {
-	return ZoneData{Name: zone.Name, ZoneFile: zone.ZoneFile}
+func (zone *AgentAuthZone) GetZoneFile() string {
+	return zone.AgentView + "#" + zone.Name + ".zone"
 }
 
-func (zone *AgentZone) ToZoneFileData() ZoneFileData {
-	var rootName, nsName string
-	name, _ := g53.NameFromString(zone.Name)
-	if zone.Name == "@" {
-		zone.Name = name.String(true)
-		rootName = "root."
-		nsName = "ns."
-	} else {
-		zone.Name = name.String(false)
-		rootName = "root." + zone.Name
-		nsName = "ns." + zone.Name
+func (zone *AgentAuthZone) ToZoneData() ZoneData {
+	var masters, slaves string
+	if zone.Role == AuthZoneRoleMaster {
+		slaves = formatAddress(zone.Slaves)
+	} else if zone.Role == AuthZoneRoleSlave {
+		masters = formatAddress(zone.Masters)
 	}
-	return ZoneFileData{
-		ViewName: zone.AgentView,
-		Name:     zone.Name,
-		RootName: rootName,
-		NsName:   nsName,
-		ZoneFile: zone.ZoneFile,
-		TTL:      strconv.FormatUint(uint64(zone.Ttl), 10)}
+
+	return ZoneData{Name: zone.Name, ZoneFile: zone.GetZoneFile(),
+		Role: string(zone.Role), Masters: masters, Slaves: slaves}
+}
+
+func formatAddress(ipOrAddress []string) string {
+	if len(ipOrAddress) == 0 {
+		return ""
+	}
+
+	var addresses []string
+	for _, address := range ipOrAddress {
+		if net.ParseIP(address) != nil {
+			addresses = append(addresses, address)
+		} else if addr, err := net.ResolveTCPAddr("tcp", address); err == nil {
+			addresses = append(addresses, addr.IP.String()+" port "+strconv.Itoa(addr.Port))
+		}
+	}
+
+	return strings.Join(addresses, ";") + ";"
+}
+
+func (zone *AgentAuthZone) ToAuthZoneFileData() AuthZoneFileData {
+	name, _ := g53.NameFromString(zone.Name)
+	var zoneName string
+	if zone.Name == "@" {
+		zoneName = name.String(true)
+	} else {
+		zoneName = name.String(false)
+	}
+
+	return AuthZoneFileData{
+		View: zone.AgentView,
+		Name: zoneName,
+		TTL:  strconv.FormatUint(uint64(zone.Ttl), 10)}
+}
+
+func (zone *AgentAuthZone) Validate() error {
+	name, err := g53.NameFromString(zone.Name)
+	if err != nil {
+		return err
+	}
+	zone.Name = name.String(true)
+	return nil
+}
+
+const soaDigitalData = " 2017031090 1800 180 1209600 10800"
+
+func (zone *AgentAuthZone) CreateDefaultRRs() []*pb.AuthZoneRR {
+	name, _ := g53.NameFromString(zone.Name)
+	var zoneName string
+	if zone.Name == "@" {
+		zoneName = name.String(true)
+	} else {
+		zoneName = name.String(false)
+	}
+
+	nsRdara := "ns." + zoneName
+	soaRData := nsRdara + " " + "root." + zoneName + soaDigitalData
+
+	nsRR := &pb.AuthZoneRR{Name: "ns", Type: "A", Ttl: 3600, Rdata: "127.0.0.1",
+		Zone: zone.Name, View: zone.AgentView}
+	nsRootRR := &pb.AuthZoneRR{Name: "@", Type: "NS", Ttl: 3600, Rdata: nsRdara,
+		Zone: zone.Name, View: zone.AgentView}
+	soaRR := &pb.AuthZoneRR{Name: "@", Type: "SOA", Ttl: 3600, Rdata: soaRData,
+		Zone: zone.Name, View: zone.AgentView}
+
+	return append([]*pb.AuthZoneRR{}, nsRR, nsRootRR, soaRR)
 }

@@ -8,12 +8,12 @@ import (
 	"github.com/zdnscloud/gorest/resource"
 )
 
-var TableForwardZone = restdb.ResourceDBType(&AgentForwardZone{})
+var TableAgentForwardZone = restdb.ResourceDBType(&AgentForwardZone{})
 
 type AgentForwardZone struct {
 	resource.ResourceBase `json:",inline"`
 	Name                  string   `json:"name" rest:"required=true,minLen=1,maxLen=254" db:"uk"`
-	ForwardType           string   `json:"forwardtype" rest:"required=true,options=only|first"`
+	ForwardStyle          string   `json:"forwardStyle" rest:"required=true,options=only|first"`
 	Addresses             []string `json:"addresses"`
 	AgentView             string   `json:"-" db:"ownby,uk"`
 }
@@ -30,5 +30,5 @@ func (forwardZone AgentForwardZone) ToZoneData() (ZoneData, error) {
 		}
 	}
 
-	return ZoneData{Name: forwardZone.Name, ForwardType: forwardZone.ForwardType, IPs: addresses}, nil
+	return ZoneData{Name: forwardZone.Name, ForwardStyle: forwardZone.ForwardStyle, IPs: addresses}, nil
 }
