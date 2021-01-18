@@ -61,7 +61,10 @@ func (rr *AgentAuthRr) ToRRset() (*g53.RRset, error) {
 	if err != nil {
 		return nil, fmt.Errorf("rr %s zone %s is invalid: %s", rr.Name, rr.Zone, err.Error())
 	}
-	rr.Zone = zoneName.String(true)
+
+	if zoneName.IsRoot() == false {
+		rr.Zone = zoneName.String(true)
+	}
 
 	name, err := g53.NameFromString(rr.Name)
 	if err != nil {
