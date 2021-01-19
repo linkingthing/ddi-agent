@@ -1248,6 +1248,8 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 			update["recursion_enable"] = req.RecursionEnable
 		case resource.DnsConfigUpdateModelRecursive:
 			update["recursive_clients"] = req.RecursiveClients
+		case resource.DnsConfigUpdateModelTransferPort:
+			update["transfer_port"] = req.TransferPort
 		default:
 			return fmt.Errorf("unknown updateState")
 		}

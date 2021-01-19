@@ -60,7 +60,8 @@ message UpdateGlobalConfigReq{
 	repeated string blackholes = 5;
 	bool recursion_enable = 6;
 	uint32 recursive_clients = 7;
-	string update_model = 8;
+	uint32 transfer_port = 8;
+	string update_model = 9;
 }
 
 message Acl{

@@ -3,6 +3,10 @@ options {
 	pid-file "named.pid";
 	allow-new-zones yes;
 	check-names master ignore;
+	listen-on {any;};
+    listen-on-v6 {any;};{{if .TransferPort}}
+    listen-on port {{.TransferPort}} {any;};
+    listen-on-v6 port {{.TransferPort}} {any;};{{end}}
 	allow-query {any;};
 	{{if .DnssecEnable}}dnssec-enable yes;{{else}}dnssec-enable no;{{end}}
 	dnssec-validation no;

@@ -34,6 +34,7 @@ type NamedOption struct {
 	Blackholes       []string
 	RecursionEnable  bool
 	RecursiveClients uint32
+	TransferPort     uint32
 }
 
 type NamedViews struct {
@@ -433,6 +434,9 @@ func (handler *DNSHandler) initNamedOptionsFile(tx restdb.Transaction) error {
 	namedOptionData.Blackholes = globalConfig.Blackholes
 	namedOptionData.RecursionEnable = globalConfig.RecursionEnable
 	namedOptionData.RecursiveClients = globalConfig.RecursiveClients
+	if globalConfig.TransferPort != resource.DNSDefaultPort {
+		namedOptionData.TransferPort = globalConfig.TransferPort
+	}
 
 	if err := handler.flushTemplateFiles(namedOptionsTpl,
 		handler.namedOptionPath, namedOptionData); err != nil {
@@ -461,6 +465,9 @@ func (handler *DNSHandler) rewriteNamedOptionsFile(tx restdb.Transaction) error 
 	namedOptionData.Blackholes = globalConfig.Blackholes
 	namedOptionData.RecursionEnable = globalConfig.RecursionEnable
 	namedOptionData.RecursiveClients = globalConfig.RecursiveClients
+	if globalConfig.TransferPort != resource.DNSDefaultPort {
+		namedOptionData.TransferPort = globalConfig.TransferPort
+	}
 
 	if err := handler.flushTemplateFiles(namedOptionsTpl,
 		handler.namedOptionPath, namedOptionData); err != nil {

@@ -16,16 +16,20 @@ type AgentDnsGlobalConfig struct {
 	Blackholes                []string `json:"blackholes"`
 	RecursionEnable           bool     `json:"recursionEnable"`
 	RecursiveClients          uint32   `json:"recursiveClients" rest:"required=true"`
+	TransferPort              uint32   `json:"transferPort"`
 }
 
 const (
-	DnsConfigUpdateModelLog       = "log"
-	DnsConfigUpdateModelTTL       = "ttl"
-	DnsConfigUpdateModelDnssec    = "dnssec"
-	DnsConfigUpdateModelBlackhole = "blackhole"
-	DnsConfigUpdateModelRecursion = "recursion"
-	DnsConfigUpdateModelRecursive = "recursive"
+	DnsConfigUpdateModelLog          = "log"
+	DnsConfigUpdateModelTTL          = "ttl"
+	DnsConfigUpdateModelDnssec       = "dnssec"
+	DnsConfigUpdateModelBlackhole    = "blackhole"
+	DnsConfigUpdateModelRecursion    = "recursion"
+	DnsConfigUpdateModelRecursive    = "recursive"
+	DnsConfigUpdateModelTransferPort = "transferPort"
 )
+
+const DNSDefaultPort = 53
 
 func CreateDefaultResource() restresource.Resource {
 	return &AgentDnsGlobalConfig{LogEnable: true, Ttl: 3600, RecursiveClients: 1000,
