@@ -60,7 +60,7 @@ func (zone *AgentAuthZone) ToZoneData() ZoneData {
 	}
 
 	return ZoneData{Name: zone.Name, ZoneFile: zone.GetZoneFile(),
-		Role: string(zone.Role), Masters: masters, Slaves: slaves}
+		Role: string(AuthZoneRoleMaster), Masters: masters, Slaves: slaves}
 }
 
 func formatAddress(ipOrAddress []string) string {
@@ -72,7 +72,7 @@ func formatAddress(ipOrAddress []string) string {
 	for _, address := range ipOrAddress {
 		if net.ParseIP(address) != nil {
 			addresses = append(addresses, address)
-		} else if addr, err := net.ResolveTCPAddr("tcp", address); err == nil {
+		} else if addr, err := net.ResolveTCPAddr("tcp", address); err == nil && addr.IP != nil {
 			addresses = append(addresses, addr.IP.String()+" port "+strconv.Itoa(addr.Port))
 		}
 	}

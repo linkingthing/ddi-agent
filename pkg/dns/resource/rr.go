@@ -21,6 +21,17 @@ type AgentAuthRr struct {
 	AgentView                 string `json:"-" db:"ownby,uk"`
 }
 
+type AgentAuthRrs []*AgentAuthRr
+
+func (rrs AgentAuthRrs) ToMap() map[string]*AgentAuthRr {
+	rrMap := make(map[string]*AgentAuthRr)
+	for _, rr := range rrs {
+		rrMap[rr.Name+rr.AgentView] = rr
+	}
+
+	return rrMap
+}
+
 type RR struct {
 	Name  string
 	Type  string

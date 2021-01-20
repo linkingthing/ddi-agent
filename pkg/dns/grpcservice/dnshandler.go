@@ -1260,15 +1260,21 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 		}
 
 		if updateTtl {
-			if _, err := tx.Exec("update gr_agent_auth_zone set ttl = '" +
-				strconv.FormatUint(uint64(req.Ttl), 10) + "'"); err != nil {
-				return fmt.Errorf("update updateZonesTTLSQL to db failed:%s",
-					err.Error())
+			var buf bytes.Buffer
+			buf.WriteString("UPDATE gr_agent_auth_zone SET ttl = '")
+			buf.WriteString(strconv.FormatUint(uint64(req.Ttl), 10))
+			buf.WriteString("' WHERE role = '")
+			buf.WriteString(string(resource.AuthZoneRoleMaster))
+			buf.WriteString("';")
+			if _, err := tx.Exec(buf.String()); err != nil {
+				return fmt.Errorf("update updateZonesTTLSQL to db failed:%s", err.Error())
 			}
-			if _, err := tx.Exec("update gr_agent_redirection set ttl = '" +
-				strconv.FormatUint(uint64(req.Ttl), 10) + "'"); err != nil {
-				return fmt.Errorf("update updateRedirectionTtlSQL to db failed:%s",
-					err.Error())
+			buf.Reset()
+			buf.WriteString("UPDATE gr_agent_redirection SET ttl = '")
+			buf.WriteString(strconv.FormatUint(uint64(req.Ttl), 10))
+			buf.WriteString("';")
+			if _, err := tx.Exec(buf.String()); err != nil {
+				return fmt.Errorf("update updateRedirectionTtlSQL to db failed:%s", err.Error())
 			}
 
 			if err := handler.UpdateAllRRTtl(req.Ttl, tx); err != nil {
@@ -1296,17 +1302,17 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 }
 
 func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32, tx restdb.Transaction) error {
-	var rrs []*resource.AgentAuthRr
 	var zones []*resource.AgentAuthZone
-	if err := tx.Fill(nil, &rrs); err != nil {
-		return fmt.Errorf("update all rrs ttl when get rrs from db falied:%s", err.Error())
-	}
-
-	if err := tx.Fill(nil, &zones); err != nil {
+	if err := tx.Fill(map[string]interface{}{"role": resource.AuthZoneRoleMaster}, &zones); err != nil {
 		return fmt.Errorf("update all rrs ttl when get zones from db falied:%s", err.Error())
 	}
 
-	if _, err := tx.Exec("update gr_agent_auth_rr set ttl = '" + strconv.FormatUint(uint64(ttl), 10) + "'"); err != nil {
+	if len(zones) == 0 {
+		return nil
+	}
+
+	sql := `update gr_agent_auth_rr set ttl = $1 WHERE id in (SELECT rr.id from gr_agent_auth_rr rr JOIN gr_agent_auth_zone z ON rr.zone=z.name and rr.agent_view=z.agent_view WHERE z.role = $2);`
+	if _, err := tx.Exec(sql, ttl, resource.AuthZoneRoleMaster); err != nil {
 		return fmt.Errorf("update rrs ttl to db failed:%s", err.Error())
 	}
 
