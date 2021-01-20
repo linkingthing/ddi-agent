@@ -684,7 +684,7 @@ func getDeleteForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone)
 	}
 
 	return "delete from gr_agent_forward_zone where agent_view in ('" +
-		strings.Join(views, "','") + "') and zone in ('" + strings.Join(zones, "','") + "');"
+		strings.Join(views, "','") + "') and name in ('" + strings.Join(zones, "','") + "');"
 }
 
 func getAddForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone) string {
