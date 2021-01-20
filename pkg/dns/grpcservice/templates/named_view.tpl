@@ -12,7 +12,7 @@ view "{{$view.Name}}" {
 	key key{{$view.Name}};{{range $kk, $deniedIP := $view.DeniedIPs}}!{{$deniedIP}};{{end}}{{range $kk, $acl := $view.ACLs}}{{$acl.Name}};{{end}}
 	};
 	allow-update {key key{{$view.Name}};};{{range $i, $zone := $view.Zones}}
-	zone "{{$zone.Name}}" { type forward; forward {{$zone.ForwardType}}; forwarders { {{range $ii,$ip := $zone.IPs}}{{$ip}}; {{end}}}; };{{end}}{{range $k, $dns64:= .DNS64s}}
+	zone "{{$zone.Name}}" { type forward; forward {{$zone.ForwardStyle}}; forwarders { {{range $ii,$ip := $zone.IPs}}{{$ip}}; {{end}}}; };{{end}}{{range $k, $dns64:= .DNS64s}}
         dns64 {{$dns64.Prefix}} {
         clients { {{$dns64.ClientACLName}}; };
         mapped { {{$dns64.AAddressACLName}}; };
