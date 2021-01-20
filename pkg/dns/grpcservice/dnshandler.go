@@ -693,7 +693,7 @@ func getAddForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone) st
 	}
 
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_agent_forward_zone (id, create_time, name, forward_style, ips, agent_view) values")
+	buf.WriteString("insert into gr_agent_forward_zone (id, create_time, name, forward_style, addresses, agent_view) values")
 	for _, zone := range forwardZones {
 		buf.WriteString("('")
 		id, _ := uuid.Gen()
