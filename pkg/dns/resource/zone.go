@@ -77,6 +77,10 @@ func formatAddress(ipOrAddress []string) string {
 		}
 	}
 
+	if len(addresses) == 0 {
+		return ""
+	}
+
 	return strings.Join(addresses, ";") + ";"
 }
 
