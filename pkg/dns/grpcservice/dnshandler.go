@@ -52,6 +52,8 @@ const (
 	FilePermissions       = 0777
 )
 
+const updateTtlSql = `update gr_agent_auth_rr set ttl = $1 WHERE id in (SELECT rr.id from gr_agent_auth_rr rr JOIN gr_agent_auth_zone z ON rr.zone=z.name and rr.agent_view=z.agent_view WHERE z.role = $2);`
+
 type DNSHandler struct {
 	tpl                 *template.Template
 	dnsConfPath         string
@@ -1311,8 +1313,7 @@ func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32, tx restdb.Transaction) err
 		return nil
 	}
 
-	sql := `update gr_agent_auth_rr set ttl = $1 WHERE id in (SELECT rr.id from gr_agent_auth_rr rr JOIN gr_agent_auth_zone z ON rr.zone=z.name and rr.agent_view=z.agent_view WHERE z.role = $2);`
-	if _, err := tx.Exec(sql, ttl, resource.AuthZoneRoleMaster); err != nil {
+	if _, err := tx.Exec(updateTtlSql, ttl, resource.AuthZoneRoleMaster); err != nil {
 		return fmt.Errorf("update rrs ttl to db failed:%s", err.Error())
 	}
 
