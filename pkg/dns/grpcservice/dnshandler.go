@@ -563,6 +563,12 @@ func (handler *DNSHandler) UpdateAuthZoneAXFR(req *pb.UpdateAuthZoneAXFRReq) err
 
 func (handler *DNSHandler) UpdateAuthZoneIXFR(req *pb.UpdateAuthZoneIXFRReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		for _, soa := range req.GetSoas() {
+			if err := handler.updateSoaRdata(tx, soa); err != nil {
+				return err
+			}
+		}
+
 		for _, oldAuthZoneRr := range req.OldAuthZoneRrs {
 			if err := handler.deleteAuthRRFromDB(tx, oldAuthZoneRr); err != nil {
 				return err

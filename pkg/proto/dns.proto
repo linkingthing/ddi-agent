@@ -109,18 +109,19 @@ message DeleteAuthZoneReq{
 }
 
 message CreateAuthZoneAuthRRsReq{
-    AuthZone authZone = 1;
-    repeated AuthZoneRR auth_zone_rrs = 2;
+	AuthZone authZone = 1;
+	repeated AuthZoneRR auth_zone_rrs = 2;
 }
 
 message UpdateAuthZoneAXFRReq{
-    repeated AuthZone authZones = 1;
-    repeated AuthZoneRR auth_zone_rrs = 2;
+	repeated AuthZone authZones = 1;
+	repeated AuthZoneRR auth_zone_rrs = 2;
 }
 
 message UpdateAuthZoneIXFRReq{
-    repeated AuthZoneRR old_auth_zone_rrs = 1;
-    repeated AuthZoneRR new_auth_zone_rrs = 2;
+	repeated AuthZoneRR old_auth_zone_rrs = 1;
+	repeated AuthZoneRR new_auth_zone_rrs = 2;
+	repeated AuthZoneRR soas = 3;
 }
 
 message AuthZoneRR{
