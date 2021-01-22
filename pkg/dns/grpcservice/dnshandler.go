@@ -719,8 +719,23 @@ func getAddForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone) st
 
 func (handler *DNSHandler) CreateAuthRR(req *pb.CreateAuthRRReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := handler.updateSoaRdata(tx, req.GetSoa()); err != nil {
+			return err
+		}
 		return handler.addAuthRRToDB(tx, req.Rr)
 	})
+}
+
+func (handler *DNSHandler) updateSoaRdata(tx restdb.Transaction, soa *pb.AuthZoneRR) error {
+	if soa == nil {
+		return nil
+	}
+
+	_, err := tx.Update(resource.TableAgentAuthRR, map[string]interface{}{"rdata": soa.Rdata},
+		map[string]interface{}{
+			"agent_view": soa.GetView(), "zone": soa.GetZone(),
+			"name": soa.GetName(), "rr_type": soa.GetType()})
+	return err
 }
 
 func (handler *DNSHandler) addAuthRRToDB(tx restdb.Transaction, authZoneRr *pb.AuthZoneRR) error {
@@ -836,6 +851,10 @@ func (handler *DNSHandler) UpdateAuthRR(req *pb.UpdateAuthRRReq) error {
 			req.NewRr.ViewKey = rrRes.(*resource.AgentView).Key
 		}
 
+		if err := handler.updateSoaRdata(tx, req.GetSoa()); err != nil {
+			return err
+		}
+
 		if err := handler.updateRR("key"+oldRR.AgentView, req.NewRr.ViewKey, oldRRset, oldRR.Zone, false); err != nil {
 			return fmt.Errorf("delete old rrset %s failed: %s", oldRRset.String(), err.Error())
 		}
@@ -863,6 +882,9 @@ func (handler *DNSHandler) UpdateAuthRR(req *pb.UpdateAuthRRReq) error {
 
 func (handler *DNSHandler) DeleteAuthRR(req *pb.DeleteAuthRRReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := handler.updateSoaRdata(tx, req.GetSoa()); err != nil {
+			return err
+		}
 		return handler.deleteAuthRRFromDB(tx, req.Rr)
 	})
 }
@@ -908,6 +930,10 @@ func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) err
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := handler.updateSoaRdata(tx, req.GetSoa()); err != nil {
+			return err
+		}
+
 		var zones []*resource.AgentAuthZone
 		if err := tx.Fill(map[string]interface{}{"agent_view": reqView, "name": reqZone}, &zones); err != nil {
 			return fmt.Errorf("found zone %s with view %s failed: %s", reqZone, reqView, err.Error())
