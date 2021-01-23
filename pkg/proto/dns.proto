@@ -108,22 +108,20 @@ message DeleteAuthZoneReq{
 	string name = 2;
 }
 
-//create slave zone
 message CreateAuthZoneAuthRRsReq{
-    AuthZone authZone = 1;
-    repeated AuthZoneRR auth_zone_rrs = 2;
+	AuthZone authZone = 1;
+	repeated AuthZoneRR auth_zone_rrs = 2;
 }
 
-//update zone to slave
 message UpdateAuthZoneAXFRReq{
-    repeated AuthZone authZones = 1;
-    repeated AuthZoneRR auth_zone_rrs = 2;
+	repeated AuthZone authZones = 1;
+	repeated AuthZoneRR auth_zone_rrs = 2;
 }
 
-//handle notify
 message UpdateAuthZoneIXFRReq{
-    repeated AuthZoneRR old_auth_zone_rrs = 1;
-    repeated AuthZoneRR new_auth_zone_rrs = 2;
+	repeated AuthZoneRR old_auth_zone_rrs = 1;
+	repeated AuthZoneRR new_auth_zone_rrs = 2;
+	repeated AuthZoneRR soas = 3;
 }
 
 message AuthZoneRR{
@@ -137,20 +135,24 @@ message AuthZoneRR{
 }
 
 message BatchCreateAuthRRsReq{
-    repeated AuthZoneRR auth_zone_rrs = 1;
+	repeated AuthZoneRR auth_zone_rrs = 1;
+	AuthZoneRR soa = 2;
 }
 
 message CreateAuthRRReq{
-    AuthZoneRR rr = 1;
+	AuthZoneRR rr = 1;
+	AuthZoneRR soa = 2;
 }
 
 message UpdateAuthRRReq{
-    AuthZoneRR old_rr = 1;
-    AuthZoneRR new_rr = 2;
+	AuthZoneRR old_rr = 1;
+	AuthZoneRR new_rr = 2;
+	AuthZoneRR soa = 3;
 }
 
 message DeleteAuthRRReq{
-    AuthZoneRR rr = 1;
+	AuthZoneRR rr = 1;
+	AuthZoneRR soa = 2;
 }
 
 message CreateViewReq{

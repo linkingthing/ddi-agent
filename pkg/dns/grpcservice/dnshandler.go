@@ -52,6 +52,8 @@ const (
 	FilePermissions       = 0777
 )
 
+const updateTtlSql = `update gr_agent_auth_rr set ttl = $1 WHERE id in (SELECT rr.id from gr_agent_auth_rr rr JOIN gr_agent_auth_zone z ON rr.zone=z.name and rr.agent_view=z.agent_view WHERE z.role = $2);`
+
 type DNSHandler struct {
 	tpl                 *template.Template
 	dnsConfPath         string
@@ -561,6 +563,12 @@ func (handler *DNSHandler) UpdateAuthZoneAXFR(req *pb.UpdateAuthZoneAXFRReq) err
 
 func (handler *DNSHandler) UpdateAuthZoneIXFR(req *pb.UpdateAuthZoneIXFRReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		for _, soa := range req.GetSoas() {
+			if err := handler.updateSoaRdata(tx, soa); err != nil {
+				return err
+			}
+		}
+
 		for _, oldAuthZoneRr := range req.OldAuthZoneRrs {
 			if err := handler.deleteAuthRRFromDB(tx, oldAuthZoneRr); err != nil {
 				return err
@@ -717,8 +725,23 @@ func getAddForwardZonesSql(forwardZones []*pb.FlushForwardZoneReqForwardZone) st
 
 func (handler *DNSHandler) CreateAuthRR(req *pb.CreateAuthRRReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := handler.updateSoaRdata(tx, req.GetSoa()); err != nil {
+			return err
+		}
 		return handler.addAuthRRToDB(tx, req.Rr)
 	})
+}
+
+func (handler *DNSHandler) updateSoaRdata(tx restdb.Transaction, soa *pb.AuthZoneRR) error {
+	if soa == nil {
+		return nil
+	}
+
+	_, err := tx.Update(resource.TableAgentAuthRR, map[string]interface{}{"rdata": soa.Rdata},
+		map[string]interface{}{
+			"agent_view": soa.GetView(), "zone": soa.GetZone(),
+			"name": soa.GetName(), "rr_type": soa.GetType()})
+	return err
 }
 
 func (handler *DNSHandler) addAuthRRToDB(tx restdb.Transaction, authZoneRr *pb.AuthZoneRR) error {
@@ -834,6 +857,10 @@ func (handler *DNSHandler) UpdateAuthRR(req *pb.UpdateAuthRRReq) error {
 			req.NewRr.ViewKey = rrRes.(*resource.AgentView).Key
 		}
 
+		if err := handler.updateSoaRdata(tx, req.GetSoa()); err != nil {
+			return err
+		}
+
 		if err := handler.updateRR("key"+oldRR.AgentView, req.NewRr.ViewKey, oldRRset, oldRR.Zone, false); err != nil {
 			return fmt.Errorf("delete old rrset %s failed: %s", oldRRset.String(), err.Error())
 		}
@@ -861,6 +888,9 @@ func (handler *DNSHandler) UpdateAuthRR(req *pb.UpdateAuthRRReq) error {
 
 func (handler *DNSHandler) DeleteAuthRR(req *pb.DeleteAuthRRReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := handler.updateSoaRdata(tx, req.GetSoa()); err != nil {
+			return err
+		}
 		return handler.deleteAuthRRFromDB(tx, req.Rr)
 	})
 }
@@ -906,6 +936,10 @@ func (handler *DNSHandler) BatchCreateAuthRRs(req *pb.BatchCreateAuthRRsReq) err
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := handler.updateSoaRdata(tx, req.GetSoa()); err != nil {
+			return err
+		}
+
 		var zones []*resource.AgentAuthZone
 		if err := tx.Fill(map[string]interface{}{"agent_view": reqView, "name": reqZone}, &zones); err != nil {
 			return fmt.Errorf("found zone %s with view %s failed: %s", reqZone, reqView, err.Error())
@@ -1311,8 +1345,7 @@ func (handler *DNSHandler) UpdateAllRRTtl(ttl uint32, tx restdb.Transaction) err
 		return nil
 	}
 
-	sql := `update gr_agent_auth_rr set ttl = $1 WHERE id in (SELECT rr.id from gr_agent_auth_rr rr JOIN gr_agent_auth_zone z ON rr.zone=z.name and rr.agent_view=z.agent_view WHERE z.role = $2);`
-	if _, err := tx.Exec(sql, ttl, resource.AuthZoneRoleMaster); err != nil {
+	if _, err := tx.Exec(updateTtlSql, ttl, resource.AuthZoneRoleMaster); err != nil {
 		return fmt.Errorf("update rrs ttl to db failed:%s", err.Error())
 	}
 
