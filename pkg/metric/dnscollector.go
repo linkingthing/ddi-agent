@@ -49,7 +49,7 @@ const (
 	Uint32Max = 4294967295
 )
 
-var SupportTypes = []string{"A", "AAAA", "CNAME", "HINFO", "MX", "NS", "NAPTR", "PTR", "SRV", "TXT"}
+var SupportTypes = []string{"A", "AAAA", "CNAME", "HINFO", "MX", "NS", "NAPTR", "PTR", "SRV", "SOA", "TXT"}
 
 type DNSCollector struct {
 	enabled        bool
@@ -150,7 +150,7 @@ func (dns *DNSCollector) Collect(ch chan<- prometheus.Metric) {
 
 	totalCacheHits, totalCacheMisses := dns.collectCacheHits(ch, statistics.Views)
 	if totalCacheQueries := totalCacheHits + totalCacheMisses; totalCacheQueries != 0 {
-		ch <- prometheus.MustNewConstMetric(DNSCacheHitsRatio, prometheus.CounterValue,
+		ch <- prometheus.MustNewConstMetric(DNSCacheHitsRatioTotal, prometheus.CounterValue,
 			totalCacheHits/totalCacheQueries, dns.nodeIP)
 	}
 
@@ -170,15 +170,24 @@ func (dns *DNSCollector) collectCacheHits(ch chan<- prometheus.Metric, views []V
 	for _, v := range views {
 		for _, cs := range v.Counters {
 			if cs.Type == ViewCounterTypeCacheStats {
+				var cacheHits uint64
+				var cacheMisses uint64
 				for _, c := range cs.Counters {
 					switch c.Name {
 					case CacheStatsQueryHits:
 						ch <- prometheus.MustNewConstMetric(DNSCacheHits,
 							prometheus.CounterValue, float64(c.Counter), dns.nodeIP, v.Name)
 						totalCacheHits += c.Counter
+						cacheHits = c.Counter
 					case CacheStatsQueryMisses:
 						totalCacheMisses += c.Counter
+						cacheMisses = c.Counter
 					}
+				}
+
+				if total := cacheHits + cacheMisses; total != 0 {
+					ch <- prometheus.MustNewConstMetric(DNSCacheHitsRatio,
+						prometheus.CounterValue, float64(cacheHits)/float64(total), dns.nodeIP, v.Name)
 				}
 				break
 			}
