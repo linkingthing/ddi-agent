@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -84,7 +85,7 @@ func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 		localipv6:           conf.Server.IPV6,
 		dnsServerIP:         conf.DNS.ServerIp,
 	}
-	instance.interfaceIPs, _ = getInterfaceIPs()
+	instance.interfaceIPs = []string{conf.Server.IP}
 	instance.tpl = template.Must(template.ParseGlob(filepath.Join(instance.tplPath, "*.tpl")))
 	instance.ticker = time.NewTicker(checkPeriod * time.Second)
 	instance.quit = make(chan int)
@@ -1283,6 +1284,9 @@ func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) err
 		case resource.DnsConfigUpdateModelRecursive:
 			update["recursive_clients"] = req.RecursiveClients
 		case resource.DnsConfigUpdateModelTransferPort:
+			if used, _ := isTransferPortInUsed(int(req.TransferPort)); used {
+				return fmt.Errorf("the port %d is been used", req.TransferPort)
+			}
 			update["transfer_port"] = req.TransferPort
 		default:
 			return fmt.Errorf("unknown updateState")
@@ -1393,4 +1397,18 @@ func getInterfaceIPs() ([]string, error) {
 	}
 
 	return interfaces4, nil
+}
+
+func isTransferPortInUsed(port int) (bool, error) {
+	cmd := exec.Command("sh", "-c", "netstat -anp|grep "+strconv.Itoa(port))
+	ret, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("netstat err:%s", err.Error())
+	}
+
+	if len(strings.TrimSpace(string(ret))) != 0 {
+		return true, nil
+	}
+
+	return false, nil
 }
