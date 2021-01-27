@@ -227,9 +227,9 @@ func (handler *DNSHandler) CreateACL(req *pb.CreateAclReq) error {
 
 func (handler *DNSHandler) BatchCreateACL(req *pb.BatchCreateAclReq) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		for _, acl := range req.Acls {
-			acl := &resource.AgentAcl{Name: acl.Name, Ips: acl.Ips}
-			acl.SetID(acl.ID)
+		for _, pbAcl := range req.Acls {
+			acl := &resource.AgentAcl{Name: pbAcl.Name, Ips: pbAcl.Ips}
+			acl.SetID(pbAcl.GetId())
 			if _, err := tx.Insert(acl); err != nil {
 				return fmt.Errorf("BatchCreateACL insert acl db id:%s failed: %s ", acl.ID, err.Error())
 			}
