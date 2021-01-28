@@ -527,7 +527,7 @@ func (handler *DNSHandler) initZoneFiles(tx restdb.Transaction) error {
 
 	var rrList []*resource.AgentAuthRr
 	if err := dbhandler.ListByConditionWithTx(&rrList,
-		map[string]interface{}{"orderby": "name"}, tx); err != nil {
+		map[string]interface{}{"orderby": "zone"}, tx); err != nil {
 		return err
 	}
 
@@ -535,7 +535,7 @@ func (handler *DNSHandler) initZoneFiles(tx restdb.Transaction) error {
 	for _, zone := range zones {
 		zoneData := zone.ToAuthZoneFileData()
 		for _, rr := range rrList {
-			if rr.Zone == zone.ID {
+			if rr.Zone == zone.Name && rr.AgentView == zone.AgentView {
 				rdata, err := rr.ToRR()
 				if err != nil {
 					return err
