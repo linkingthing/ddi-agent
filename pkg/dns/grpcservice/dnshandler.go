@@ -85,7 +85,7 @@ func newDNSHandler(conf *config.AgentConfig) (*DNSHandler, error) {
 		localipv6:           conf.Server.IPV6,
 		dnsServerIP:         conf.DNS.ServerIp,
 	}
-	instance.interfaceIPs = []string{conf.Server.IP}
+	instance.interfaceIPs, _ = getInterfaceIPs()
 	instance.tpl = template.Must(template.ParseGlob(filepath.Join(instance.tplPath, "*.tpl")))
 	instance.ticker = time.NewTicker(checkPeriod * time.Second)
 	instance.quit = make(chan int)
