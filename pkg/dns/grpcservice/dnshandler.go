@@ -815,7 +815,7 @@ func (handler *DNSHandler) updateRR(key string, secret string, rrset *g53.RRset,
 	}
 	msg.Header.Id = 1200
 
-	tsig, err := g53.NewTSIG(key, secret, "hmac-md5")
+	tsig, err := g53.NewTSIG(key, secret, "hmac-sha256")
 	if err != nil {
 		return err
 	}

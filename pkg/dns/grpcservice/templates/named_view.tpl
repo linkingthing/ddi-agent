@@ -1,6 +1,6 @@
 {{range $k, $view := .Views}}
 key key{{$view.Name}} {
-    algorithm hmac-md5;
+    algorithm hmac-sha256;
     secret "{{$view.Key}}";
 };
 {{end}}

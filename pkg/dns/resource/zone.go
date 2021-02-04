@@ -37,6 +37,7 @@ type ZoneData struct {
 	ZoneFile     string
 	ForwardStyle string
 	IPs          []string
+	ViewName     string
 }
 
 type AuthZoneFileData struct {
@@ -59,7 +60,7 @@ func (zone *AgentAuthZone) ToZoneData() ZoneData {
 		masters = formatAddress(zone.Masters)
 	}
 
-	return ZoneData{Name: zone.Name, ZoneFile: zone.GetZoneFile(),
+	return ZoneData{Name: zone.Name, ZoneFile: zone.GetZoneFile(), ViewName: zone.AgentView,
 		Role: string(AuthZoneRoleMaster), Masters: masters, Slaves: slaves}
 }
 
