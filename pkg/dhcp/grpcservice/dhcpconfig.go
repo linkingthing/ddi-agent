@@ -20,7 +20,8 @@ var AllInterfaces = []string{"*"}
 func genDefaultDHCP4Config(logDir string, interfaces []string, conf *config.AgentConfig) DHCP4Config {
 	return DHCP4Config{
 		DHCP4: DHCP4{
-			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir, DHCP4LogFileName, interfaces, conf),
+			GenenalConfig: genDefaultGeneralConfig(DHCP4SocketName, DHCP4LogName, logDir,
+				DHCP4LogFileName, interfaces, conf),
 		},
 	}
 }
@@ -125,11 +126,12 @@ type OutputOption struct {
 type Subnet4 struct {
 	ID               uint32         `json:"id,omitempty"`
 	Subent           string         `json:"subnet,omitempty"`
-	ClientClass      string         `json:"client-class,omitempty"`
 	Pools            []Pool         `json:"pools,omitempty"`
 	Reservations     []Reservation4 `json:"reservations,omitempty"`
 	OptionDatas      []OptionData   `json:"option-data,omitempty"`
+	ClientClass      string         `json:"client-class,omitempty"`
 	Relay            RelayAgent     `json:"relay,omitempty"`
+	Interface        string         `json:"interface,omitempty"`
 	ValidLifetime    uint32         `json:"valid-lifetime,omitempty"`
 	MaxValidLifetime uint32         `json:"max-valid-lifetime,omitempty"`
 	MinValidLifetime uint32         `json:"min-valid-lifetime,omitempty"`
@@ -154,7 +156,8 @@ type RelayAgent struct {
 func genDefaultDHCP6Config(logDir string, interfaces []string, conf *config.AgentConfig) DHCP6Config {
 	return DHCP6Config{
 		DHCP6: DHCP6{
-			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir, DHCP6LogFileName, interfaces, conf),
+			GenenalConfig: genDefaultGeneralConfig(DHCP6SocketName, DHCP6LogName, logDir,
+				DHCP6LogFileName, interfaces, conf),
 		},
 	}
 }
@@ -175,9 +178,10 @@ type Subnet6 struct {
 	Pools            []Pool         `json:"pools,omitempty"`
 	PDPools          []PDPool       `json:"pd-pools,omitempty"`
 	Reservations     []Reservation6 `json:"reservations,omitempty"`
-	ClientClass      string         `json:"client-class,omitempty"`
 	OptionDatas      []OptionData   `json:"option-data,omitempty"`
+	ClientClass      string         `json:"client-class,omitempty"`
 	Relay            RelayAgent     `json:"relay,omitempty"`
+	Interface        string         `json:"interface,omitempty"`
 	InterfaceId      string         `json:"interface-id,omitempty"`
 	ValidLifetime    uint32         `json:"valid-lifetime,omitempty"`
 	MaxValidLifetime uint32         `json:"max-valid-lifetime,omitempty"`

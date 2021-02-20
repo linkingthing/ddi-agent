@@ -267,6 +267,7 @@ func (h *DHCPHandler) CreateSubnet4(req *pb.CreateSubnet4Request) error {
 		MinValidLifetime: req.GetMinValidLifetime(),
 		OptionDatas:      genDHCPOptionDatas(Option4DNSServers, req.GetDomainServers(), req.GetRouters()),
 		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
+		Interface:        req.GetIfaceName(),
 	})
 
 	return h.reconfig4(dhcp4Conf)
@@ -377,6 +378,7 @@ func (h *DHCPHandler) UpdateSubnet4(req *pb.UpdateSubnet4Request) error {
 			dhcp4Conf.DHCP4.Subnet4s[i].OptionDatas = genDHCPOptionDatas(Option4DNSServers,
 				req.GetDomainServers(), req.GetRouters())
 			dhcp4Conf.DHCP4.Subnet4s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
+			dhcp4Conf.DHCP4.Subnet4s[i].Interface = req.GetIfaceName()
 			exists = true
 			break
 		}
@@ -433,6 +435,7 @@ func (h *DHCPHandler) CreateSubnet6(req *pb.CreateSubnet6Request) error {
 		OptionDatas:      genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil),
 		Relay:            genRelayAgent(req.GetRelayAgentAddresses()),
 		InterfaceId:      req.GetRelayAgentInterfaceId(),
+		Interface:        req.GetIfaceName(),
 	})
 
 	return h.reconfig6(dhcp6Conf)
@@ -484,6 +487,7 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 			dhcp6Conf.DHCP6.Subnet6s[i].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
 			dhcp6Conf.DHCP6.Subnet6s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
 			dhcp6Conf.DHCP6.Subnet6s[i].InterfaceId = req.GetRelayAgentInterfaceId()
+			dhcp4Conf.DHCP6.Subnet6s[i].Interface = req.GetIfaceName()
 			exists = true
 			break
 		}
