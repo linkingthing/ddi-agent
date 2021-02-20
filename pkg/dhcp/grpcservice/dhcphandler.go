@@ -487,7 +487,7 @@ func (h *DHCPHandler) UpdateSubnet6(req *pb.UpdateSubnet6Request) error {
 			dhcp6Conf.DHCP6.Subnet6s[i].OptionDatas = genDHCPOptionDatas(Option6DNSServers, req.GetDnsServers(), nil)
 			dhcp6Conf.DHCP6.Subnet6s[i].Relay = genRelayAgent(req.GetRelayAgentAddresses())
 			dhcp6Conf.DHCP6.Subnet6s[i].InterfaceId = req.GetRelayAgentInterfaceId()
-			dhcp4Conf.DHCP6.Subnet6s[i].Interface = req.GetIfaceName()
+			dhcp6Conf.DHCP6.Subnet6s[i].Interface = req.GetIfaceName()
 			exists = true
 			break
 		}
