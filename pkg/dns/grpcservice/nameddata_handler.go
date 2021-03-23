@@ -221,7 +221,7 @@ func (handler *DNSHandler) rewriteNginxHttpFile(tx restdb.Transaction) error {
 		return err
 	}
 
-	return nil
+	return handler.nginxReload()
 }
 
 func (handler *DNSHandler) addNginxHttpsFile(key, crt []byte, urlRedirect *resource.AgentUrlRedirect) error {
@@ -237,8 +237,12 @@ func (handler *DNSHandler) addNginxHttpsFile(key, crt []byte, urlRedirect *resou
 		return fmt.Errorf("writeNginxSSLFile crt failed:%s", err.Error())
 	}
 
-	return handler.flushTemplateFiles(nginxSslTpl,
-		path.Join(handler.nginxDefaultConfDir, urlRedirect.Domain+".conf"), urlRedirect)
+	if err := handler.flushTemplateFiles(nginxSslTpl,
+		path.Join(handler.nginxDefaultConfDir, urlRedirect.Domain+".conf"), urlRedirect); err != nil {
+		return err
+	}
+
+	return handler.nginxReload()
 }
 
 func (handler *DNSHandler) updateNginxHttpsFile(urlRedirect *resource.AgentUrlRedirect) error {
@@ -247,7 +251,12 @@ func (handler *DNSHandler) updateNginxHttpsFile(urlRedirect *resource.AgentUrlRe
 		return fmt.Errorf("updateNginxHttpsFile  remove file:%s  failed:%s", domainConf, err.Error())
 	}
 
-	return handler.flushTemplateFiles(nginxSslTpl, path.Join(handler.nginxDefaultConfDir, domainConf), urlRedirect)
+	if err := handler.flushTemplateFiles(
+		nginxSslTpl, path.Join(handler.nginxDefaultConfDir, domainConf), urlRedirect); err != nil {
+		return err
+	}
+
+	return handler.nginxReload()
 }
 
 func (handler *DNSHandler) removeNginxHttpsFile(domain string) error {
@@ -262,7 +271,7 @@ func (handler *DNSHandler) removeNginxHttpsFile(domain string) error {
 		return fmt.Errorf("removeNginxHttpsFile file:%s  failed:%s", handler.nginxKeyDir, err.Error())
 	}
 
-	return nil
+	return handler.nginxReload()
 }
 
 func (handler *DNSHandler) nginxReload() error {

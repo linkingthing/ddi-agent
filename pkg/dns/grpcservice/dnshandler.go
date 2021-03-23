@@ -1114,154 +1114,68 @@ func (handler *DNSHandler) DeleteRedirection(req *pb.DeleteRedirectionReq) error
 
 func (handler *DNSHandler) CreateUrlRedirect(req *pb.CreateUrlRedirectReq) error {
 	urlRedirect := &resource.AgentUrlRedirect{
-		Domain:    req.Domain,
-		Url:       req.Url,
-		AgentView: req.View,
-		IsHttps:   req.IsHttps,
+		Domain:  req.Domain,
+		Url:     req.Url,
+		IsHttps: req.IsHttps,
 	}
 
-	redirection := &resource.AgentRedirection{
-		Name:         urlRedirect.Domain,
-		Ttl:          3600,
-		RrType:       "A",
-		Rdata:        handler.localip,
-		RedirectType: resource.LocalZoneType,
-		AgentView:    urlRedirect.AgentView,
-	}
-
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		exist, _ := tx.Exists(resource.TableAgentRedirection, map[string]interface{}{"name": urlRedirect.Domain})
-		if exist {
-			return fmt.Errorf("create urlredirect domain %s is duplicate", urlRedirect.Domain)
-		}
-
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(urlRedirect); err != nil {
-			return fmt.Errorf("insert urlredirect %s to db failed:%s", urlRedirect.Domain, err.Error())
-		}
-
-		if _, err := tx.Insert(redirection); err != nil {
-			return fmt.Errorf("create urlredirect insert redirect %s to db failed:%s", redirection.Name, err.Error())
-		}
-
-		if handler.localipv6 != "" {
-			redirectionIpv6 := &resource.AgentRedirection{
-				Name:         urlRedirect.Domain,
-				Ttl:          3600,
-				RrType:       "AAAA",
-				Rdata:        handler.localipv6,
-				RedirectType: resource.LocalZoneType,
-				AgentView:    urlRedirect.AgentView,
-			}
-
-			if _, err := tx.Insert(redirectionIpv6); err != nil {
-				return fmt.Errorf("create urlredirect insert redirection ipv6 %s to db failed:%s",
-					redirectionIpv6.Name, err.Error())
-			}
-		}
-
-		if err := handler.rewriteOneRPZFile(urlRedirect.AgentView, tx); err != nil {
-			return fmt.Errorf("create urlredirect %s and rewrite rpz file failed:%s", urlRedirect.Domain, err.Error())
+			return err
 		}
 
 		if urlRedirect.IsHttps {
-			if err := handler.addNginxHttpsFile(req.Key, req.Crt, urlRedirect); err != nil {
-				return fmt.Errorf("create urlredirect %s and add nginx https file failed: %s",
-					urlRedirect.Domain, err.Error())
-			}
-		} else {
-			if err := handler.rewriteNginxHttpFile(tx); err != nil {
-				return fmt.Errorf("create urlredirect %s and rewrite nginx config failed:%s",
-					urlRedirect.Domain, err.Error())
-			}
+			return handler.addNginxHttpsFile(req.Key, req.Crt, urlRedirect)
 		}
 
-		if err := handler.nginxReload(); err != nil {
-			return fmt.Errorf("create urlredirect %s and nginx reload failed: %s",
-				urlRedirect.Domain, err.Error())
-		}
-		return nil
-	})
+		return handler.rewriteNginxHttpFile(tx)
+	}); err != nil {
+		return fmt.Errorf("create urlredirect %s failed: %s", urlRedirect.Domain, err.Error())
+	}
+	return nil
 }
 
 func (handler *DNSHandler) UpdateUrlRedirect(req *pb.UpdateUrlRedirectReq) error {
 	urlRedirect := &resource.AgentUrlRedirect{
-		Domain:    req.Domain,
-		Url:       req.Url,
-		AgentView: req.View,
-		IsHttps:   req.IsHttps,
+		Domain:  req.Domain,
+		Url:     req.Url,
+		IsHttps: req.IsHttps,
 	}
 
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableAgentUrlRedirect, map[string]interface{}{
-			"url": urlRedirect.Url}, map[string]interface{}{
-			"domain": urlRedirect.Domain, "agent_view": urlRedirect.AgentView,
-		}); err != nil {
-			return fmt.Errorf("update urlredirect %s to db failed: %s",
-				urlRedirect.Domain, err.Error())
-		}
-
-		if err := handler.rewriteOneRPZFile(urlRedirect.AgentView, tx); err != nil {
-			return fmt.Errorf("update urlredirect %s and rewrite rpz file failed:%s",
-				urlRedirect.Domain, err.Error())
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if _, err := tx.Update(resource.TableAgentUrlRedirect,
+			map[string]interface{}{"url": urlRedirect.Url},
+			map[string]interface{}{"domain": urlRedirect.Domain, "is_https": urlRedirect.IsHttps}); err != nil {
+			return err
 		}
 
 		if urlRedirect.IsHttps {
-			if err := handler.updateNginxHttpsFile(urlRedirect); err != nil {
-				return fmt.Errorf("update urlredirect %s and update nginx https file failed:%s",
-					urlRedirect.Domain, err.Error())
-			}
-		} else {
-			if err := handler.rewriteNginxHttpFile(tx); err != nil {
-				return fmt.Errorf("update urlredirect %s and update nginx config failed:%s",
-					urlRedirect.Domain, err.Error())
-			}
+			return handler.updateNginxHttpsFile(urlRedirect)
 		}
 
-		if err := handler.nginxReload(); err != nil {
-			return fmt.Errorf("update urlredirect %s and nginx reload failed:%s",
-				urlRedirect.Domain, err.Error())
-		}
-		return nil
-	})
+		return handler.rewriteNginxHttpFile(tx)
+	}); err != nil {
+		return fmt.Errorf("update urlredirect %s failed:%s", urlRedirect.Domain, err.Error())
+	}
+	return nil
 }
 
 func (handler *DNSHandler) DeleteUrlRedirect(req *pb.DeleteUrlRedirectReq) error {
-	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Delete(resource.TableAgentUrlRedirect,
-			map[string]interface{}{restdb.IDField: req.Domain}); err != nil {
-			return fmt.Errorf("delete urlredirect %s from db failed:%s",
-				req.Domain, err.Error())
-		}
-
-		if _, err := tx.Delete(resource.TableAgentRedirection,
-			map[string]interface{}{"name": req.Domain, "agent_view": req.View}); err != nil {
-			return fmt.Errorf("delete redirect %s from db failed:%s",
-				req.Domain, err.Error())
-		}
-
-		if err := handler.rewriteOneRPZFile(req.View, tx); err != nil {
-			return fmt.Errorf("delete redirect %s and rewrite rpz file failed:%s",
-				req.Domain, err.Error())
+			map[string]interface{}{"domain": req.Domain, "is_https": req.IsHttps}); err != nil {
+			return err
 		}
 
 		if req.IsHttps {
-			if err := handler.removeNginxHttpsFile(req.Domain); err != nil {
-				return fmt.Errorf("delete redirect %s and remove https file failed:%s",
-					req.Domain, err.Error())
-			}
-		} else {
-			if err := handler.rewriteNginxHttpFile(tx); err != nil {
-				return fmt.Errorf("delete redirect %s and rewrite nginx config failed:%s",
-					req.Domain, err.Error())
-			}
+			return handler.removeNginxHttpsFile(req.Domain)
 		}
 
-		if err := handler.nginxReload(); err != nil {
-			return fmt.Errorf("delete redirect %s and reload nginx failed:%s",
-				req.Domain, err.Error())
-		}
-		return nil
-	})
+		return handler.rewriteNginxHttpFile(tx)
+	}); err != nil {
+		return fmt.Errorf("delete urlredirect %s from db failed:%s", req.Domain, err.Error())
+	}
+	return nil
 }
 
 func (handler *DNSHandler) UpdateGlobalConfig(req *pb.UpdateGlobalConfigReq) error {

@@ -186,25 +186,22 @@ message DeleteViewReq{
 }
 
 message CreateUrlRedirectReq{
-	string view = 1;
-	string domain = 2;
-	string url = 3;
-	bool is_https = 4;
-	bytes key = 5;
-	bytes crt = 6;
+	string domain = 1;
+	string url = 2;
+	bool is_https = 3;
+	bytes key = 4;
+	bytes crt = 5;
 }
 
 message UpdateUrlRedirectReq{
-	string view = 1;
-	string domain = 2;
-	string url = 3;
-	bool is_https = 4;
+	string domain = 1;
+	string url = 2;
+	bool is_https = 3;
 }
 
 message DeleteUrlRedirectReq{
-	string view = 1;
-	string domain = 2;
-	bool is_https = 3;
+	string domain = 1;
+	bool is_https = 2;
 }
 
 message Redirection{
