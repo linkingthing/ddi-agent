@@ -1112,8 +1112,8 @@ func (handler *DNSHandler) DeleteRedirection(req *pb.DeleteRedirectionReq) error
 	})
 }
 
-func (handler *DNSHandler) CreateUrlRedirect(req *pb.CreateUrlRedirectReq) error {
-	urlRedirect := &resource.AgentUrlRedirect{
+func (handler *DNSHandler) CreateNginxProxy(req *pb.CreateNginxProxyReq) error {
+	urlRedirect := &resource.NginxProxy{
 		Domain:  req.Domain,
 		Url:     req.Url,
 		IsHttps: req.IsHttps,
@@ -1130,20 +1130,20 @@ func (handler *DNSHandler) CreateUrlRedirect(req *pb.CreateUrlRedirectReq) error
 
 		return handler.rewriteNginxHttpFile(tx)
 	}); err != nil {
-		return fmt.Errorf("create urlredirect %s failed: %s", urlRedirect.Domain, err.Error())
+		return fmt.Errorf("create nginx proxy %s failed: %s", urlRedirect.Domain, err.Error())
 	}
 	return nil
 }
 
-func (handler *DNSHandler) UpdateUrlRedirect(req *pb.UpdateUrlRedirectReq) error {
-	urlRedirect := &resource.AgentUrlRedirect{
+func (handler *DNSHandler) UpdateNginxProxy(req *pb.UpdateNginxProxyReq) error {
+	urlRedirect := &resource.NginxProxy{
 		Domain:  req.Domain,
 		Url:     req.Url,
 		IsHttps: req.IsHttps,
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableAgentUrlRedirect,
+		if _, err := tx.Update(resource.TableNginxProxy,
 			map[string]interface{}{"url": urlRedirect.Url},
 			map[string]interface{}{"domain": urlRedirect.Domain, "is_https": urlRedirect.IsHttps}); err != nil {
 			return err
@@ -1155,14 +1155,14 @@ func (handler *DNSHandler) UpdateUrlRedirect(req *pb.UpdateUrlRedirectReq) error
 
 		return handler.rewriteNginxHttpFile(tx)
 	}); err != nil {
-		return fmt.Errorf("update urlredirect %s failed:%s", urlRedirect.Domain, err.Error())
+		return fmt.Errorf("update nginx proxy %s failed:%s", urlRedirect.Domain, err.Error())
 	}
 	return nil
 }
 
-func (handler *DNSHandler) DeleteUrlRedirect(req *pb.DeleteUrlRedirectReq) error {
+func (handler *DNSHandler) DeleteNginxProxy(req *pb.DeleteNginxProxyReq) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Delete(resource.TableAgentUrlRedirect,
+		if _, err := tx.Delete(resource.TableNginxProxy,
 			map[string]interface{}{"domain": req.Domain, "is_https": req.IsHttps}); err != nil {
 			return err
 		}
@@ -1173,7 +1173,7 @@ func (handler *DNSHandler) DeleteUrlRedirect(req *pb.DeleteUrlRedirectReq) error
 
 		return handler.rewriteNginxHttpFile(tx)
 	}); err != nil {
-		return fmt.Errorf("delete urlredirect %s from db failed:%s", req.Domain, err.Error())
+		return fmt.Errorf("delete nginx proxy %s from db failed:%s", req.Domain, err.Error())
 	}
 	return nil
 }

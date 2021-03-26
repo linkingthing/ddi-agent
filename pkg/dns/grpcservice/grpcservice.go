@@ -208,24 +208,24 @@ func (service *DNSService) DeleteRedirection(context context.Context, req *pb.De
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) CreateUrlRedirect(context context.Context, req *pb.CreateUrlRedirectReq) (*pb.DDIResponse, error) {
-	if err := service.handler.CreateUrlRedirect(req); err != nil {
+func (service *DNSService) CreateNginxProxy(context context.Context, req *pb.CreateNginxProxyReq) (*pb.DDIResponse, error) {
+	if err := service.handler.CreateNginxProxy(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) UpdateUrlRedirect(context context.Context, req *pb.UpdateUrlRedirectReq) (*pb.DDIResponse, error) {
-	if err := service.handler.UpdateUrlRedirect(req); err != nil {
+func (service *DNSService) UpdateNginxProxy(context context.Context, req *pb.UpdateNginxProxyReq) (*pb.DDIResponse, error) {
+	if err := service.handler.UpdateNginxProxy(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 
 	return &pb.DDIResponse{Succeed: true}, nil
 }
 
-func (service *DNSService) DeleteUrlRedirect(context context.Context, req *pb.DeleteUrlRedirectReq) (*pb.DDIResponse, error) {
-	if err := service.handler.DeleteUrlRedirect(req); err != nil {
+func (service *DNSService) DeleteNginxProxy(context context.Context, req *pb.DeleteNginxProxyReq) (*pb.DDIResponse, error) {
+	if err := service.handler.DeleteNginxProxy(req); err != nil {
 		return &pb.DDIResponse{Succeed: false}, err
 	}
 

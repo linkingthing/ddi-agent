@@ -375,42 +375,42 @@ func Run(conn *grpc.ClientConn, conf *config.AgentConfig) {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
-		case CreateUrlRedirect:
-			var req pb.CreateUrlRedirectReq
+		case CreateNginxProxy:
+			var req pb.CreateNginxProxyReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal CreateUrlRedirect request failed: %s", err.Error())
+				log.Errorf("unmarshal CreateNginxProxy request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.CreateUrlRedirect(context.Background(), &req)
+				ddiResponse, err := cli.CreateNginxProxy(context.Background(), &req)
 				if err != nil {
-					log.Errorf("grpc service exec CreateUrlRedirect failed: %s", err.Error())
+					log.Errorf("grpc service exec CreateNginxProxy failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
 					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
-		case UpdateUrlRedirect:
-			var req pb.UpdateUrlRedirectReq
+		case UpdateNginxProxy:
+			var req pb.UpdateNginxProxyReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal UpdateUrlRedirect request failed: %s", err.Error())
+				log.Errorf("unmarshal UpdateNginxProxy request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.UpdateUrlRedirect(context.Background(), &req)
+				ddiResponse, err := cli.UpdateNginxProxy(context.Background(), &req)
 				if err != nil {
-					log.Errorf("grpc service exec UpdateUrlRedirect failed: %s", err.Error())
+					log.Errorf("grpc service exec UpdateNginxProxy failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
 					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {
 					log.Errorf("SendAgentEventMessage ddiResponse key:%s failed:%s", message.Key, err.Error())
 				}
 			}
-		case DeleteUrlRedirect:
-			var req pb.DeleteUrlRedirectReq
+		case DeleteNginxProxy:
+			var req pb.DeleteNginxProxyReq
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				log.Errorf("unmarshal DeleteUrlRedirect request failed: %s", err.Error())
+				log.Errorf("unmarshal DeleteNginxProxy request failed: %s", err.Error())
 			} else {
-				ddiResponse, err := cli.DeleteUrlRedirect(context.Background(), &req)
+				ddiResponse, err := cli.DeleteNginxProxy(context.Background(), &req)
 				if err != nil {
-					log.Errorf("grpc service exec DeleteUrlRedirect failed: %s", err.Error())
+					log.Errorf("grpc service exec DeleteNginxProxy failed: %s", err.Error())
 				}
 				if err := kafkaproducer.GetKafkaProducer().SendAgentEventMessage(
 					conf.Server.IP, "dns", message.Key, &req, ddiResponse, err); err != nil {

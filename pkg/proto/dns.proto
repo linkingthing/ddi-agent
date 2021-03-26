@@ -37,9 +37,9 @@ service AgentManager{
 	rpc UpdateRedirection(UpdateRedirectionReq) returns (DDIResponse){}
 	rpc DeleteRedirection(DeleteRedirectionReq) returns (DDIResponse){}
 
-	rpc CreateUrlRedirect(CreateUrlRedirectReq) returns (DDIResponse){}
-	rpc UpdateUrlRedirect(UpdateUrlRedirectReq) returns (DDIResponse){}
-	rpc DeleteUrlRedirect(DeleteUrlRedirectReq) returns (DDIResponse){}
+	rpc CreateNginxProxy(CreateNginxProxyReq) returns (DDIResponse){}
+	rpc UpdateNginxProxy(UpdateNginxProxyReq) returns (DDIResponse){}
+	rpc DeleteNginxProxy(DeleteNginxProxyReq) returns (DDIResponse){}
 
 	rpc UpdateGlobalConfig(UpdateGlobalConfigReq) returns (DDIResponse){}
 
@@ -185,7 +185,7 @@ message DeleteViewReq{
 	repeated ViewPriority view_priority = 2;
 }
 
-message CreateUrlRedirectReq{
+message CreateNginxProxyReq{
 	string domain = 1;
 	string url = 2;
 	bool is_https = 3;
@@ -193,13 +193,13 @@ message CreateUrlRedirectReq{
 	bytes crt = 5;
 }
 
-message UpdateUrlRedirectReq{
+message UpdateNginxProxyReq{
 	string domain = 1;
 	string url = 2;
 	bool is_https = 3;
 }
 
-message DeleteUrlRedirectReq{
+message DeleteNginxProxyReq{
 	string domain = 1;
 	bool is_https = 2;
 }

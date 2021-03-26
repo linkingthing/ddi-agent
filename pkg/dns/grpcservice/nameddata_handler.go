@@ -204,7 +204,7 @@ func (handler *DNSHandler) rndcZoneDumpJNLFile(zoneName string, viewName string)
 
 func (handler *DNSHandler) rewriteNginxHttpFile(tx restdb.Transaction) error {
 	data := nginxDefaultConf{}
-	var urlRedirectList []*resource.AgentUrlRedirect
+	var urlRedirectList []*resource.NginxProxy
 	if err := dbhandler.ListWithTx(&urlRedirectList, tx); err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (handler *DNSHandler) rewriteNginxHttpFile(tx restdb.Transaction) error {
 	return handler.nginxReload()
 }
 
-func (handler *DNSHandler) addNginxHttpsFile(key, crt []byte, urlRedirect *resource.AgentUrlRedirect) error {
+func (handler *DNSHandler) addNginxHttpsFile(key, crt []byte, urlRedirect *resource.NginxProxy) error {
 	if err := createOneFolder(handler.nginxKeyDir); err != nil {
 		return fmt.Errorf("create folder:%s  failed:%s", handler.nginxKeyDir, err.Error())
 	}
@@ -245,7 +245,7 @@ func (handler *DNSHandler) addNginxHttpsFile(key, crt []byte, urlRedirect *resou
 	return handler.nginxReload()
 }
 
-func (handler *DNSHandler) updateNginxHttpsFile(urlRedirect *resource.AgentUrlRedirect) error {
+func (handler *DNSHandler) updateNginxHttpsFile(urlRedirect *resource.NginxProxy) error {
 	domainConf := urlRedirect.Domain + ".conf"
 	if err := removeFile(path.Join(handler.nginxDefaultConfDir, domainConf)); err != nil {
 		return fmt.Errorf("updateNginxHttpsFile  remove file:%s  failed:%s", domainConf, err.Error())

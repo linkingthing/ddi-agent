@@ -36,9 +36,9 @@ const (
 	UpdateRedirection = "update_redirection"
 	DeleteRedirection = "delete_redirection"
 
-	CreateUrlRedirect = "create_urlredirect"
-	UpdateUrlRedirect = "update_urlredirect"
-	DeleteUrlRedirect = "delete_urlredirect"
+	CreateNginxProxy = "create_nginxproxy"
+	UpdateNginxProxy = "update_nginxproxy"
+	DeleteNginxProxy = "delete_nginxproxy"
 
 	UpdateGlobalConfig = "update_dnsglobalconfig"
 
