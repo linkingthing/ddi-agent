@@ -15,6 +15,6 @@ func PersistentResources() []restresource.Resource {
 		&resource.AgentAuthRr{},
 		&resource.AgentRedirection{},
 		&resource.AgentDnsGlobalConfig{},
-		&resource.NginxProxy{},
+		&resource.AgentNginxProxy{},
 	}
 }

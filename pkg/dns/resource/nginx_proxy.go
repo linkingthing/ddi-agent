@@ -5,9 +5,9 @@ import (
 	"github.com/zdnscloud/gorest/resource"
 )
 
-var TableNginxProxy = restdb.ResourceDBType(&NginxProxy{})
+var TableAgentNginxProxy = restdb.ResourceDBType(&AgentNginxProxy{})
 
-type NginxProxy struct {
+type AgentNginxProxy struct {
 	resource.ResourceBase `json:",inline"`
 	Domain                string `json:"domain" db:"uk"`
 	Url                   string `json:"url"`
