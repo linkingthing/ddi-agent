@@ -1260,7 +1260,7 @@ func (h *DHCPHandler) GetSubnet6LeasesCount(req *pb.GetSubnet6LeasesCountRequest
 }
 
 func (h *DHCPHandler) GetPool6Leases(req *pb.GetPool6LeasesRequest) ([]*pb.DHCPLease, error) {
-	return h.getLease6s(req.GetId(), func(address string) bool {
+	return h.getLease6s(req.GetSubnetId(), func(address string) bool {
 		return ipV6InPool(address, req.GetBeginAddress(), req.GetEndAddress())
 	})
 }
