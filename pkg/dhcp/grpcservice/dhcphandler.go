@@ -69,10 +69,13 @@ func newDHCPHandler(conf *config.AgentConfig) (*DHCPHandler, error) {
 	}
 
 	handler := &DHCPHandler{
-		agentConf:  conf,
-		cmdUrl:     cmdUrl.String(),
-		db:         db,
-		httpClient: &http.Client{Timeout: HttpClientTimeout * time.Second},
+		agentConf: conf,
+		cmdUrl:    cmdUrl.String(),
+		db:        db,
+		httpClient: &http.Client{
+			Timeout:   HttpClientTimeout * time.Second,
+			Transport: &http.Transport{DisableKeepAlives: true},
+		},
 	}
 
 	if err := handler.reconfigOrStartDHCP(true); err != nil {

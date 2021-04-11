@@ -17,7 +17,10 @@ type Exporter struct {
 }
 
 func NewExporter(conf *config.AgentConfig) (*Exporter, error) {
-	httpClient := &http.Client{Timeout: HttpClientTimeout * time.Second}
+	httpClient := &http.Client{
+		Timeout:   HttpClientTimeout * time.Second,
+		Transport: &http.Transport{DisableKeepAlives: true},
+	}
 	dnsCollector, err := newDNSCollector(conf, httpClient)
 	if err != nil {
 		return nil, err
