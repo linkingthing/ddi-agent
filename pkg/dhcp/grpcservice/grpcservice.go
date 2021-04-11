@@ -244,6 +244,14 @@ func (s *DHCPService) GetSubnet4LeasesCount(ctx context.Context, req *pb.GetSubn
 	}
 }
 
+func (s *DHCPService) GetPool4Leases(ctx context.Context, req *pb.GetPool4LeasesRequest) (*pb.GetLeasesResponse, error) {
+	if leases, err := s.handler.GetPool4Leases(req); err != nil {
+		return &pb.GetLeasesResponse{Succeed: false}, err
+	} else {
+		return &pb.GetLeasesResponse{Succeed: true, Leases: leases}, nil
+	}
+}
+
 func (s *DHCPService) GetPool4LeasesCount(ctx context.Context, req *pb.GetPool4LeasesCountRequest) (*pb.GetLeasesCountResponse, error) {
 	if count, err := s.handler.GetPool4LeasesCount(req); err != nil {
 		return &pb.GetLeasesCountResponse{Succeed: false}, err
@@ -273,6 +281,14 @@ func (s *DHCPService) GetSubnet6LeasesCount(ctx context.Context, req *pb.GetSubn
 		return &pb.GetLeasesCountResponse{Succeed: false}, err
 	} else {
 		return &pb.GetLeasesCountResponse{Succeed: true, LeasesCount: count}, nil
+	}
+}
+
+func (s *DHCPService) GetPool6Leases(ctx context.Context, req *pb.GetPool6LeasesRequest) (*pb.GetLeasesResponse, error) {
+	if leases, err := s.handler.GetPool6Leases(req); err != nil {
+		return &pb.GetLeasesResponse{Succeed: false}, err
+	} else {
+		return &pb.GetLeasesResponse{Succeed: true, Leases: leases}, nil
 	}
 }
 

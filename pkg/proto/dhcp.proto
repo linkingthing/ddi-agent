@@ -50,8 +50,9 @@ service DHCPManager {
     rpc GetReservation6LeasesCount(GetReservation6LeasesCountRequest) returns (GetLeasesCountResponse){}
 
     rpc GetSubnet4Leases(GetSubnet4LeasesRequest) returns (GetLeasesResponse){}
-
     rpc GetSubnet6Leases(GetSubnet6LeasesRequest) returns (GetLeasesResponse){}
+    rpc GetPool4Leases(GetPool4LeasesRequest) returns (GetLeasesResponse){}
+    rpc GetPool6Leases(GetPool6LeasesRequest) returns (GetLeasesResponse){}
 }
 
 message CreateSubnet4Request {
@@ -287,6 +288,18 @@ message GetSubnet4LeasesRequest{
 
 message GetSubnet6LeasesRequest{
     uint32 id = 2;
+}
+
+message GetPool4LeasesRequest{
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
+}
+
+message GetPool6LeasesRequest{
+    uint32 subnet_id = 1;
+    string begin_address = 2;
+    string end_address = 3;
 }
 
 message DHCPLease {
